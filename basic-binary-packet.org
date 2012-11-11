@@ -1,0 +1,82 @@
+#+TITLE: Basic Binary Packet
+#+AUTHOR: Mark Cox
+
+This library provides an API for communicating objects over a
+stream. The API assumes is a packet based protocol and can be extended
+to arbitrary objects. 
+
+[TABLE-OF-CONTENTS]
+
+* Introduction
+The basic binary packet library is a symbol API that permits the
+communication of objects over a stream. The library makes no
+assumptions on how the data is to be used, nor does it make any
+choices on roles for the producers or processors of the stream.
+
+The [[The Packet Protocol][packet protocol]] is intended to be very simple and extensible. An
+implementation of the protocol is written in Common Lisp.
+
+** Installation
+** Running tests
+
+* The Packet Protocol
+The protocol used for communicating objects in binary form is a packet
+based protocol. The packet sent consists of a magic header, a packet
+identifier, a payload byte count and the payload. The magic header is
+used to accommodate errors in the processing of a payload.
+
+It is important to note that each packet only contains a single
+object. This limitation does not preclude sending containers like
+lists or arrays that contain many objects. Only after receiving the
+entire payload can the object be decoded.
+
+The encoding of an object is performed by prepending the data
+representing the object with an [[Object Identifier][identifier]] which represents the type
+of object encoded.
+
+** Object Identifier
+The identifier is a 32 bit unsigned integer that
+can take the form of
+|-------+-------------------------|
+| Value | Description             |
+|-------+-------------------------|
+|     0 | NIL                     |
+|     1 | T                       |
+|     2 | Keyword                 |
+|     3 | Symbol                  |
+|     4 | UTF-8 encoded string    |
+|    10 | Unsigned 8 bit integer  |
+|    11 | Signed 8 bit integer    |
+|    12 | Unsigned 32 bit integer |
+|    13 | Signed 32 bit integer   |
+|    14 | Unsigned 64 bit integer |
+|    15 | Signed 64 bit integer   |
+|    16 | 32 bit float            |
+|    17 | 64 bit float            |
+|   100 | List (Generic)          |
+|   101 | List (Fixed)            |
+|   102 | Vector (Generic)        |
+|   103 | Vector (Fixed)          |
+|   104 | Array (Generic)         |
+|   105 | Array (Fixed)           |
+|   130 | Vector boolean          |
+|   131 | Vector unsigned 8 bit   |
+|   132 | Vector signed 8 bit     |
+|   133 | Vector unsigned 16 bit  |
+|   134 | Vector signed 16 bit    |
+|   135 | Vector unsigned 32 bit  |
+|   136 | Vector signed 32 bit    |
+|   137 | Vector 32 bit float     |
+|   138 | Vector 64 bit float     |
+|   160 | Array boolean           |
+|   161 | Array unsigned 8 bit    |
+|   162 | Array signed 8 bit      |
+|   163 | Array unsigned 16 bit   |
+|   164 | Array signed 16 bit     |
+|   165 | Array unsigned 32 bit   |
+|   166 | Array signed 32 bit     |
+|   167 | Array 32 bit float      |
+|   168 | Array 64 bit float      |
+| 65536 | User defined            |
+|-------+-------------------------|
+
