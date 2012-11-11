@@ -28,3 +28,19 @@ non NIL, indicating that MAGIC-HEADER has been read from the stream."
 		    (process v)))))
 	(process (read-byte stream))))))
 
+(defun make-payload-accumulator-function (number-of-bytes)
+  "Return a function that accumulates NUMBER-OF-BYTES bytes from a
+stream. The function returned accepts a single argument. The function
+is a state machine, only processing a single byte from stream at one
+time."
+  (let ((s (flexi-streams:make-in-memory-output-stream :element-type '(unsigned-byte 8)))
+	(byte-count 0))
+    (lambda (stream)
+      (when (>= byte-count number-of-bytes)
+	(setf byte-count 0))
+      
+      (write-byte (read-byte stream) s)
+      (incf byte-count)
+      (if (= byte-count number-of-bytes)
+	  (flexi-streams:get-output-stream-sequence s)
+	  nil))))
