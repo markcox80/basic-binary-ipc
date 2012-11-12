@@ -8,4 +8,5 @@
 			:serial t
 			:components ((:file "packages")
 				     (:file "asdf")
-				     (:file "packet")))))
+				     (:file "packet")
+				     (:file "raw-binary-data")))))
