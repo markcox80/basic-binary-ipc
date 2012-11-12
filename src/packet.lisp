@@ -62,9 +62,10 @@ of BYTES is the most significant byte."
   "Return a function that reads packets from a STREAM. The function
   returned accepts a single argument which is a STREAM. The function
   is a state machine that only processes a single byte at a time. This
-  function should be repeatedly called as bytes become availabel on
-  the stream. When function encounters a complete packet it will
-  return a vector containing the payload."
+  function should be repeatedly called as bytes become available on
+  the stream. The function will return a vector containing the payload
+  and the packet identifier as values upon accumulation of a complete
+  packet."
   (let ((state :magic-header)
 	(magic-header-fn (make-magic-header-search-function *magic-header*))
 	(four-byte-fn (make-payload-accumulator-function 4))
