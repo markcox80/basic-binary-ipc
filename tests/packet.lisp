@@ -44,3 +44,80 @@
       (dotimes (i 2)
 	(assert-false (funcall fn in)))
       (assert-error 'error (funcall fn in)))))
+
+(define-test decode-32-bit-unsigned-integer
+  (labels ((four-bytes (a b c d)
+	     (make-array 4 :element-type '(unsigned-byte 8)
+			 :initial-contents (list a b c d)))
+	   (trial (a b c d)
+	     (basic-binary-packet::decode-32-bit-unsigned-integer (four-bytes a b c d))))
+    (assert-equal      0 (trial 0 0 0 0))
+    (assert-equal      1 (trial 0 0 0 1))
+    (assert-equal    512 (trial 0 0 2 0))
+    (assert-equal 262144 (trial 0 4 0 0))
+    (assert-equal 262148 (trial 0 4 0 4))))
+
+(define-test make-packet-reader-function
+  (labels ((send (value stream)
+	     (declare (type vector value))
+	     (if (subtypep (array-element-type value) '(unsigned-byte 8))
+		 (write-sequence value stream)
+		 (send (make-array (length value)
+				   :element-type '(unsigned-byte 8)
+				   :initial-contents (map 'list #'identity value))
+		       stream))))
+    (let ((fn (basic-binary-packet::make-packet-reader-function))
+	  (bytes (flexi-streams:with-output-to-sequence (out)
+		   ;; packet 1
+		   (send basic-binary-packet::*magic-header* out)
+		   (send #(0 0 0 1) out) ;; identifier
+		   (send #(0 0 0 2) out) ;; 2 bytes of payload
+		   (send #(10 11) out)
+
+		   ;; rubbish
+		   (send #(255 0 101) out)
+		   
+		   ;; packet 2
+		   (send basic-binary-packet::*magic-header* out)
+		   (send #(0 0 0 2) out) ;; identifier
+		   (send #(0 0 0 1) out) ;; 1 bytes of payload
+		   (send #(15) out))))
+      (flexi-streams:with-input-from-sequence (in bytes)
+	;; packet 1
+	(dotimes (i (1- (+ (length basic-binary-packet::*magic-header*)
+			   4 4 2)))
+	  (assert-false (funcall fn in)))
+	(multiple-value-bind (payload identifier) (funcall fn in)
+	  (assert-true (sequence-equal-p #(10 11) payload))
+	  (assert-equal 1 identifier))
+
+	;; packet 2
+	(dotimes (i (1- (+ 3 ;; rubbish
+			   (length basic-binary-packet::*magic-header*)
+			   4 4 1)))
+	  (assert-false (funcall fn in)))
+	(multiple-value-bind (payload identifier) (funcall fn in)
+	  (assert-true (sequence-equal-p #(15) payload))
+	  (assert-equal 2 identifier))))))
+
+(define-test make-packet-reader-function/insufficient
+  (labels ((send (value stream)
+	     (declare (type vector value))
+	     (if (subtypep (array-element-type value) '(unsigned-byte 8))
+		 (write-sequence value stream)
+		 (send (make-array (length value)
+				   :element-type '(unsigned-byte 8)
+				   :initial-contents (map 'list #'identity value))
+		       stream))))
+    (let ((fn (basic-binary-packet::make-packet-reader-function))
+	  (bytes (flexi-streams:with-output-to-sequence (out)
+		   ;; packet 1
+		   (send basic-binary-packet::*magic-header* out)
+		   (send #(0 0 0 1) out) ;; identifier
+		   (send #(0 0 0 2) out) ;; 2 bytes of payload
+		   )))
+      (flexi-streams:with-input-from-sequence (in bytes)
+	;; packet 1
+	(dotimes (i (length bytes))
+	  (assert-false (funcall fn in)))
+	(assert-error 'error (funcall fn in))))))

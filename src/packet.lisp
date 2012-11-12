@@ -44,3 +44,52 @@ time."
       (if (= byte-count number-of-bytes)
 	  (flexi-streams:get-output-stream-sequence s)
 	  nil))))
+
+(defun decode-32-bit-unsigned-integer (bytes)
+  "Convert the vector of 4 bytes to a 32 bit unsigned integer. Byte 0
+of BYTES is the most significant byte."
+  (declare (type vector bytes))
+  (assert (= 4 (length bytes)))
+  (let ((rv 0))
+    (declare (type (unsigned-byte 32) rv))
+    (setf (ldb (byte 8 24) rv) (elt bytes 0)
+	  (ldb (byte 8 16) rv) (elt bytes 1)
+	  (ldb (byte 8  8) rv) (elt bytes 2)
+	  (ldb (byte 8  0) rv) (elt bytes 3))
+    rv))
+
+(defun make-packet-reader-function ()
+  "Return a function that reads packets from a STREAM. The function
+  returned accepts a single argument which is a STREAM. The function
+  is a state machine that only processes a single byte at a time. This
+  function should be repeatedly called as bytes become availabel on
+  the stream. When function encounters a complete packet it will
+  return a vector containing the payload."
+  (let ((state :magic-header)
+	(magic-header-fn (make-magic-header-search-function *magic-header*))
+	(four-byte-fn (make-payload-accumulator-function 4))
+	(payload-fn nil)
+	(identifier nil)
+	(number-of-bytes nil))
+    (lambda (stream)
+      (case state
+	(:magic-header
+	 (when (funcall magic-header-fn stream)
+	   (setf state :identifier))
+	 nil)
+	(:identifier
+	 (alexandria:when-let ((v (funcall four-byte-fn stream)))
+	   (setf identifier (decode-32-bit-unsigned-integer v)
+		 state :number-of-bytes))
+	 nil)
+	(:number-of-bytes
+	 (alexandria:when-let ((v (funcall four-byte-fn stream)))
+	   (setf number-of-bytes (decode-32-bit-unsigned-integer v)
+		 payload-fn (make-payload-accumulator-function number-of-bytes)
+		 state :payload))
+	 nil)
+	(:payload
+	 (alexandria:when-let ((v (funcall payload-fn stream)))
+	   (setf state :magic-header
+		 payload-fn nil)
+	   (values v identifier)))))))
