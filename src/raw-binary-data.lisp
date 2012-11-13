@@ -92,3 +92,10 @@
     (let ((bytes (babel:string-to-octets value :encoding :utf-8)))
       (write-value 'binary-uint32 out (length bytes))
       (write-sequence bytes out))))
+
+(define-binary-type binary-keyword ()
+  (:reader (in)
+    (intern (read-value 'binary-utf8-string in) (find-package "KEYWORD")))
+  (:writer (out value)
+    (assert (keywordp value))
+    (write-value 'binary-utf8-string out (symbol-name value))))

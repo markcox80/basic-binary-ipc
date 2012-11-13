@@ -130,3 +130,10 @@
   (let ((bytes (make-array 5 :element-type '(unsigned-byte 8) :initial-contents '(0 0 0 2 1))))
     (flexi-streams:with-input-from-sequence (in bytes)
       (assert-error 'error (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-utf8-string in)))))
+
+(define-encode-decode-test binary-keyword
+  (:type keyword)
+  (:encoder basic-binary-packet::binary-keyword)
+  (:values :one :two :three)
+  (:errors 5 "hello")
+  (:test #'eql))
