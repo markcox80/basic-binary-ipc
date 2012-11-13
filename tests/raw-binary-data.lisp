@@ -118,3 +118,15 @@
   (:values nil T)
   (:errors "hello")
   (:test #'equal))
+
+(define-encode-decode-test binary-utf8-string-test
+  (:type string)
+  (:encoder basic-binary-packet::binary-utf8-string)
+  (:values "G'day" "Mate")
+  (:errors 5)
+  (:test #'string=))
+
+(define-test binary-utf8-string-test/incomplete
+  (let ((bytes (make-array 5 :element-type '(unsigned-byte 8) :initial-contents '(0 0 0 2 1))))
+    (flexi-streams:with-input-from-sequence (in bytes)
+      (assert-error 'error (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-utf8-string in)))))
