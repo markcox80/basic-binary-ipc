@@ -137,3 +137,10 @@
   (:values :one :two :three)
   (:errors 5 "hello")
   (:test #'eql))
+
+(define-encode-decode-test binary-symbol-test
+  (:type symbol)
+  (:encoder basic-binary-packet::binary-symbol)
+  (:values 'one 'two 'three nil t)
+  (:errors 5 "hello")
+  (:test #'eql))

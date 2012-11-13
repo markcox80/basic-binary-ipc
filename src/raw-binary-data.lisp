@@ -99,3 +99,12 @@
   (:writer (out value)
     (assert (keywordp value))
     (write-value 'binary-utf8-string out (symbol-name value))))
+
+(define-binary-type binary-symbol ()
+  (:reader (in)
+    (let ((package-name (read-value 'binary-utf8-string in))
+	  (symbol-name  (read-value 'binary-utf8-string in)))
+      (intern symbol-name (find-package package-name))))
+  (:writer (out value)
+    (write-value 'binary-utf8-string out (package-name (symbol-package value)))
+    (write-value 'binary-utf8-string out (symbol-name value))))
