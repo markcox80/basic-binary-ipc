@@ -8,5 +8,6 @@
 			:serial t
 			:components ((:file "packages")
 				     (:file "packet")
-				     (:file "raw-binary-data"))))
+				     (:file "raw-binary-data")
+				     (:file "binary-data"))))
   :in-order-to ((test-op (test-op "basic-binary-packet-tests"))))

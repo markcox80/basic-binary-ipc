@@ -43,8 +43,9 @@ can take the form of
 |     0 | NIL                     |
 |     1 | T                       |
 |     2 | Keyword                 |
-|     3 | Symbol                  |
-|     4 | UTF-8 encoded string    |
+|     3 | Symbol                  | 
+|     4 | Cons  
+|     5 | UTF-8 encoded string    |
 |    10 | Unsigned 8 bit integer  |
 |    11 | Signed 8 bit integer    |
 |    12 | Unsigned 32 bit integer |

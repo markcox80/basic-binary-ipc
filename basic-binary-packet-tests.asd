@@ -9,4 +9,5 @@
 			:components ((:file "packages")
 				     (:file "asdf")
 				     (:file "packet")
-				     (:file "raw-binary-data")))))
+				     (:file "raw-binary-data")
+				     (:file "binary-data")))))
