@@ -2,7 +2,7 @@
   (:use "COMMON-LISP"
 	"COM.GIGAMONKEYS.BINARY-DATA")
   (:export #:write-packet
-	   #:create-payload
+	   #:make-packet-reader-function
 	   #:encode-object
 	   #:decode-object)
 
