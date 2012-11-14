@@ -1,62 +1,62 @@
 (in-package "BASIC-BINARY-PACKET.TESTS")
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun do-with-encode-decode-output (function object &key binary-type)
+    (let* ((bytes (flexi-streams:with-output-to-sequence (out)
+		    (encode-object out object :binary-type binary-type)))
+	   (value (flexi-streams:with-input-from-sequence (in bytes)
+		    (decode-object in))))
+      (funcall function object value bytes)))
+
+  (defmacro with-encode-decode-output ((expected actual bytes &rest args) object &body body)
+    `(do-with-encode-decode-output #'(lambda (,expected ,actual ,bytes)
+				       ,@body)
+       ,object ,@args)))
+
 (define-test binary-nil-test
-  (let ((bytes (flexi-streams:with-output-to-sequence (out)
-		 (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-object out nil))))
+  (with-encode-decode-output (exp act bytes) nil
     (assert-equal 4 (length bytes))
-    (flexi-streams:with-input-from-sequence (in bytes)
-      (assert-true (null (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-object in))))))
+    (assert-equal exp act)
+    (assert-true (null act))))
 
 (define-test binary-t-test
-  (let ((bytes (flexi-streams:with-output-to-sequence (out)
-		 (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-object out t))))
+  (with-encode-decode-output (exp act bytes) t
     (assert-equal 4 (length bytes))
-    (flexi-streams:with-input-from-sequence (in bytes)
-      (assert-equal t (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-object in)))))
+    (assert-equal exp act)))
 
 (define-test binary-cons-test
-  (let* ((item  '((a . 5) (b . 6) (:here . 2) (:garbage . t) nil))
-	 (bytes (flexi-streams:with-output-to-sequence (out)
-		  (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-object out item))))
-    (flexi-streams:with-input-from-sequence (in bytes)
-      (assert-equal item (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-object in)))))
+  (with-encode-decode-output (exp act bytes) '((a . 5) (b . 6) (:here . 2) (:garbage . t) nil)
+    (declare (ignore bytes))
+    (assert-equal exp act)))
 
 (define-test binary-list-generic-test
-  (let* ((item '((a . 5) "hello"))
-	 (bytes (flexi-streams:with-output-to-sequence (out)
-		  (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-object out item :binary-type 'basic-binary-packet::binary-list-generic))))
-    (flexi-streams:with-input-from-sequence (in bytes)
-      (assert-equal item (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-object in)))))
+  (with-encode-decode-output (exp act bytes :binary-type 'binary-list-generic) '((a . 5) "hello")
+    (declare (ignore bytes))
+    (assert-equal exp act)))
 
 (define-test binary-list-fixed-test
-  (let* ((item '("hello" "mate"))
-	 (bytes (flexi-streams:with-output-to-sequence (out)
-		  (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-object out item :binary-type 'basic-binary-packet::binary-list-fixed))))
-    (flexi-streams:with-input-from-sequence (in bytes)
-      (assert-equal item (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-object in))))
+  (with-encode-decode-output (exp act bytes :binary-type 'binary-list-fixed) '("hello" "mate")
+    (declare (ignore bytes))
+    (assert-equal exp act))
 
-  ;; an error should occur with this one because it is the wrong object type.
+  ;; Check for an error if one item in the list is the wrong type.
   (flexi-streams:with-output-to-sequence (out)
-    (assert-error 'error (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-object out (list "hello" 5) :binary-type 'basic-binary-packet::binary-list-fixed))))
+    (assert-error 'error (encode-object out (list "hello" 5) :binary-type 'binary-list-fixed))))
 
 (com.gigamonkeys.binary-data:define-binary-type my-custom-binary-type ()
   (:reader (in)
-    (let ((v (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-uint8 in)))
+    (let ((v (read-value 'binary-uint8 in)))
       (ecase v
 	(1 :one)
 	(2 :two)
 	(3 :three))))
   (:writer (out value)
-    (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-uint8
-					     out
-					     (ecase value
-					       (:one 1)
-					       (:two 2)
-					       (:three 3)))))
+    (write-value 'binary-uint8 out (ecase value
+				     (:one 1)
+				     (:two 2)
+				     (:three 3)))))
 
 (define-test custom-binary-type-test
-  (let* ((item  :one)
-	 (bytes (flexi-streams:with-output-to-sequence (out)
-		 (com.gigamonkeys.binary-data:write-value 'basic-binary-packet::binary-object out item :binary-type 'my-custom-binary-type))))
-    (flexi-streams:with-input-from-sequence (in bytes)
-      (assert-equal item (com.gigamonkeys.binary-data:read-value 'basic-binary-packet::binary-object in)))))
+  (with-encode-decode-output (exp act bytes :binary-type 'my-custom-binary-type) :one
+    (declare (ignore bytes))
+    (assert-equal exp act)))

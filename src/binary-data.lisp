@@ -88,6 +88,12 @@
       (write-value 'binary-type out binary-type)
       (write-value binary-type  out value))))
 
+(defun encode-object (stream object &key binary-type)
+  (write-value 'binary-object stream object :binary-type binary-type))
+
+(defun decode-object (stream)
+  (read-value 'binary-object stream))
+
 ;; binary-type-for-object methods
 (defmethod binary-type-for-object ((object symbol))
   (cond
