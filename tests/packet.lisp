@@ -121,3 +121,24 @@
 	(dotimes (i (length bytes))
 	  (assert-false (funcall fn in)))
 	(assert-error 'error (funcall fn in))))))
+
+(define-test write-packet
+  (let* ((read-fn (make-packet-reader-function))
+	 (item    "hello there buddy.")	 
+	 (bytes   (flexi-streams:with-output-to-sequence (out)
+		    (write-object out item :identifier 5))))
+    (flexi-streams:with-input-from-sequence (in bytes)
+      (let ((payload nil)
+	    (identifier nil))
+	(loop
+	   :with finished? := nil
+	   :until finished?
+	   :do
+	   (multiple-value-bind (v i) (funcall read-fn in)
+	     (when v
+	       (setf payload v
+		     identifier i
+		     finished? t))))
+	(assert-equal 5 identifier)
+	(flexi-streams:with-input-from-sequence (payload-stream payload)
+	  (assert-equal item (decode-object payload-stream)))))))

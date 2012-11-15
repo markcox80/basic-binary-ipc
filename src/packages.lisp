@@ -1,7 +1,8 @@
 (defpackage "BASIC-BINARY-PACKET"
   (:use "COMMON-LISP"
 	"COM.GIGAMONKEYS.BINARY-DATA")
-  (:export #:write-packet
+  (:export #:write-packet-for-payload
+	   #:write-object
 	   #:make-packet-reader-function
 	   #:encode-object
 	   #:decode-object)

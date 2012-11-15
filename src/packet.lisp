@@ -94,3 +94,26 @@ of BYTES is the most significant byte."
 	   (setf state :magic-header
 		 payload-fn nil)
 	   (values v identifier)))))))
+
+(defun write-unsigned-32-bit-integer (value stream)
+  "Write the (unsigned-byte 32) VALUE to STREAM."
+  (declare (type (unsigned-byte 32) value))
+  (let ((bytes (make-array 4 :element-type '(unsigned-byte 8))))
+    (setf (aref bytes 0) (ldb (byte 8 24) value)
+	  (aref bytes 1) (ldb (byte 8 16) value)
+	  (aref bytes 2) (ldb (byte 8  8) value)
+	  (aref bytes 3) (ldb (byte 8  0) value))
+    (write-sequence bytes stream)))
+
+(defun write-packet-for-payload (stream identifier payload)
+  "Write a basic binary packet containing PAYLOAD to STREAM."
+  (declare (type (vector (unsigned-byte 8) *) payload))
+  (write-sequence *magic-header* stream)
+  (write-unsigned-32-bit-integer identifier stream)
+  (write-unsigned-32-bit-integer (length payload) stream)
+  (write-sequence payload stream))
+
+(defun write-object (stream object &key (identifier 0) binary-type)
+  (let ((bytes (flexi-streams:with-output-to-sequence (out)
+		 (encode-object out object :binary-type binary-type))))
+    (write-packet-for-payload stream identifier bytes)))
