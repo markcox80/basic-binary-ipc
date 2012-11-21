@@ -152,11 +152,11 @@
 
 (define-binary-type binary-cons ()
   (:reader (in)
-    (cons (read-value 'binary-object in)
-	  (read-value 'binary-object in)))
+    (cons (decode-object in)
+	  (decode-object in)))
   (:writer (out value)
-    (write-value 'binary-object out (car value))
-    (write-value 'binary-object out (cdr value))))
+    (encode-object out (car value))
+    (encode-object out (cdr value))))
 
 (define-binary-type binary-list-generic ()
   (:reader (in)
@@ -166,7 +166,7 @@
   (:writer (out value)
     (write-value 'binary-uint32 out (length value))
     (dolist (item value)
-      (write-value 'binary-object out item))))
+      (encode-object out item))))
 
 (define-binary-type binary-list-fixed (item-binary-type)
   (:reader (in)
