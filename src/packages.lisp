@@ -15,6 +15,10 @@
 	   #:write-value
 	   #:define-binary-type)
 
+  ;; special binary types
+  (:export #:binary-type
+	   #:binary-object)
+
   ;; binary types
   (:export #:binary-uint8
 	   #:binary-uint16
