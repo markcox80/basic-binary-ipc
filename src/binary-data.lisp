@@ -52,7 +52,8 @@
   (= identifier *custom-binary-type-identifier*))
 
 (defgeneric binary-type-for-object (object)
-  (:documentation "Return the binary type to use for OBJECT."))
+  (:documentation "Return the symbol of the binary type to use for
+  OBJECT."))
 
 (define-binary-type binary-object-identifier ()
   (:reader (in)
