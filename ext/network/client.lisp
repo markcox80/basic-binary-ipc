@@ -1,14 +1,5 @@
 (in-package "BASIC-BINARY-PACKET.NETWORK")
 
-(defvar *event-base* (make-instance 'event-base))
-
-(defun default-event-base ()
-  *event-base*)
-
-(defun call-callback (callback &rest args)
-  (when callback
-    (apply callback args)))
-
 (defclass client ()
   ((socket
     :initarg :socket
@@ -83,7 +74,7 @@
 
 ;; All other states should generate an error.
 
-(defmethod send-object ((client client) object &key (identifier 0) binary-type)
+(defmethod basic-binary-packet:write-object ((client client) object &key (identifier 0) binary-type)
   (basic-binary-packet:write-object (socket client) object
 				    :identifier identifier
 				    :binary-type binary-type))

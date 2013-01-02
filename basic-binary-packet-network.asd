@@ -7,4 +7,5 @@
   :components ((:module "ext/network/"
 			:serial t
 			:components ((:file "packages")
+				     (:file "common")
 				     (:file "client")))))
