@@ -113,7 +113,13 @@ of BYTES is the most significant byte."
   (write-unsigned-32-bit-integer (length payload) stream)
   (write-sequence payload stream))
 
-(defun write-object (stream object &key (identifier 0) binary-type)
+(defgeneric write-object (stream object &key identifier binary-type &allow-other-keys)
+  (:documentation "Create basic binary packet using IDENTIFIER and
+  OBJECT and write it to STREAM. The BINARY-TYPE argument specifies
+  the manner in which OBJECT should be encoded in to its binary
+  representation."))
+
+(defmethod write-object ((stream stream) object &key (identifier 0) binary-type &allow-other-keys)
   (let ((bytes (flexi-streams:with-output-to-sequence (out)
 		 (encode-object out object :binary-type binary-type))))
     (write-packet-for-payload stream identifier bytes)))
