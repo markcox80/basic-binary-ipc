@@ -46,11 +46,11 @@
 (defmethod client/write ((client client) (state (eql :connecting)))
   (handler-case (progn
 		  ;; It appears that client/write can be called in the
-		  ;; event that the connection is refused too. To make
-		  ;; sure we don't transition we check that the socket
-		  ;; is operational by calling LISTEN. If LISTEN does
-		  ;; not signal an error then we can transition to the
-		  ;; next state.
+		  ;; event that the connection is refused
+		  ;; too. Therefore we must check that the socket is
+		  ;; functional in order to not transition to the
+		  ;; CONNECTED state. If LISTEN does not signal an
+		  ;; error then we can transition to the next state.
 		  (listen (socket client))
 		  (setf (state client) :connected)
 		  (call-callback (on-connection client) client))
