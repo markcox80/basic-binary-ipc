@@ -53,24 +53,27 @@
 		  ;; error then we can transition to the next state.
 		  (listen (socket client))
 		  (setf (state client) :connected)
+		  (remove-fd-handlers (event-base client) (socket-os-fd client) :write t)
 		  (call-callback (on-connection client) client))
     (socket-connection-refused-error (c)
       (client/error client c))))
 
 ;; CONNECTED STATE
 (defmethod client/read ((client client) (state (eql :connected)))
-  (multiple-value-bind (read-buffer bytes-read) (receive-from (socket client) :buffer (read-buffer client))
-    (if (zerop bytes-read)
-	(client/error client (make-instance 'end-of-file :stream (socket client)))
-	(dotimes (i bytes-read)
-	  (multiple-value-bind (payload identifier) (funcall (packet-accumulator client) (elt read-buffer i))
-	    (when payload
-	      (flexi-streams:with-input-from-sequence (in payload)
-		(let ((obj (basic-binary-packet:decode-object in)))
-		  (call-callback (on-object client) client obj identifier)))))))))
-
-(defmethod client/write ((client client) (state (eql :connected)))
-  (listen (socket client)))
+  (labels ((process-stream (stream)
+	     (multiple-value-bind (payload identifier) (funcall (packet-accumulator client) stream)
+	       (when payload
+		 (flexi-streams:with-input-from-sequence (in payload)
+		   (let ((obj (basic-binary-packet:decode-object in)))
+		     (call-callback (on-object client) client obj identifier)))))))
+    (multiple-value-bind (buffer number-of-bytes) (receive-from (socket client)
+								:buffer (read-buffer client)
+								:size (length (read-buffer client)))
+      (if (zerop number-of-bytes)
+	  (remote-client/error client (make-instance 'end-of-file :stream (socket client)))
+	  (flexi-streams:with-input-from-sequence (in buffer :end number-of-bytes)
+	    (dotimes (i number-of-bytes)
+	      (process-stream in)))))))
 
 ;; All other states should generate an error.
 
@@ -89,10 +92,8 @@
 	     (declare (ignore fd))
 	     (ecase event
 	       (:read
-		(print (list :read self (state self)))
 		(client/read self (state self)))
 	       (:write
-		(print (list :write self (state self)))
 		(client/write self (state self)))
 	       (:error
 		(client/error self exception)))))

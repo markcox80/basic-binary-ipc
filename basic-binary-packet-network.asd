@@ -8,4 +8,6 @@
 			:serial t
 			:components ((:file "packages")
 				     (:file "common")
-				     (:file "client")))))
+				     (:file "client")
+				     (:file "remote-client")
+				     (:file "server")))))
