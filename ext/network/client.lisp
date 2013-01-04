@@ -78,6 +78,7 @@
 ;; All other states should generate an error.
 
 (defmethod basic-binary-packet:write-object ((client client) object &key (identifier 0) binary-type)
+  (assert (eql (state client) :connected))
   (basic-binary-packet:write-object (socket client) object
 				    :identifier identifier
 				    :binary-type binary-type))

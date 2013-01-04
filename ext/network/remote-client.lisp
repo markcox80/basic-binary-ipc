@@ -104,6 +104,7 @@
 		 :socket (accept-connection socket :wait nil)))
 
 (defmethod basic-binary-packet:write-object ((client remote-client) object &key (identifier 0) binary-type)
+  (assert (eql (state client) :connected))
   (basic-binary-packet:write-object (socket client) object
 				    :identifier identifier
 				    :binary-type binary-type))
