@@ -1,3 +1,14 @@
 (defpackage "BASIC-BINARY-PACKET.NETWORK"
   (:use "COMMON-LISP"
-	"IOLIB"))
+	"IOLIB")
+  (:export #:process-events)
+
+  ;; The stream protocol
+  (:export #:write-object
+	   #:on-object
+	   #:force-output
+	   #:close
+	   #:on-error
+
+	   ;; errors
+	   #:end-of-file))

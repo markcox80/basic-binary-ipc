@@ -1,0 +1,153 @@
+#+TITLE: Network Extension for Basic Binary Packet
+#+AUTHOR: Mark Cox
+
+This extension to the basic binary packet library provides
+applications with the ability to send packets over a network.
+
+[TABLE-OF-CONTENTS]
+
+* Installation
+The pre-requisites for this library are
+- ~BASIC-BINARY-PACKET~
+- [[http://common-lisp.net/project/iolib/][~IOLIB~]]
+- [[https://github.com/OdonataResearchLLC/lisp-unit][Lisp Unit]] (tests only)
+
+The most current version of this library can be obtained from the git repository
+#+begin_src sh
+git clone <path>
+#+end_src
+
+Loading of this library can be achieved by evaluating
+#+begin_src lisp
+  (asdf:load-system "basic-binary-packet-network")
+#+end_src
+
+A number of tests accompany this extension to ensure it is working
+correctly. These tests can be performed by evaluating
+#+begin_src lisp
+  (asdf:test-system "basic-binary-packet-network")
+#+end_src
+
+* Introduction
+This library provides an interface for sending and receiving basic
+binary packets over a network. This functionality is divided in to the
+following components:
+- Server :: Handle new basic binary packet connections.
+- Client :: Establish a new connection to a basic binary packet
+            server.
+- Stream :: Manage a stream that can send and receive basic binary
+            packets.
+
+All of the above components use the asynchronous input and output
+functionality provided by ~IOLIB~. The main effect of this choice is
+that this library's design shares a number of similarities with
+graphical user interface APIs where by callbacks are invoked from
+within an event loop. To invoke the basic binary packet event loop
+from your application you call the function ~PROCESS-EVENTS~.
+#+begin_src lisp
+(defun process-events (&key one-shot timeout &allow-other-keys))
+#+end_src
+The keyword argument ~ONE-SHOT~ specifies that only one invocation of
+the event loop should occur. The keyword argument ~TIMEOUT~ specifies
+that the event loop should continue to wait and process events until
+no event has occurred within ~TIMEOUT~ milliseconds.
+
+The ~PROCESS-EVENTS~ function simply invokes the function
+~IOLIB:EVENT-DISPATCH~. More information on accessing the ~IOLIB~
+state is described in the [[Advanced API]] section.
+
+* Stream
+The basic binary packet network stream protocol provides an interface
+to a communication channel that can send and receive objects using the
+basic binary packet protocol.
+
+The function ~WRITE-OBJECT~ sends an ~OBJECT~ over the ~STREAM~.
+#+begin_src lisp 
+  (defgeneric write-object (object stream &key binary-type identifier &allow-other-keys))
+#+end_src
+The manner in which ~OBJECT~ is encoded is controlled by
+~BINARY-TYPE~. The receiver of the sent packet will be able to
+identify the packet using the 32-bit unsigned integer
+~IDENTIFIER~. More information on the keyword arguments can be found
+in the [[file:basic-binary-packet.org][basic binary packet documentation]].
+
+The function ~FORCE-OUTPUT~ should be invoked after ~WRITE-OBJECT~ if
+~OBJECT~ needs to be sent immediately.
+
+Objects received on the stream are obtained via the ~ON-OBJECT~
+callback.
+#+begin_src lisp  
+  (defgeneric on-object (stream))
+  (defgeneric (setf on-object) (function stream))
+#+end_src
+The assigned function must accept three arguments, the ~STREAM~ that
+received the object, the ~OBJECT~ that was sent and the ~IDENTIFIER~
+of the object.
+
+When the stream is no longer required, the function ~CLOSE~ can be
+used to release all operating system resources needed for network
+communication.
+#+begin_src lisp  
+  (defgeneric close (stream &key abort &allow-other-keys))  
+#+end_src
+
+Any errors that have occurred on a stream object are communicated
+using the ~ON-ERROR~ callback function.
+#+begin_src lisp
+  (defgeneric on-error (stream))
+  (defgeneric (setf on-error) (function stream))
+#+end_src
+This function must be a function which accepts two arguments: ~STREAM~
+and ~ERROR~. The value of ~STREAM~ denotes the stream object that is
+in error and the ~ERROR~ value is a condition object detailing the
+error. The stream is automatically closed prior to invoking the
+~ON-ERROR~ function.
+
+The stream protocol specifies that a notification should be sent when
+the remote end of the closes the basic binary packet network
+channel. The ~END-OF-FILE~ condition object is used to identify this
+event.
+
+The complete list of conditions that can be communicated is defined by
+the specific implementation of the stream protocol.
+
+* Server
+The basic binary packet network server object represents the process
+of listening for incoming connections that use the basic binary packet
+protocol. The function protocol supported by a server object is as
+follows
+#+begin_src lisp
+  (defgeneric socket (server)
+    (:documentation "Return the socket used by the server."))
+  
+  (defgeneric close (server &key &allow-other-keys)
+    (:documentation "Stop accepting connections and release all resources."))
+  
+  (defgeneric on-error (server)
+    (:documentation "Obtain the callback that is invoked when an error
+    occurs with the server."))
+  (defgeneric (setf on-error) (value server))
+  
+  (defgeneric on-close (server)
+    (:documentation "Obtain the callback that is invoked when the server
+    is closed."))
+  (defgeneric (setf on-close) (value server))
+  
+  (defgeneric on-new-connection (server)
+    (:documentation "Obtain the callback that is invoked when a new
+    connection is received by the server."))
+  (defgeneric (setf on-new-connection) (value server))
+#+end_src
+
+A server object can be created using the function ~MAKE-SERVER~. 
+#+begin_src lisp
+(defun make-server (socket &key on-error on-close on-connection))
+#+end_src
+The ~SOCKET~ argument is an initialised ~IOLIB~ socket. A simple IPv4
+socket can be constructed with the provided function
+~MAKE-IPV4-SERVER-SOCKET~. The keyword arguments provide convenient
+access to the callback accessors defined above.
+
+* Client
+
+* Advanced API
