@@ -27,7 +27,9 @@
   (call-callback (on-error server) server exception))
 
 (defun server/read (server)  
-  (call-callback (on-new-connection server) server (accept-remote-client (socket server))))
+  (call-callback (on-new-connection server) server
+		 (accept-remote-client (socket server)
+				       :event-base (event-base server))))
 
 (defmethod initialize-instance :after ((self server) &key)
   (labels ((handler (fd event exception)
@@ -57,7 +59,7 @@
     (assert rv)
     rv))
 
-(defun make-server (address port &key (reuse-address t) (backlog 5) &allow-other-keys)
+(defun make-server (address port &key (reuse-address t) (backlog 5))
   (let ((s (make-socket :connect :passive
 			:type :stream
 			:address-family :internet

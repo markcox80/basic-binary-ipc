@@ -99,9 +99,10 @@
 
     (setf state :accepting)))
 
-(defun accept-remote-client (socket)
+(defun accept-remote-client (socket &key (event-base (default-event-base)))
   (make-instance 'remote-client
-		 :socket (accept-connection socket :wait nil)))
+		 :socket (accept-connection socket :wait nil)
+		 :event-base event-base))
 
 (defmethod connectedp ((client remote-client))
   (eql (state client) :connected))
