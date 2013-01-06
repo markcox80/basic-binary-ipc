@@ -10,7 +10,8 @@
 
    (on-new-connection
     :initarg :on-new-connection
-    :accessor on-new-connection)
+    :accessor on-new-connection
+    :initform (error "The callback ON-NEW-CONNECTION must have a function."))
    (on-error
     :initarg :on-error
     :accessor on-error)
@@ -19,14 +20,14 @@
     :accessor state))
   (:default-initargs
    :event-base (default-event-base)
-   :on-new-connection nil
    :on-error nil))
 
 (defun server/error (server exception)
   (close server)
   (call-callback (on-error server) server exception))
 
-(defun server/read (server)  
+(defun server/read (server)
+  (assert (on-new-connection server))
   (call-callback (on-new-connection server) server
 		 (accept-remote-client (socket server)
 				       :event-base (event-base server))))
