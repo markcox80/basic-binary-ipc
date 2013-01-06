@@ -7,6 +7,8 @@
   (:export #:write-object
 	   #:on-object
 	   #:force-output
+	   #:connectedp
+	   #:on-connection
 	   #:close
 	   #:on-error
 

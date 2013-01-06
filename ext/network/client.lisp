@@ -76,9 +76,12 @@
 	      (process-stream in)))))))
 
 ;; All other states should generate an error.
+(defmethod connectedp ((client client))
+  (and (eql (state client) :connected)
+       t))
 
 (defmethod basic-binary-packet:write-object ((client client) object &key (identifier 0) binary-type)
-  (assert (eql (state client) :connected))
+  (assert (connectedp client))
   (basic-binary-packet:write-object (socket client) object
 				    :identifier identifier
 				    :binary-type binary-type))

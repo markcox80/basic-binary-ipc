@@ -103,8 +103,11 @@
   (make-instance 'remote-client
 		 :socket (accept-connection socket :wait nil)))
 
+(defmethod connectedp ((client remote-client))
+  (eql (state client) :connected))
+
 (defmethod basic-binary-packet:write-object ((client remote-client) object &key (identifier 0) binary-type)
-  (assert (eql (state client) :connected))
+  (assert (connectedp client))
   (basic-binary-packet:write-object (socket client) object
 				    :identifier identifier
 				    :binary-type binary-type))
