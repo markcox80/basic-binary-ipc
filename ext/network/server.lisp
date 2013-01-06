@@ -60,6 +60,9 @@
     (assert rv)
     rv))
 
+(defmethod (setf on-new-connection) ((value null) (object server))
+  (error "The callback function ON-NEW-CONNECTION cannot be NIL."))
+
 (defun make-server (address port &key (reuse-address t) (backlog 5))
   (let ((s (make-socket :connect :passive
 			:type :stream
