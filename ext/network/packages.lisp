@@ -13,4 +13,23 @@
 	   #:on-error
 
 	   ;; errors
-	   #:end-of-file))
+	   #:end-of-file)
+
+  ;; The server protocol
+  (:export #:make-server
+
+	   #:on-new-connection
+	   #:on-error
+	   #:close)
+
+  ;; The client protocol
+  (:export #:make-client)
+
+  
+  ;; Advanced API
+  (:export #:*event-base*
+	   #:event-base
+	   #:socket
+
+	   #:client
+	   #:server))
