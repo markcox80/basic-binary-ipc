@@ -7,8 +7,7 @@ applications with the ability to send packets over a network.
 [TABLE-OF-CONTENTS]
 
 * Installation
-The pre-requisites for this library are
-- ~BASIC-BINARY-PACKET~
+The prerequisites for this library are
 - [[http://common-lisp.net/project/iolib/][~IOLIB~]]
 - [[https://github.com/OdonataResearchLLC/lisp-unit][Lisp Unit]] (tests only)
 
@@ -57,32 +56,48 @@ The ~PROCESS-EVENTS~ function simply invokes the function
 state is described in the [[Advanced API]] section.
 
 * Stream
-The basic binary packet network stream protocol provides an interface
-to a communication channel that can send and receive objects using the
-basic binary packet protocol.
+The basic binary packet network stream protocol models the behavior of
+a communication channel that can send and receive objects using the
+basic binary packet protocol. An important characteristic of the
+stream is that the order in which objects are received is the same as
+the order they were written.
 
-The function ~WRITE-OBJECT~ sends an ~OBJECT~ over the ~STREAM~.
+The function ~WRITE-OBJECT~ sends an ~OBJECT~ over the ~STREAM~. The
+function ~FORCE-OUTPUT~ should be invoked after ~WRITE-OBJECT~ if
+~OBJECT~ needs to be sent immediately.
 #+begin_src lisp 
   (defgeneric write-object (object stream &key binary-type identifier &allow-other-keys))
 #+end_src
-The manner in which ~OBJECT~ is encoded is controlled by
-~BINARY-TYPE~. The receiver of the sent packet will be able to
-identify the packet using the 32-bit unsigned integer
+The manner in which ~OBJECT~ is encoded is controlled by the
+~BINARY-TYPE~ argument. The receiver of the sent packet will be able
+to identify the packet using the 32-bit unsigned integer
 ~IDENTIFIER~. More information on the keyword arguments can be found
 in the [[file:basic-binary-packet.org][basic binary packet documentation]].
 
-The function ~FORCE-OUTPUT~ should be invoked after ~WRITE-OBJECT~ if
-~OBJECT~ needs to be sent immediately.
+It is an error if ~WRITE-OBJECT~ is called before the stream is in the
+connected state. This can be determined directly using the function
+~CONNECTEDP~.
+#+begin_src lisp
+  (defgeneric connectedp (stream))
+#+end_src
+An alternative method is to register an ~ON-CONNECTION~ callback
+function.
+#+begin_src lisp
+  (defgeneric on-connection (stream))
+  (defgeneric (setf on-connection) (function stream))
+#+end_src
+The callback function is invoked with a single object that is the
+stream that has successfully connected to a server.
 
-Objects received on the stream are obtained via the ~ON-OBJECT~
+Objects decoded from stream data are obtained via the ~ON-OBJECT~
 callback.
 #+begin_src lisp  
   (defgeneric on-object (stream))
   (defgeneric (setf on-object) (function stream))
 #+end_src
 The assigned function must accept three arguments, the ~STREAM~ that
-received the object, the ~OBJECT~ that was sent and the ~IDENTIFIER~
-of the object.
+received the object, the ~OBJECT~ that was sent and the packet
+~IDENTIFIER~ used to transmit the object.
 
 When the stream is no longer required, the function ~CLOSE~ can be
 used to release all operating system resources needed for network
@@ -97,57 +112,95 @@ using the ~ON-ERROR~ callback function.
   (defgeneric on-error (stream))
   (defgeneric (setf on-error) (function stream))
 #+end_src
-This function must be a function which accepts two arguments: ~STREAM~
-and ~ERROR~. The value of ~STREAM~ denotes the stream object that is
-in error and the ~ERROR~ value is a condition object detailing the
-error. The stream is automatically closed prior to invoking the
-~ON-ERROR~ function.
+The ~ON-ERROR~ function must accept two arguments, the ~STREAM~ in
+error and the ~ERROR~ condition. The stream is automatically closed
+prior to invoking the ~ON-ERROR~ function.
 
-The stream protocol specifies that a notification should be sent when
-the remote end of the closes the basic binary packet network
-channel. The ~END-OF-FILE~ condition object is used to identify this
-event.
+An ~END-OF-FILE~ condition object is used to identify the event where
+the communication channel is terminated by the other end of the
+stream.
 
 The complete list of conditions that can be communicated is defined by
 the specific implementation of the stream protocol.
 
 * Server
-The basic binary packet network server object represents the process
-of listening for incoming connections that use the basic binary packet
-protocol. The function protocol supported by a server object is as
-follows
+A basic binary packet network server listens for connections that use
+the basic binary packet protocol. Starting a server is achieved by
+using the ~MAKE-SERVER~ function.
 #+begin_src lisp
-  (defgeneric socket (server)
-    (:documentation "Return the socket used by the server."))
-  
-  (defgeneric close (server &key &allow-other-keys)
-    (:documentation "Stop accepting connections and release all resources."))
-  
-  (defgeneric on-error (server)
-    (:documentation "Obtain the callback that is invoked when an error
-    occurs with the server."))
-  (defgeneric (setf on-error) (value server))
-  
-  (defgeneric on-close (server)
-    (:documentation "Obtain the callback that is invoked when the server
-    is closed."))
-  (defgeneric (setf on-close) (value server))
-  
-  (defgeneric on-new-connection (server)
-    (:documentation "Obtain the callback that is invoked when a new
-    connection is received by the server."))
-  (defgeneric (setf on-new-connection) (value server))
+  (defun make-server (address port &key reuse-address backlog))
+#+end_src
+The returned object represents an IPv4 network server that listens for
+connections to the port number ~PORT~ on the host interface ~ADDRESS~.
+The ~ADDRESS~ argument is an ~IOLIB~ Internet address object and
+~PORT~ is an unsigned 16 bit integer. If the keyword argument
+~REUSE-ADDRESS~ is true, then ~MAKE-SERVER~ will not signal an error
+if the ~ADDRESS~ and ~PORT~ pair were recently used as a server on the
+current host. The ~BACKLOG~ argument represents the number of pending
+unaccepted connections the operating system will hold
+available. Exceeding this number results in any new connection being
+refused.
+
+The object returned by ~MAKE-SERVER~ supports a number of functions
+that permit interaction with the running server.
+
+Notifications of new accepted connections are performed using the
+~ON-NEW-CONNECTION~ callback function.
+#+begin_src lisp  
+  (defgeneric on-new-connection (server))
+  (defgeneric (setf on-new-connection) (function server))
+#+end_src
+The callback function must accept two arguments, the ~SERVER~ object
+that accepted the connection and a ~STREAM~ object that implements the
+[[*Stream][stream]] protocol. Please be aware that the ~STREAM~ object will not be
+in the connected state prior to calling the callback function. The
+[[*Stream][stream]] documentation outlines when the stream is ready for
+communication. Lastly, any operation involving the ~SERVER~ instance
+only applies to the ~SERVER~ as the accepted connection is entirely
+managed by the newly created ~STREAM~ object.
+
+Terminating the server is achieved by calling the ~CLOSE~ function.
+#+begin_src lisp
+  (defgeneric close (server &key &allow-other-keys))
 #+end_src
 
-A server object can be created using the function ~MAKE-SERVER~. 
-#+begin_src lisp
-(defun make-server (socket &key on-error on-close on-connection))
+Notifications of any error involving the server specifically will be
+communicated via the ~ON-ERROR~ callback.
+#+begin_src lisp  
+  (defgeneric on-error (server))
+  (defgeneric (setf on-error) (value server))
 #+end_src
-The ~SOCKET~ argument is an initialised ~IOLIB~ socket. A simple IPv4
-socket can be constructed with the provided function
-~MAKE-IPV4-SERVER-SOCKET~. The keyword arguments provide convenient
-access to the callback accessors defined above.
+The function ~CLOSE~ will be invoked on the server object prior to the
+notification. The ~IOLIB~ documentation is unclear on what type of
+errors a server socket will encounter at run time. I will update this
+as more detailed information is obtained.
 
 * Client
+A basic binary packet client communicates to a server using the basic
+binary packet protocol. Connecting to a remote server is performed
+using the ~MAKE-CLIENT~ function.
+#+begin_src lisp
+(defun make-client (address port))
+#+end_src
+This function will return an object that is in the process of
+connecting to a server listening on port number ~PORT~ at Internet
+~ADDRESS~. The ~PORT~ argument must be an unsigned 16 bit number and
+the ~ADDRESS~ argument is an ~IOLIB~ address object.
+
+The returned object implements the [[*Stream][stream]] protocol in order to send
+and receive objects.
 
 * Advanced API
+The advanced API provides access to two aspects of this extension, the
+~IOLIB~ event base and expanding the types of stream sockets the
+implementation can support.
+
+** IOLIB
+The objects returned by ~MAKE-SERVER~ and ~MAKE-CLIENT~ utilise the
+asynchronous API provided by ~IOLIB~. Key to this API is the
+~IOLIB:EVENT-BASE~ object. All objects created by in this library
+share a single ~IOLIB:EVENT-BASE~ object. This object can be obtained
+using the ~*EVENT-BASE*~ dynamic variable.
+
+** Using sockets that are not IPV4.
+I will write this section on request.
