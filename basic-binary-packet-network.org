@@ -66,7 +66,7 @@ The function ~WRITE-OBJECT~ sends an ~OBJECT~ over the ~STREAM~. The
 function ~FORCE-OUTPUT~ should be invoked after ~WRITE-OBJECT~ if
 ~OBJECT~ needs to be sent immediately.
 #+begin_src lisp 
-  (defgeneric write-object (object stream &key binary-type identifier &allow-other-keys))
+  (defgeneric write-object (stream object &key binary-type identifier &allow-other-keys))
 #+end_src
 The manner in which ~OBJECT~ is encoded is controlled by the
 ~BINARY-TYPE~ argument. The receiver of the sent packet will be able

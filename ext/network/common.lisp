@@ -42,7 +42,7 @@ event has been processed within TIMEOUT milliseconds.
 
 ;; The stream protocol
 
-(defgeneric write-object (object stream &key binary-type identifier &allow-other-keys)
+(defgeneric write-object (stream object &key binary-type identifier &allow-other-keys)
   (:documentation "Write OBJECT to STREAM using the basic binary
   packet protocol. The binary encoding used is determined by
   BINARY-TYPE. The argument IDENTIFIER represents the 32 bit unsigned
