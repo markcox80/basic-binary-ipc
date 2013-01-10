@@ -1,5 +1,19 @@
 (in-package "BASIC-BINARY-PACKET.NETWORK")
 
+;; The server protocol
+;; - Utilises the socket management protocol too.
+(defgeneric on-new-connection (server)
+  (:documentation "Obtain the callback that is invoked when SERVER
+  accepts a new client connection."))
+
+(defgeneric (setf on-new-connection) (function server)
+  (:documentation "Obtain the callback that is invoked when SERVER
+  accepts a new client connection. FUNCTION must accept two arguments,
+  the SERVER object that accepted the new connection and an object
+  that implements the stream protocol."))
+
+;; The server implementation.
+
 (defclass server ()
   ((socket
     :initarg :socket
@@ -63,7 +77,24 @@
 (defmethod (setf on-new-connection) ((value null) (object server))
   (error "The callback function ON-NEW-CONNECTION cannot be NIL."))
 
-(defun make-server (address port &key (reuse-address t) (backlog 5))
+(defun make-server (address port on-new-connection &key (reuse-address t) (backlog 5))
+  "Start a server that will accept connections to PORT on the
+interface ADDRESS. The return value of the function is an object that
+implements the SERVER protocol.
+
+The callback function ON-NEW-CONNECTION will be invoked when the
+server accepts the connection. The function must accept two arguments,
+the SERVER object that accepted the connection and an OBJECT that
+implements the stream protocol.
+
+If the keyword argument REUSE-ADDRESS is non-NIL then MAKE-SERVER will
+not signal an error if the PORT and ADDRESS pair were recently used by
+another process.
+
+The BACKLOG argument specifies the maximum number of pending
+connections that will be queued before the operating system will start
+dropping new connections.
+"
   (let ((s (make-socket :connect :passive
 			:type :stream
 			:address-family :internet
@@ -72,6 +103,8 @@
 	(progn
 	  (bind-address s address :reuse-address reuse-address :port port)
 	  (listen-on s :backlog backlog)
-	  (make-instance 'server :socket s))
+	  (make-instance 'server
+			 :socket s
+			 :on-new-connection on-new-connection))
       (:abort
        (close s)))))

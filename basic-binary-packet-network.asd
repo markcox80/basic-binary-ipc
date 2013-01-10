@@ -2,7 +2,8 @@
 
 (defsystem "basic-binary-packet-network"
   :author "Mark Cox"
-  :description ""
+  :description "An extension to the basic binary packet library that
+  supports transmitting and receiving packets over a network."
   :depends-on ("basic-binary-packet" "iolib")
   :components ((:module "ext/network/"
 			:serial t

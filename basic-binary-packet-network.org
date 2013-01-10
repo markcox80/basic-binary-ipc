@@ -128,18 +128,20 @@ A basic binary packet network server listens for connections that use
 the basic binary packet protocol. Starting a server is achieved by
 using the ~MAKE-SERVER~ function.
 #+begin_src lisp
-  (defun make-server (address port &key reuse-address backlog))
+  (defun make-server (address port on-new-connection &key reuse-address backlog))
 #+end_src
 The returned object represents an IPv4 network server that listens for
-connections to the port number ~PORT~ on the host interface ~ADDRESS~.
-The ~ADDRESS~ argument is an ~IOLIB~ Internet address object and
-~PORT~ is an unsigned 16 bit integer. If the keyword argument
-~REUSE-ADDRESS~ is true, then ~MAKE-SERVER~ will not signal an error
-if the ~ADDRESS~ and ~PORT~ pair were recently used as a server on the
-current host. The ~BACKLOG~ argument represents the number of pending
-unaccepted connections the operating system will hold
-available. Exceeding this number results in any new connection being
-refused.
+connections to the port number ~PORT~ on the host interface
+~ADDRESS~. The ~ON-NEW-CONNECTION~ argument is a callback function
+that will be invoked when the server accepts a new connection. Details
+about the callback function will be explained shortly.  The ~ADDRESS~
+argument is an ~IOLIB~ Internet address object and ~PORT~ is an
+unsigned 16 bit integer. If the keyword argument ~REUSE-ADDRESS~ is
+true, then ~MAKE-SERVER~ will not signal an error if the ~ADDRESS~ and
+~PORT~ pair were recently used as a server on the current host. The
+~BACKLOG~ argument represents the number of pending unaccepted
+connections the operating system will hold available. Exceeding this
+number results in any new connection being refused.
 
 The object returned by ~MAKE-SERVER~ supports a number of functions
 that permit interaction with the running server.

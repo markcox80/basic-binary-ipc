@@ -118,6 +118,9 @@
     rv))
 
 (defun make-client (address port)
+  "Start a connection to a basic binary packet server listening on
+port number PORT at Internet ADDRESS. The function will return an
+object that implements the STREAM protocol."
   (let ((s (make-socket :connect :active
 			:type :stream
 			:address-family :internet
