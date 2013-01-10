@@ -95,6 +95,7 @@ The BACKLOG argument specifies the maximum number of pending
 connections that will be queued before the operating system will start
 dropping new connections.
 "
+  (assert on-new-connection)
   (let ((s (make-socket :connect :passive
 			:type :stream
 			:address-family :internet
