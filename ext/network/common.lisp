@@ -42,11 +42,13 @@ event has been processed within TIMEOUT milliseconds.
 
 ;; The stream protocol
 
-(defgeneric write-object (stream object &key binary-type identifier &allow-other-keys)
+(defgeneric write-object (stream object &key binary-type identifier force &allow-other-keys)
   (:documentation "Write OBJECT to STREAM using the basic binary
   packet protocol. The binary encoding used is determined by
   BINARY-TYPE. The argument IDENTIFIER represents the 32 bit unsigned
-  number used to identify the transmitted packet at the receiver."))
+  number used to identify the transmitted packet at the receiver. A
+  non-NIL FORCE specifies that the assembled packet is to be sent
+  immediately."))
 
 (defgeneric connectedp (stream)
   (:documentation "Returns non-NIL if OBJECT is in the connected state."))
