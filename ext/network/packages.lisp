@@ -6,7 +6,6 @@
   ;; The stream protocol
   (:export #:write-object
 	   #:on-object
-	   #:force-output
 	   #:connectedp
 	   #:on-connection
 	   #:close
