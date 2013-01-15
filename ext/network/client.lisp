@@ -80,11 +80,13 @@
   (and (eql (state client) :connected)
        t))
 
-(defmethod write-object ((client client) object &key (identifier 0) binary-type)
+(defmethod write-object ((client client) object &key (identifier 0) binary-type (force t))
   (assert (connectedp client))
   (basic-binary-packet:write-object (socket client) object
 				    :identifier identifier
-				    :binary-type binary-type))
+				    :binary-type binary-type)
+  (when force
+    (force-output (socket client))))
 
 (defun client/error (client exception)
   (close client)

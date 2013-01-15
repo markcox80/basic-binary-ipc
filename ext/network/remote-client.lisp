@@ -110,8 +110,10 @@
 (defmethod connectedp ((client remote-client))
   (eql (state client) :connected))
 
-(defmethod write-object ((client remote-client) object &key (identifier 0) binary-type)
+(defmethod write-object ((client remote-client) object &key (identifier 0) binary-type (force t))
   (assert (connectedp client))
   (basic-binary-packet:write-object (socket client) object
 				    :identifier identifier
-				    :binary-type binary-type))
+				    :binary-type binary-type)
+  (when force
+    (force-output (socket client))))
