@@ -14,6 +14,9 @@
    (on-error
     :initarg :on-error
     :accessor on-error)
+   (on-connection
+    :initarg :on-connection
+    :accessor on-connection)
    
    (state
     :accessor state)
@@ -26,7 +29,8 @@
   (:default-initargs
    :event-base (default-event-base)
    :on-object nil
-   :on-error nil))
+   :on-error nil
+   :on-connection nil))
 
 (defun remote-client/error (client exception)
   (close client)
@@ -36,14 +40,13 @@
 (defgeneric remote-client/write (client state))
 
 (defmethod remote-client/read ((client remote-client) (state (eql :accepting)))
-  (listen (socket client))
-  (remove-fd-handlers (event-base client) (socket-os-fd client) :write t)
-  (setf (state client) :connected))
+  (listen (socket client)))
 
 (defmethod remote-client/write ((client remote-client) (state (eql :accepting)))
   (listen (socket client))
   (remove-fd-handlers (event-base client) (socket-os-fd client) :write t)
-  (setf (state client) :connected))
+  (setf (state client) :connected)
+  (call-callback (on-connection client) client))
 
 (defmethod remote-client/read ((client remote-client) (state (eql :connected)))
   (labels ((process-stream (stream)
