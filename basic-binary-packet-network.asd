@@ -11,4 +11,5 @@
 				     (:file "common")
 				     (:file "client")
 				     (:file "remote-client")
-				     (:file "server")))))
+				     (:file "server"))))
+  :in-order-to ((test-op (test-op "basic-binary-packet-network-tests"))))
