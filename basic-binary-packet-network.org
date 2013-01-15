@@ -62,17 +62,17 @@ basic binary packet protocol. An important characteristic of the
 stream is that the order in which objects are received is the same as
 the order they were written.
 
-The function ~WRITE-OBJECT~ sends an ~OBJECT~ over the ~STREAM~. The
-function ~FORCE-OUTPUT~ should be invoked after ~WRITE-OBJECT~ if
-~OBJECT~ needs to be sent immediately.
+The function ~WRITE-OBJECT~ sends an ~OBJECT~ over the ~STREAM~. 
 #+begin_src lisp 
-  (defgeneric write-object (stream object &key binary-type identifier &allow-other-keys))
+  (defgeneric write-object (stream object &key binary-type identifier force &allow-other-keys))
 #+end_src
 The manner in which ~OBJECT~ is encoded is controlled by the
 ~BINARY-TYPE~ argument. The receiver of the sent packet will be able
 to identify the packet using the 32-bit unsigned integer
-~IDENTIFIER~. More information on the keyword arguments can be found
-in the [[file:basic-binary-packet.org][basic binary packet documentation]].
+~IDENTIFIER~. A non-NIL ~FORCE~ argument specifies that the assembled
+packet is to be sent immediately. More information on the keyword
+arguments ~BINARY-TYPE~ and ~IDENTIFIER~ can be found in the [[file:basic-binary-packet.org][basic
+binary packet documentation]].
 
 It is an error if ~WRITE-OBJECT~ is called before the stream is in the
 connected state. This can be determined directly using the function
