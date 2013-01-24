@@ -58,15 +58,16 @@
 				     (setf client-connected t)))
     (unwind-protect
 	 (progn
-	   (dotimes (i 10)
-	     (process-events :timeout 1)
-	     (when (and ; remote-client-connected
-			client-connected)
-	       (print :writing)
-	       (write-object client 5 :identifier 2)
-	       (setf remote-client-connected nil
-		     client-connected nil))
-	     (sleep 0.5))
+	   (loop
+	      :for attempt :from 0 :to 10
+	      :until (and received-object received-identifier)
+	      :do
+	      (process-events :timeout 1)
+	      (when (and remote-client-connected
+			 client-connected)
+		(write-object client 5 :identifier 2)
+		(setf remote-client-connected nil
+		      client-connected nil)))
 	   (assert-equal 5 received-object)
 	   (assert-equal 2 received-identifier)
 	   (assert-true remote-client))
