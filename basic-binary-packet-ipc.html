@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>IPC Extension for Basic Binary Packet</title>
+<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
+<meta name="title" content="IPC Extension for Basic Binary Packet"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2013-01-28 20:05:33 EST"/>
+<meta name="author" content="Mark Cox"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  div.inlinetask {
+    padding:10px;
+    border:2px solid gray;
+    margin:10px;
+    background: #ffffcc;
+  }
+  textarea { overflow-x: auto; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+
+</head>
+<body>
+
+<div id="preamble">
+
+</div>
+
+<div id="content">
+<h1 class="title">IPC Extension for Basic Binary Packet</h1>
+
+<p>This library is a supporting library that provides the inter process
+communication facilities to the basic binary packet library.
+</p>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 Introduction</a></li>
+<li><a href="#sec-2">2 Sockets</a>
+<ul>
+<li><a href="#sec-2-1">2.1 Stream Servers</a></li>
+<li><a href="#sec-2-2">2.2 Stream Clients</a></li>
+<li><a href="#sec-2-3">2.3 Streams</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3 IPv4</a></li>
+<li><a href="#sec-4">4 Polling</a></li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+
+<p>This library provides a simple interprocess communication API that is
+used by the <code>NETWORK</code> extension. This library is asynchronous by
+design and only supports the <code>(UNSIGNED-BYTE 8)</code> element type. 
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Sockets</h2>
+<div class="outline-text-2" id="text-2">
+
+<p>Fundamental to this API is the socket protocol. An object implementing
+this protocol represents a resource that is associated with performing
+communication.
+</p>
+<p>
+A socket can be used as a server or a client for a number of
+protocols. This implementation provides <i>no</i> generic interface for
+creating server or client sockets. These functions are protocol
+specific and are described in their respective sections.
+</p>
+<p>
+Once a socket object has been created, its resources can be released
+using the <code>CLOSE-SOCKET</code> function.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">close-socket</span> (object))
+</pre>
+
+
+
+</div>
+
+<div id="outline-container-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> Stream Servers</h3>
+<div class="outline-text-3" id="text-2-1">
+
+<p>The stream server protocol represent socket objects that listen for
+connections from remote processes.
+</p>
+<p>
+Connections received by the server are accepted using the
+<code>ACCEPT-CONNECTION</code> function. An error is signaled if no connection is
+available,
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">accept-connection</span> (server))
+</pre>
+
+
+<p>
+The predicate <code>CONNECTION-AVAILABLE-P</code> returns non <code>NIL</code> value if the
+server has connections available.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> Stream Clients</h3>
+<div class="outline-text-3" id="text-2-2">
+
+<p>The steps to connect to a stream server follow two distinct stages,
+connecting to the server and then obtaining the connection.
+</p>
+<p>
+A protocol specific function begins the connection process. This
+function returns an object that implements the future connection
+protocol and allows an application to ascertain the status of the
+connecting process. There are two functions in this protocol, the
+first is <code>DETERMINEDP</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">determinedp</span> (future-connection))
+</pre>
+
+<p>
+A non <code>NIL</code> return value of <code>DETERMINEDP</code> indicates that establishing
+the connection has finished. 
+</p>
+<p>
+This function <code>CONNECTION-STREAM</code> will return an object that
+implements the stream protocol or signal an error if the connection
+could not be established.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">connection-stream</span> (future-connection))
+</pre>
+
+<p>
+This function can only be called once for each
+<code>FUTURE-CONNECTION</code> object, otherwise an error is signaled.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> Streams</h3>
+<div class="outline-text-3" id="text-2-3">
+
+<p>The stream protocol represents a communication channel that acts
+as a stream between the local host and a remote host.
+</p>
+<p>
+The function <code>DATA-AVAILABLE-P</code> can be used to determine if there is
+data that can be read immediately from the stream. Actually reading
+this data can be performed using the function <code>READ-FROM-STREAM</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">data-available-p</span> (stream))
+(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">read-from-stream</span> (stream buffer <span style="color: #228b22;">&amp;key</span> start end))
+</pre>
+
+<p>
+The return value of <code>READ-FROM-STREAM</code> is the number of bytes written
+to <code>BUFFER</code>. This can be either the number of bytes that are
+immediately available for reading or the value <code>(- END START)</code>. Note
+that it is possible for <code>READ-FROM-STREAM</code> to signal an error despite
+<code>DATA-AVAILABLE-P</code> having returned true!
+</p>
+<p>
+Writing data to the stream is performed using the function
+<code>WRITE-TO-STREAM</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">write-to-stream</span> (stream buffer <span style="color: #228b22;">&amp;key</span> start end))
+</pre>
+
+<p>
+This function will write the data as soon all other data has been
+written. The function will not block the application. The predicate
+<code>READY-TO-WRITE-P</code> can be used to determine if the data will be
+written immediately.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">ready-to-write-p</span> (stream))
+</pre>
+
+<p>
+Please be aware that the function <code>WRITE-TO-STREAM</code> can still fail
+even if <code>READY-TO-WRITE-P</code> was returned non <code>NIL</code>.
+</p>
+<p>
+If the connection between the two hosts is severed, then the function
+<code>REMOTE-DISCONNECTED-P</code> will be non <code>NIL</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">remote-disconnected-p</span> (stream))
+</pre>
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> IPv4</h2>
+<div class="outline-text-2" id="text-3">
+
+<p>The function <code>MAKE-IPV4-TCP-SERVER</code> creates an IPV4 TCP/IP server that
+listens for connections to <code>PORT</code> on the host <code>ADDRESS</code>. 
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defun</span> <span style="color: #0000ff;">make-ipv4-tcp-server</span> (host-address port <span style="color: #228b22;">&amp;key</span> reuse-socket-address))
+</pre>
+
+<p>
+The number <code>PORT</code> must be of type <code>(UNSIGNED-BYTE 16)</code>. The value of
+<code>HOST-ADDRESS</code> can be a string in dotted-quad format. e.g <code>127.0.0.1</code>
+or one of the constants:
+</p><dl>
+<dt><code>+IPV4-LOOPBACK+</code></dt><dd>The address of the localhost network interface.
+</dd>
+<dt><code>+IPV4-ANY+</code></dt><dd>All network interfaces for the host.
+</dd>
+</dl>
+
+
+<p>
+The value returned from <code>MAKE-IPV4-TCP-SERVER</code> adheres to the stream
+server protocol.
+</p>
+<p>
+The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> establishes a connection to
+a IPv4 TCP server.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defun</span> <span style="color: #0000ff;">connect-to-ipv4-tcp-server</span> (host-address port))
+</pre>
+
+<p>
+The pair <code>PORT</code> and <code>HOST-ADDRESS</code> represent the port number and host
+name of the server to connect to. The value returned adheres to the
+future connection protocol.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Polling</h2>
+<div class="outline-text-2" id="text-4">
+
+<p>All functions outlined above work directly on the current state of the
+socket. The function <code>POLL-SOCKET</code> allows an application to block
+until an object changes state. e.g. data is now available or the
+remote host has disconnected.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">poll-socket</span> (socket socket-events timeout))
+</pre>
+
+<p>
+The <code>TIMEOUT</code> argument specifies how long to wait (in seconds) until a
+state changes occurs on the socket. A value of <code>:IMMEDIATE</code> indicates
+that <code>POLL-SOCKET</code> should not wait and return the current state. A value of
+<code>:INDEFINITE</code> means to wait until an event occurs.
+</p>
+<p>
+The <code>SOCKET-EVENTS</code> argument tells the <code>POLL-SOCKET</code> function what to
+wait for. This argument is socket specific and can be either a symbol
+or a list of symbols. The symbols accepted correspond to the predicate
+functions for each socket object. For example, for stream server
+objects, only the symbol <code>CONNECTION-AVAILABLE-P</code> is accepted. For
+future-connection objects, the symbol <code>DETERMINEDP</code> is permitted and
+for streams the list of valid symbols is <code>DATA-AVAILABLE-P</code>,
+<code>READY-TO-WRITE-P</code> and <code>REMOTE-DISCONNECTED-P</code>.
+</p>
+<p>
+The return value of <code>POLL-SOCKET</code> is either <code>SOCKET</code> or <code>NIL</code>. A value of
+<code>NIL</code> indicates that no events have occurred on the socket and the
+<code>POLL</code> timer expired.
+</p>
+<p>
+An extremely useful variant of <code>POLL-SOCKET</code> is the <code>POLL-SOCKETS</code>
+function.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #7f007f;">defun</span> <span style="color: #0000ff;">poll-sockets</span> (all-sockets all-sockets-events timeout))
+</pre>
+
+<p>
+This function waits for an event to occur on any one of the sockets
+passed in with <code>ALL-SOCKETS</code>. The argument <code>ALL-SOCKETS-EVENTS</code> is a
+list of events that are suitable for the <code>POLL-SOCKET</code> function. The
+value of <code>TIMEOUT</code> is exactly the same as used in <code>POLL-SOCKET</code>. The
+return value is a list that has the same length as <code>ALL-SOCKETS</code> and
+contains either the socket object at the same position in
+<code>ALL-SOCKETS</code> or <code>NIL</code>. A <code>NIL</code> value indicates that no change in
+state has occurred.
+</p></div>
+</div>
+</div>
+
+<div id="postamble">
+<p class="date">Date: 2013-01-28 20:05:33 EST</p>
+<p class="author">Author: Mark Cox</p>
+<p class="creator">Org version 7.8.11 with Emacs version 24</p>
+<a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
+
+</div>
+</body>
+</html>

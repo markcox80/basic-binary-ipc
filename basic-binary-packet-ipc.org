@@ -1,0 +1,168 @@
+#+TITLE: IPC Extension for Basic Binary Packet
+#+AUTHOR: Mark Cox
+
+This library is a supporting library that provides the inter process
+communication facilities to the basic binary packet library.
+
+[TABLE-OF-CONTENTS]
+
+* Introduction
+This library provides a simple interprocess communication API that is
+used by the ~NETWORK~ extension. This library is asynchronous by
+design and only supports the ~(UNSIGNED-BYTE 8)~ element type. 
+
+* Sockets
+Fundamental to this API is the socket protocol. An object implementing
+this protocol represents a resource that is associated with performing
+communication.
+
+A socket can be used as a server or a client for a number of
+protocols. This implementation provides /no/ generic interface for
+creating server or client sockets. These functions are protocol
+specific and are described in their respective sections.
+
+Once a socket object has been created, its resources can be released
+using the ~CLOSE-SOCKET~ function.
+#+begin_src lisp
+(defgeneric close-socket (object))
+#+end_src
+
+** Stream Servers
+The stream server protocol represent socket objects that listen for
+connections from remote processes.
+
+Connections received by the server are accepted using the
+~ACCEPT-CONNECTION~ function. An error is signaled if no connection is
+available,
+#+begin_src lisp
+(defgeneric accept-connection (server))
+#+end_src
+
+The predicate ~CONNECTION-AVAILABLE-P~ returns non ~NIL~ value if the
+server has connections available.
+
+** Stream Clients
+The steps to connect to a stream server follow two distinct stages,
+connecting to the server and then obtaining the connection.
+
+A protocol specific function begins the connection process. This
+function returns an object that implements the future connection
+protocol and allows an application to ascertain the status of the
+connecting process. There are two functions in this protocol, the
+first is ~DETERMINEDP~.
+#+begin_src lisp
+(defgeneric determinedp (future-connection))
+#+end_src
+A non ~NIL~ return value of ~DETERMINEDP~ indicates that establishing
+the connection has finished. 
+
+This function ~CONNECTION-STREAM~ will return an object that
+implements the stream protocol or signal an error if the connection
+could not be established.
+#+begin_src lisp
+(defgeneric connection-stream (future-connection))
+#+end_src
+This function can only be called once for each
+~FUTURE-CONNECTION~ object, otherwise an error is signaled.
+
+** Streams
+The stream protocol represents a communication channel that acts
+as a stream between the local host and a remote host.
+
+The function ~DATA-AVAILABLE-P~ can be used to determine if there is
+data that can be read immediately from the stream. Actually reading
+this data can be performed using the function ~READ-FROM-STREAM~.
+#+begin_src lisp
+(defgeneric data-available-p (stream))
+(defgeneric read-from-stream (stream buffer &key start end))
+#+end_src
+The return value of ~READ-FROM-STREAM~ is the number of bytes written
+to ~BUFFER~. This can be either the number of bytes that are
+immediately available for reading or the value ~(- END START)~. Note
+that it is possible for ~READ-FROM-STREAM~ to signal an error despite
+~DATA-AVAILABLE-P~ having returned true!
+
+Writing data to the stream is performed using the function
+~WRITE-TO-STREAM~.
+#+begin_src lisp
+(defgeneric write-to-stream (stream buffer &key start end))
+#+end_src
+This function will write the data as soon all other data has been
+written. The function will not block the application. The predicate
+~READY-TO-WRITE-P~ can be used to determine if the data will be
+written immediately.
+#+begin_src lisp
+(defgeneric ready-to-write-p (stream))
+#+end_src
+Please be aware that the function ~WRITE-TO-STREAM~ can still fail
+even if ~READY-TO-WRITE-P~ was returned non ~NIL~.
+
+If the connection between the two hosts is severed, then the function
+~REMOTE-DISCONNECTED-P~ will be non ~NIL~.
+#+begin_src lisp
+(defgeneric remote-disconnected-p (stream))
+#+end_src
+
+* IPv4
+The function ~MAKE-IPV4-TCP-SERVER~ creates an IPV4 TCP/IP server that
+listens for connections to ~PORT~ on the host ~ADDRESS~. 
+#+begin_src lisp
+(defun make-ipv4-tcp-server (host-address port &key reuse-socket-address))
+#+end_src
+The number ~PORT~ must be of type ~(UNSIGNED-BYTE 16)~. The value of
+~HOST-ADDRESS~ can be a string in dotted-quad format. e.g ~127.0.0.1~
+or one of the constants:
+- ~+IPV4-LOOPBACK+~ :: The address of the localhost network interface.
+- ~+IPV4-ANY+~ :: All network interfaces for the host.
+
+The value returned from ~MAKE-IPV4-TCP-SERVER~ adheres to the stream
+server protocol.
+
+The function ~CONNECT-TO-IPV4-TCP-SERVER~ establishes a connection to
+a IPv4 TCP server.
+#+begin_src lisp
+(defun connect-to-ipv4-tcp-server (host-address port))
+#+end_src
+The pair ~PORT~ and ~HOST-ADDRESS~ represent the port number and host
+name of the server to connect to. The value returned adheres to the
+future connection protocol.
+
+* Polling
+All functions outlined above work directly on the current state of the
+socket. The function ~POLL-SOCKET~ allows an application to block
+until an object changes state. e.g. data is now available or the
+remote host has disconnected.
+#+begin_src lisp
+(defgeneric poll-socket (socket socket-events timeout))
+#+end_src
+The ~TIMEOUT~ argument specifies how long to wait (in seconds) until a
+state changes occurs on the socket. A value of ~:IMMEDIATE~ indicates
+that ~POLL-SOCKET~ should not wait and return the current state. A value of
+~:INDEFINITE~ means to wait until an event occurs.
+
+The ~SOCKET-EVENTS~ argument tells the ~POLL-SOCKET~ function what to
+wait for. This argument is socket specific and can be either a symbol
+or a list of symbols. The symbols accepted correspond to the predicate
+functions for each socket object. For example, for stream server
+objects, only the symbol ~CONNECTION-AVAILABLE-P~ is accepted. For
+future-connection objects, the symbol ~DETERMINEDP~ is permitted and
+for streams the list of valid symbols is ~DATA-AVAILABLE-P~,
+~READY-TO-WRITE-P~ and ~REMOTE-DISCONNECTED-P~.
+
+The return value of ~POLL-SOCKET~ is either ~SOCKET~ or ~NIL~. A value of
+~NIL~ indicates that no events have occurred on the socket and the
+~POLL~ timer expired.
+
+An extremely useful variant of ~POLL-SOCKET~ is the ~POLL-SOCKETS~
+function.
+#+begin_src lisp
+(defun poll-sockets (all-sockets all-sockets-events timeout))
+#+end_src
+This function waits for an event to occur on any one of the sockets
+passed in with ~ALL-SOCKETS~. The argument ~ALL-SOCKETS-EVENTS~ is a
+list of events that are suitable for the ~POLL-SOCKET~ function. The
+value of ~TIMEOUT~ is exactly the same as used in ~POLL-SOCKET~. The
+return value is a list that has the same length as ~ALL-SOCKETS~ and
+contains either the socket object at the same position in
+~ALL-SOCKETS~ or ~NIL~. A ~NIL~ value indicates that no change in
+state has occurred.
