@@ -14,6 +14,9 @@
 (defgeneric protocol (posix-socket)
   (:documentation "Return the protocol used by the POSIX-SOCKET."))
 
+(defgeneric socket (object)
+  (:documentation "Return the POSIX-SOCKET object used by OBJECT."))
+
 (defclass posix-socket ()
   ((namespace
     :initarg :namespace
@@ -80,13 +83,19 @@
 			      ,@body)
        ,family ,host-address ,port)))
 
-(defclass ipv4-tcp-server (posix-socket)
+(defclass ipv4-tcp-server ()
   ((host-address
     :initarg :host-address
     :reader host-address)
    (port
     :initarg :port
-    :reader port)))
+    :reader port)
+   (socket
+    :initarg :socket
+    :reader socket)))
+
+(defmethod close-socket ((object ipv4-tcp-server))
+  (close-socket (socket object)))
 
 (defun make-ipv4-tcp-server (host-address port &key (backlog 5))
   (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
@@ -97,4 +106,7 @@
 	  (%ff-bind file-descriptor sockaddr-in (cffi:foreign-type-size '(:struct sockaddr-in))))
 	
 	(%ff-listen file-descriptor backlog)
-	socket))))
+	(make-instance 'ipv4-tcp-server
+		       :host-address host-address
+		       :port port
+		       :socket socket)))))
