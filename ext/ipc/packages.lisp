@@ -27,6 +27,8 @@
   ;; IPv4
   (:export #:make-ipv4-tcp-server
 	   #:connect-to-ipv4-tcp-server
-	   
+	   #:host-address
+	   #:port
+
 	   #:+ipv4-loopback+
 	   #:+ipv4-any+))
