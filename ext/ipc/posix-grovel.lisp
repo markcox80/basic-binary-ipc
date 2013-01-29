@@ -41,6 +41,10 @@
   ((:sock-stream "SOCK_STREAM"))
   ((:sock-dgram  "SOCK_DGRAM")))
 
+(constantenum (socket-option :base-type :int)
+  ((:so-reuseaddr "SO_REUSEADDR"))
+  ((:so-keepalive "SO_KEEPALIVE")))
+
 (ctype socklen-t "socklen_t")
 
 (include "netinet/in.h")

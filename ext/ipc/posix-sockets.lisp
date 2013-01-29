@@ -63,6 +63,20 @@
 (defmethod (setf operating-modes) (value (object posix-socket))
   (%ff-fcntl-setfl (file-descriptor object) :f-setfl (cffi:foreign-bitfield-value 'operating-mode value)))
 
+;; Socket Option arguments
+(define-socket-option-argument soa-boolean
+  (:base-type :int)
+  (:writer (value pointer)
+    (setf (cffi:mem-ref pointer :int) (if value 1 0)))
+  (:reader (pointer)
+    (if (zerop (cffi:mem-ref pointer :int))
+	nil
+	t)))
+
+;; Socket options
+(define-socket-option (reuse-address-p :so-reuseaddr soa-boolean))
+(define-socket-option (keep-alive-p :so-keepalive soa-boolean))
+
 ;; IPv4
 (defparameter +ipv4-loopback+ (%ff-inet-ntoa (%ff-ntohl inaddr-loopback)))
 (defparameter +ipv4-any+      (%ff-inet-ntoa (%ff-ntohl inaddr-any)))
@@ -100,9 +114,10 @@
     :initarg :socket
     :reader socket)))
 
-(defun make-ipv4-tcp-server (host-address port &key (backlog 5))
+(defun make-ipv4-tcp-server (host-address port &key reuse-address (backlog 5))
   (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
-    (setf (operating-modes socket) '(o-nonblock))
+    (setf (operating-modes socket) '(o-nonblock)
+	  (reuse-address-p socket) reuse-address)
     (with-accessors ((file-descriptor file-descriptor)) socket
       (posix-socket-initialisation-progn (socket)
 	(with-sockaddr-in (sockaddr-in :af-inet host-address port)

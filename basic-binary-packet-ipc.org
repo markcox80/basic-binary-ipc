@@ -107,7 +107,7 @@ If the connection between the two hosts is severed, then the function
 The function ~MAKE-IPV4-TCP-SERVER~ creates an IPV4 TCP/IP server that
 listens for connections to ~PORT~ on the host ~ADDRESS~. 
 #+begin_src lisp
-(defun make-ipv4-tcp-server (host-address port &key reuse-socket-address))
+(defun make-ipv4-tcp-server (host-address port &key reuse-socket-address backlog))
 #+end_src
 The number ~PORT~ must be of type ~(UNSIGNED-BYTE 16)~. The value of
 ~HOST-ADDRESS~ can be a string in dotted-quad format. e.g ~127.0.0.1~

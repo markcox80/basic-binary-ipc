@@ -40,6 +40,7 @@
 (assert (= (cffi:foreign-type-size :uint32)
 	   (cffi:foreign-type-size '(:struct in-addr))))
 
+;; FCNTL
 (define-system-call (%ff-fcntl-noarg "fcntl") :int
   (file-descriptor :int)
   (command fcntl-command))
@@ -49,3 +50,18 @@
   (command fcntl-command)
   (mode operating-mode))
 
+
+;; Socket options
+(define-system-call (%ff-getsockopt "getsockopt") :int
+  (socket :int)
+  (level :int)
+  (option-name socket-option)
+  (option-value :pointer)
+  (option-length (:pointer socklen-t)))
+
+(define-system-call (%ff-setsockopt "setsockopt") :int
+  (socket :int)
+  (level :int)
+  (option-name socket-option)
+  (option-value :pointer)
+  (option-length socklen-t))
