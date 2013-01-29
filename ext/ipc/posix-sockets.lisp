@@ -43,6 +43,9 @@
 (defmethod close-socket ((socket posix-socket))
   (%ff-close (file-descriptor socket)))
 
+(defmethod close-socket ((object t))
+  (close-socket (socket object)))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defmacro posix-socket-initialisation-progn ((socket) &body body)
     `(alexandria:unwind-protect-case ()
@@ -93,9 +96,6 @@
    (socket
     :initarg :socket
     :reader socket)))
-
-(defmethod close-socket ((object ipv4-tcp-server))
-  (close-socket (socket object)))
 
 (defun make-ipv4-tcp-server (host-address port &key (backlog 5))
   (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
