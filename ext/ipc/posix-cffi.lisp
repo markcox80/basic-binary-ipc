@@ -29,8 +29,16 @@
 (cffi:defcfun (%ff-ntohl "ntohl") :uint32
   (network-long :uint32))
 
+;; This is a potential source of problems.
+;; The prototype for inet_ntoa is
+;; char *inet_ntoa(struct in_addr addr)
 (cffi:defcfun (%ff-inet-ntoa "inet_ntoa") :string
   (addr :uint32))
+
+;; This should at least check if the hack with %ff-inet-ntoa (above)
+;; works.
+(assert (= (cffi:foreign-type-size :uint32)
+	   (cffi:foreign-type-size '(:struct in-addr))))
 
 (define-system-call (%ff-fcntl-noarg "fcntl") :int
   (file-descriptor :int)
