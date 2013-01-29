@@ -23,6 +23,15 @@
   ((:enotsock "ENOTSOCK"))
   ((:eopnotsupp "EOPNOTSUPP")))
 
+(include "fcntl.h")
+
+(constantenum (fcntl-command :base-type :int)
+  ((:f-getfl "F_GETFL"))
+  ((:f-setfl "F_SETFL")))
+
+(bitfield (operating-mode :base-type :int)
+  ((o-nonblock "O_NONBLOCK")))
+
 (include "sys/socket.h")
 
 (constantenum (posix-socket-namespace :base-type :int)

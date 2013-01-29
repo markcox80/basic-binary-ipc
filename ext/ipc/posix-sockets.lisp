@@ -48,6 +48,15 @@
        (:abort
 	(close-socket ,socket)))))
 
+(defgeneric operating-modes (socket))
+(defgeneric (setf operating-modes) (value socket))
+
+(defmethod operating-modes ((object posix-socket))
+  (cffi:foreign-bitfield-symbols 'operating-mode (%ff-fcntl-noarg (file-descriptor object) :f-getfl)))
+
+(defmethod (setf operating-modes) (value (object posix-socket))
+  (%ff-fcntl-setfl (file-descriptor object) :f-setfl (cffi:foreign-bitfield-value 'operating-mode value)))
+
 ;; IPv4
 (defparameter +ipv4-loopback+ (%ff-inet-ntoa (%ff-ntohl inaddr-loopback)))
 (defparameter +ipv4-any+      (%ff-inet-ntoa (%ff-ntohl inaddr-any)))
@@ -81,6 +90,7 @@
 
 (defun make-ipv4-tcp-server (host-address port &key (backlog 5))
   (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
+    (setf (operating-modes socket) '(o-nonblock))
     (with-accessors ((file-descriptor file-descriptor)) socket
       (posix-socket-initialisation-progn (socket)
 	(with-sockaddr-in (sockaddr-in :af-inet host-address port)

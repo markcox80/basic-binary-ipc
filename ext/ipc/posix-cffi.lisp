@@ -32,6 +32,12 @@
 (cffi:defcfun (%ff-inet-ntoa "inet_ntoa") :string
   (addr :uint32))
 
-;; inaddr
-;(defmethod cffi:translate-into-foreign-memory ((value integer) (type inaddr)))
+(define-system-call (%ff-fcntl-noarg "fcntl") :int
+  (file-descriptor :int)
+  (command fcntl-command))
+
+(define-system-call (%ff-fcntl-setfl "fcntl") :int
+  (file-descriptor :int)
+  (command fcntl-command)
+  (mode operating-mode))
 
