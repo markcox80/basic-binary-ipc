@@ -14,7 +14,14 @@
   ((:enobufs "ENOBUFS"))
   ((:enomem "ENOMEM"))
   ((:eprotonosupport "EPROTONOSUPPORT"))
-  ((:eprototype "EPROTOTYPE")))
+  ((:eprototype "EPROTOTYPE"))
+  ((:eaddrinuse "EADDRINUSE"))
+  ((:eaddrnotavail "EADDRNOTAVAIL"))
+  ((:edestaddrreq "EDESTADDRREQ"))
+  ((:efault "EFAULT"))
+  ((:einval "EINVAL"))
+  ((:enotsock "ENOTSOCK"))
+  ((:eopnotsupp "EOPNOTSUPP")))
 
 (include "sys/socket.h")
 
@@ -24,3 +31,24 @@
 (constantenum (posix-socket-type :base-type :int)
   ((:sock-stream "SOCK_STREAM"))
   ((:sock-dgram  "SOCK_DGRAM")))
+
+(ctype socklen-t "socklen_t")
+
+(include "netinet/in.h")
+
+(ctype sa-family-t "sa_family_t")
+(constantenum (posix-socket-address-family :base-type sa-family-t)
+  ((:af-inet "AF_INET")))
+
+(cstruct in-addr "struct in_addr"
+  (s-addr "s_addr" :type :uint32))
+
+(cstruct sockaddr-in "struct sockaddr_in"
+  (sin-family "sin_family" :type posix-socket-address-family)
+  (sin-addr   "sin_addr"   :type (:struct in-addr))
+  (sin-port   "sin_port"   :type :unsigned-short))
+
+(constant (inaddr-loopback  "INADDR_LOOPBACK"))
+(constant (inaddr-any       "INADDR_ANY"))
+(constant (inaddr-broadcast "INADDR_BROADCAST"))
+(constant (inaddr-none      "INADDR_NONE"))

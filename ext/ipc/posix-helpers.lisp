@@ -92,3 +92,9 @@ ERRNO-ENUM type."
 			  :lisp-function-name ,lisp-function-name
 			  :c-function-name ,c-function-name)
        ,@arguments)))
+
+;; Memory
+(defun zero-memory (pointer cffi-type)
+  (dotimes (i (cffi:foreign-type-size cffi-type))
+    (setf (cffi:mem-aref pointer :uint8 i) 0))
+  pointer)
