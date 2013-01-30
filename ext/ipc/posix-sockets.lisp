@@ -128,3 +128,9 @@
 		       :host-address host-address
 		       :port port
 		       :socket socket)))))
+
+(defmethod connection-available-p ((server ipv4-tcp-server))
+  (let ((results (poll (socket server) 'pollin 0)))
+    (and (= 1 (length results))
+	 (eql 'pollin (first results)))))
+
