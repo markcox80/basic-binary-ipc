@@ -65,3 +65,25 @@
 (constant (inaddr-any       "INADDR_ANY"))
 (constant (inaddr-broadcast "INADDR_BROADCAST"))
 (constant (inaddr-none      "INADDR_NONE"))
+
+; poll
+(include "poll.h")
+
+(ctype nfds-t "nfds_t")
+
+(cstruct pollfd "struct pollfd"
+  (fd "fd" :type :int)
+  (events "events" :type :short)
+  (revents "revents" :type :short))
+
+(bitfield (poll-events :base-type :short)
+  ((pollerr    "POLLERR"))
+  ((pollhup    "POLLHUP"))
+  ((pollin     "POLLIN"))
+  ((pollnval   "POLLNVAL"))
+  ((pollout    "POLLOUT"))
+  ((pollpri    "POLLPRI"))
+  ((pollrdband "POLLRDBAND"))
+  ((pollrdnorm "POLLRDNORM"))
+  ((pollwrband "POLLWRBAND"))
+  ((pollwrnorm "POLLWRNORM")))

@@ -65,3 +65,9 @@
   (option-name socket-option)
   (option-value :pointer)
   (option-length socklen-t))
+
+;; poll
+(define-system-call (%ff-poll "poll") :int
+  (fds (:pointer (:struct pollfd)))
+  (nfds nfds-t)
+  (timeout :int))

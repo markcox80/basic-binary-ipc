@@ -17,5 +17,6 @@
 				     (cffi-grovel:grovel-file "posix-grovel")
 				     (:file "posix-cffi")
 				     (:file "posix-socket-options")
-				     (:file "posix-sockets"))))
+				     (:file "posix-sockets")
+				     (:file "posix-poll"))))
   :in-order-to ((test-op (test-op "basic-binary-packet-ipc-tests"))))
