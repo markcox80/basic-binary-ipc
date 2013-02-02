@@ -81,6 +81,12 @@
   (address :pointer)
   (address-length (:pointer socklen-t)))
 
+;; accept
+(define-system-call (%ff-accept "accept") :int
+  (socket :int)
+  (address :pointer)
+  (address-len (:pointer socklen-t)))
+
 ;; poll
 (define-system-call (%ff-poll "poll") :int
   (fds (:pointer (:struct pollfd)))

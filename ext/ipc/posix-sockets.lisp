@@ -164,11 +164,32 @@
     (and (= 1 (length results))
 	 (eql 'pollin (first results)))))
 
+(defmethod accept-connection ((server ipv4-tcp-server))
+  (cffi:with-foreign-object (ptr '(:struct sockaddr-in))
+    (cffi:with-foreign-object (ptr-size 'socklen-t)
+      (setf (cffi:mem-ref ptr-size 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
+      (let ((fd (%ff-accept (file-descriptor (socket server)) ptr ptr-size)))
+	(make-instance 'future-ipv4-stream
+		       :socket (make-instance 'posix-socket
+					      :namespace (namespace (socket server))
+					      :communication-style (communication-style (socket server))
+					      :protocol (protocol (socket server))
+					      :file-descriptor fd)
+		       :local-port (port server)
+		       :local-host-address (host-address server)
+		       :remote-host-address (host-address-from-sockaddr-in ptr)
+		       :remote-port (port-from-sockaddr-in ptr))))))
+
+;; CONNECT-TO-IPV4-TCP-SERVER
+
 (defun host-address-from-inaddr (in-addr)
   (%ff-inet-ntoa (cffi:foreign-slot-value in-addr '(:struct in-addr) 's-addr)))
 
 (defun host-address-from-sockaddr-in (sockaddr-in)
   (host-address-from-inaddr (cffi:foreign-slot-pointer sockaddr-in '(:struct sockaddr-in) 'sin-addr)))
+
+(defun port-from-sockaddr-in (sockaddr-in)
+  (%ff-ntohs (cffi:foreign-slot-value sockaddr-in '(:struct sockaddr-in) 'sin-port)))
 
 (defun connect-to-ipv4-tcp-server (host-address port &key)
   (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
@@ -186,7 +207,7 @@
 
 	(make-instance 'future-ipv4-stream
 		       :socket socket
-		       :local-port (%ff-ntohs (cffi:foreign-slot-value sockaddr-in '(:struct sockaddr-in) 'sin-port))
+		       :local-port (port-from-sockaddr-in sockaddr-in)
 		       :local-host-address (host-address-from-sockaddr-in sockaddr-in)
 		       :remote-port port
 		       :remote-host-address host-address)))))
