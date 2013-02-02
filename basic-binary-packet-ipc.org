@@ -46,10 +46,12 @@ The steps to connect to a stream server follow two distinct stages,
 connecting to the server and then obtaining the connection.
 
 A protocol specific function begins the connection process. This
-function returns an object that implements the future connection
-protocol and allows an application to ascertain the status of the
-connecting process. There are two functions in this protocol, the
-first is ~DETERMINEDP~.
+function returns an object that allows an application to obtain
+information about the connection process via the future connection
+protocol. 
+
+There are two functions in the future connection protocol, the first
+is ~DETERMINEDP~.
 #+begin_src lisp
 (defgeneric determinedp (future-connection))
 #+end_src
@@ -87,7 +89,7 @@ Writing data to the stream is performed using the function
 #+begin_src lisp
 (defgeneric write-to-stream (stream buffer &key start end))
 #+end_src
-This function will write the data as soon all other data has been
+This function will write the data as soon as all other data has been
 written. The function will not block the application. The predicate
 ~READY-TO-WRITE-P~ can be used to determine if the data will be
 written immediately.
