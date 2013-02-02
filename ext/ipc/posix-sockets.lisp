@@ -191,10 +191,20 @@
 (defun port-from-sockaddr-in (sockaddr-in)
   (%ff-ntohs (cffi:foreign-slot-value sockaddr-in '(:struct sockaddr-in) 'sin-port)))
 
-(defun connect-to-ipv4-tcp-server (host-address port &key)
+(defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port)
   (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
     (posix-socket-initialisation-progn (socket)
       (setf (operating-modes socket) '(o-nonblock))
+
+      ;; Bind local host address and port.
+      (setf local-host-address (or local-host-address
+				   +ipv4-any+))
+      (setf local-port         (or local-port
+				   0))
+      (with-sockaddr-in (sockaddr-in :af-inet local-host-address local-port)
+	(%ff-bind (file-descriptor socket) sockaddr-in (cffi:foreign-type-size '(:struct sockaddr-in))))
+
+      ;; Connect to the host.
       (with-sockaddr-in (sockaddr-in :af-inet host-address port)
 	(handler-case (%ff-connect (file-descriptor socket) sockaddr-in (cffi:foreign-type-size '(:struct sockaddr-in)))
 	  (posix-error (c)
