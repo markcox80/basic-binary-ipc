@@ -77,6 +77,36 @@
 (define-socket-option (reuse-address-p :so-reuseaddr soa-boolean))
 (define-socket-option (keep-alive-p :so-keepalive soa-boolean))
 
+;; Future IPv4 stream
+(defclass future-ipv4-stream ()
+  ((remote-host-address
+    :initarg :remote-host-address
+    :reader remote-host-address)
+   (remote-port
+    :initarg :remote-port
+    :reader remote-port)
+   (local-host-address
+    :initarg :local-host-address
+    :reader local-host-address)
+   (local-port
+    :initarg :local-port
+    :reader local-port)
+   (socket
+    :initarg :socket
+    :reader socket)))
+
+(defmethod determinedp ((future-connection future-ipv4-stream))
+  (let ((results (poll (socket future-connection) 'pollout 0)))
+    (find 'pollout results)))
+
+(defmethod print-object ((object future-ipv4-stream) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "~A:~d -> ~A:~d"
+	    (local-host-address object)
+	    (local-port object)
+	    (remote-host-address object)
+	    (remote-port object))))
+
 ;; IPv4
 (defparameter +ipv4-loopback+ (%ff-inet-ntoa (%ff-ntohl inaddr-loopback)))
 (defparameter +ipv4-any+      (%ff-inet-ntoa (%ff-ntohl inaddr-any)))
@@ -134,3 +164,29 @@
     (and (= 1 (length results))
 	 (eql 'pollin (first results)))))
 
+(defun host-address-from-inaddr (in-addr)
+  (%ff-inet-ntoa (cffi:foreign-slot-value in-addr '(:struct in-addr) 's-addr)))
+
+(defun host-address-from-sockaddr-in (sockaddr-in)
+  (host-address-from-inaddr (cffi:foreign-slot-pointer sockaddr-in '(:struct sockaddr-in) 'sin-addr)))
+
+(defun connect-to-ipv4-tcp-server (host-address port &key)
+  (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
+    (posix-socket-initialisation-progn (socket)
+      (setf (operating-modes socket) '(o-nonblock))
+      (with-sockaddr-in (sockaddr-in :af-inet host-address port)
+	(handler-case (%ff-connect (file-descriptor socket) sockaddr-in (cffi:foreign-type-size '(:struct sockaddr-in)))
+	  (posix-error (c)
+	    (unless (posix-error-code-p c :einprogress)
+	      (error c))))
+	
+	(cffi:with-foreign-object (sockaddr-in-length 'socklen-t)
+	  (setf (cffi:mem-ref sockaddr-in-length 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
+	  (%ff-getsockname (file-descriptor socket) sockaddr-in sockaddr-in-length))
+
+	(make-instance 'future-ipv4-stream
+		       :socket socket
+		       :local-port (%ff-ntohs (cffi:foreign-slot-value sockaddr-in '(:struct sockaddr-in) 'sin-port))
+		       :local-host-address (host-address-from-sockaddr-in sockaddr-in)
+		       :remote-port port
+		       :remote-host-address host-address)))))

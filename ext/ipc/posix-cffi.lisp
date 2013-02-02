@@ -26,6 +26,9 @@
 (cffi:defcfun (%ff-htons "htons") :uint16
   (host-short :uint16))
 
+(cffi:defcfun (%ff-ntohs "ntohs") :uint16
+  (network-short :uint16))
+
 (cffi:defcfun (%ff-ntohl "ntohl") :uint32
   (network-long :uint32))
 
@@ -65,6 +68,18 @@
   (option-name socket-option)
   (option-value :pointer)
   (option-length socklen-t))
+
+
+;; connecting
+(define-system-call (%ff-connect "connect") :int
+  (socket :int)
+  (address :pointer)
+  (address-len socklen-t))
+
+(define-system-call (%ff-getsockname "getsockname") :int
+  (socket :int)
+  (address :pointer)
+  (address-length (:pointer socklen-t)))
 
 ;; poll
 (define-system-call (%ff-poll "poll") :int
