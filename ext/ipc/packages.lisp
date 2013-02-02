@@ -31,4 +31,9 @@
 	   #:port
 
 	   #:+ipv4-loopback+
-	   #:+ipv4-any+))
+	   #:+ipv4-any+
+
+	   #:local-host-address
+	   #:local-port
+	   #:remote-host-address
+	   #:remote-port))
