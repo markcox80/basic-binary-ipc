@@ -1,5 +1,16 @@
 (in-package "BASIC-BINARY-PACKET.IPC.TESTS")
 
+(defvar *used-server-ports* nil
+  "A list of all server ports returned by RANDOM-SERVER-PORT.")
+
+(defun random-server-port ()
+  (let ((port (loop
+		 :for port := (+ 30000 (random 10000))
+		 :while (find port *used-server-ports* :test #'=)
+		 :finally (return port))))
+    (push port *used-server-ports*)
+    port))
+
 (define-test define-system-call
   (let ((fd (basic-binary-packet.ipc::%ff-socket :pf-inet :sock-stream 0)))
     (assert-true (plusp fd))
@@ -46,9 +57,9 @@
 	       (unwind-protect
 		    (channel-test client remote-client)
 		 (close-socket remote-client)))))
-    (let ((server (make-ipv4-tcp-server +ipv4-loopback+ 4455)))
+    (let ((server (make-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
       (unwind-protect
-	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ 4455)))
+	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server))))
 	     (unwind-protect
 		  (establish-channel server client)
 	       (close-socket client)))
@@ -61,7 +72,7 @@
 	       (assert-true (find 'determinedp results))
 	       (assert-true (find 'connection-failed-p results)))
 	     (assert-true (connection-failed-p client))))
-    (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ 5566)))
+    (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
       (unwind-protect
 	   (perform-test client)
 	(close-socket client)))))
