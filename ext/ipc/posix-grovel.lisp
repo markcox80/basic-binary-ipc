@@ -83,11 +83,6 @@
 
 (ctype nfds-t "nfds_t")
 
-(cstruct pollfd "struct pollfd"
-  (fd "fd" :type :int)
-  (events "events" :type :short)
-  (revents "revents" :type :short))
-
 (bitfield (poll-events :base-type :short)
   ((pollerr    "POLLERR"))
   ((pollhup    "POLLHUP"))
@@ -99,3 +94,8 @@
   ((pollrdnorm "POLLRDNORM"))
   ((pollwrband "POLLWRBAND"))
   ((pollwrnorm "POLLWRNORM")))
+
+(cstruct pollfd "struct pollfd"
+  (fd "fd" :type :int)
+  (events "events" :type poll-events)
+  (revents "revents" :type poll-events))

@@ -9,6 +9,7 @@
 
 ;; Future connection protocol
 (defgeneric determinedp (future-connection))
+(defgeneric connection-failed-p (future-connection))
 (defgeneric connection-stream (future-connection))
 
 ;; Stream protocol
@@ -20,6 +21,7 @@
 
 ;; Polling protocol
 (defgeneric poll-socket (socket socket-events timeout))
+(defgeneric poll-sockets (all-sockets all-socket-events timeout))
 
 ;; IPv4 protocol
 (defgeneric host-address (ipv4-socket))

@@ -10,6 +10,7 @@
 
   ;; Future connections
   (:export #:determinedp
+	   #:connection-failed-p
 	   #:connection-stream)
 
   ;; Streams

@@ -46,6 +46,9 @@
 (defmethod close-socket ((object t))
   (close-socket (socket object)))
 
+(defmethod file-descriptor ((object t))
+  (file-descriptor (socket object)))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defmacro posix-socket-initialisation-progn ((socket) &body body)
     `(alexandria:unwind-protect-case ()
@@ -96,8 +99,10 @@
     :reader socket)))
 
 (defmethod determinedp ((future-connection future-ipv4-stream))
-  (let ((results (poll (socket future-connection) 'pollout 0)))
-    (find 'pollout results)))
+  (poll-socket future-connection 'determinedp :immediate))
+
+(defmethod connection-failed-p ((future-connection future-ipv4-stream))
+  (poll-socket future-connection 'connection-failed-p :immediate))
 
 (defmethod print-object ((object future-ipv4-stream) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -160,9 +165,8 @@
 		       :socket socket)))))
 
 (defmethod connection-available-p ((server ipv4-tcp-server))
-  (let ((results (poll (socket server) 'pollin 0)))
-    (and (= 1 (length results))
-	 (eql 'pollin (first results)))))
+  (let ((results (poll-socket server 'connection-available-p :immediate)))
+    (if results t nil)))
 
 (defmethod accept-connection ((server ipv4-tcp-server))
   (cffi:with-foreign-object (ptr '(:struct sockaddr-in))
