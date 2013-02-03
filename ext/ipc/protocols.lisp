@@ -10,6 +10,7 @@
 ;; Future connection protocol
 (defgeneric determinedp (future-connection))
 (defgeneric connection-failed-p (future-connection))
+(defgeneric connection-succeeded-p (future-connection))
 (defgeneric connection-stream (future-connection))
 
 ;; Stream protocol

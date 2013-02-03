@@ -161,3 +161,8 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
   (:classes future-ipv4-stream)
   (:input pollin)
   (:test pollhup))
+
+(define-poll-fd-event connection-succeeded-p
+  (:classes future-ipv4-stream)
+  (:input pollout)
+  (:test (and pollout (not pollhup))))

@@ -50,22 +50,36 @@ function returns an object that allows an application to obtain
 information about the connection process via the future connection
 protocol. 
 
-There are two functions in the future connection protocol, the first
-is ~DETERMINEDP~.
+There are a number predicate functions in the future connection
+protocol, the first is ~DETERMINEDP~.
 #+begin_src lisp
 (defgeneric determinedp (future-connection))
 #+end_src
-A non ~NIL~ return value of ~DETERMINEDP~ indicates that establishing
-the connection has finished. 
+A non ~NIL~ return value of ~DETERMINEDP~ indicates that connecting to
+the server has finished. The process may have failed or succeeded.
 
-This function ~CONNECTION-STREAM~ will return an object that
-implements the stream protocol or signal an error if the connection
-could not be established.
+The second predicate function is ~CONNECTION-FAILED-P~. This predicate
+can be used to differentiate between a failed or successful
+connection.
+
+The third predicate function is ~CONNECTION-SUCCEDED-P~. This
+predicate is the opposite of ~CONNECTION-FAILED-P~.
+
+If the connection is successful, an object implementing the stream
+protocol can be obtained using the function ~CONNECTION-STREAM~. If
+the connection could not be established then this function will signal
+an error. 
 #+begin_src lisp
 (defgeneric connection-stream (future-connection))
 #+end_src
 This function can only be called once for each
 ~FUTURE-CONNECTION~ object, otherwise an error is signaled.
+
+Note, it is not necessary to call the functions ~CONNECTION-FAILED-P~
+or ~CONNECTION-SUCCEEDED-P~ prior to calling
+~CONNECTION-STREAM~. These predicates are provided purely for querying
+the current status of the socket. It is expected users will use the
+symbols with the ~POLL-SOCKET~ interface.
 
 ** Streams
 The stream protocol represents a communication channel that acts

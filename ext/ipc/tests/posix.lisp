@@ -50,7 +50,9 @@
 	     (let ((results (poll-sockets (list client remote-client) '(determinedp determinedp) 10)))
 	       (assert-equal '(determinedp determinedp) results)
 	       (assert-false (connection-failed-p client))
-	       (assert-false (connection-failed-p remote-client))))
+	       (assert-false (connection-failed-p remote-client))
+	       (assert-true (connection-succeeded-p client))
+	       (assert-true (connection-succeeded-p remote-client))))
 	   (establish-channel (server client)
 	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
 	     (let ((remote-client (accept-connection server)))
@@ -67,10 +69,11 @@
 
 (define-test connect-to-ipv4-server/does-not-exist
   (labels ((perform-test (client)
-	     (let ((results (poll-socket client '(determinedp connection-failed-p) 10)))
+	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 10)))
 	       (assert-equal 2 (length results))
 	       (assert-true (find 'determinedp results))
-	       (assert-true (find 'connection-failed-p results)))
+	       (assert-true (find 'connection-failed-p results))
+	       (assert-false (find 'connection-succeeded-p results)))
 	     (assert-true (connection-failed-p client))))
     (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
       (unwind-protect

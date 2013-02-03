@@ -104,6 +104,9 @@
 (defmethod connection-failed-p ((future-connection future-ipv4-stream))
   (poll-socket future-connection 'connection-failed-p :immediate))
 
+(defmethod connection-succeeded-p ((future-connection future-ipv4-stream))
+  (poll-socket future-connection 'connection-succeeded-p :immediate))
+
 (defmethod print-object ((object future-ipv4-stream) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~A:~d -> ~A:~d"
