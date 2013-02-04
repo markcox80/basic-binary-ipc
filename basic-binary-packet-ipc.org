@@ -121,6 +121,13 @@ or one of the constants:
 The value returned from ~MAKE-IPV4-TCP-SERVER~ adheres to the stream
 server protocol.
 
+The object returned by ~MAKE-IPV4-TCP-SERVER~ implements the following
+functions
+- ~HOST-ADDRESS~ :: Obtain the host address component of the socket
+                    address the server is using.
+- ~PORT~ :: Obtain the port component of the socket address the server
+            is using.
+
 The function ~CONNECT-TO-IPV4-TCP-SERVER~ establishes a connection to
 a IPv4 TCP server.
 #+begin_src lisp
@@ -129,6 +136,17 @@ a IPv4 TCP server.
 The pair ~PORT~ and ~HOST-ADDRESS~ represent the port number and host
 name of the server to connect to. The value returned adheres to the
 future connection protocol.
+
+Streams created from IPV4 TCP socket objects extend the stream
+protocol with the following functions
+- ~REMOTE-HOST-ADDRESS~ :: The host address component of the socket
+     address used by the remote end of the stream.
+- ~REMOTE-PORT~ :: The port number component of the socket address
+                   used by the remote end of the stream.
+- ~LOCAL-HOST-ADDRESS~ :: The host address used to communicate with
+     the remote client.
+- ~LOCAL-PORT~ :: The port number used to communicate to the remote
+                  client.
 
 * Polling
 All functions outlined above work directly on the current state of the

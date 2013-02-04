@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="IPC Extension for Basic Binary Packet"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-02-03 20:08:51 EST"/>
+<meta name="generated" content="2013-02-05 07:55:04 EST"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -194,8 +194,8 @@ information about the connection process via the future connection
 protocol. 
 </p>
 <p>
-There are two functions in the future connection protocol, the first
-is <code>DETERMINEDP</code>.
+There are a number predicate functions in the future connection
+protocol, the first is <code>DETERMINEDP</code>.
 </p>
 
 
@@ -203,22 +203,21 @@ is <code>DETERMINEDP</code>.
 </pre>
 
 <p>
-A non <code>NIL</code> return value of <code>DETERMINEDP</code> indicates that establishing
-the connection has finished. 
+A non <code>NIL</code> return value of <code>DETERMINEDP</code> indicates that connecting to
+the server has finished. The process may have failed or succeeded.
 </p>
 <p>
-This function <code>CONNECTION-STREAM</code> will return an object that
-implements the stream protocol or signal an error if the connection
-could not be established.
+The second predicate function is <code>CONNECTION-FAILED-P</code>. This predicate
+can be used to differentiate between a failed or successful
+connection.
 </p>
-
-
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">connection-stream</span> (future-connection))
-</pre>
-
 <p>
-This function can only be called once for each
-<code>FUTURE-CONNECTION</code> object, otherwise an error is signaled.
+The third predicate function is <code>CONNECTION-SUCCEDED-P</code>. This
+predicate is the opposite of <code>CONNECTION-FAILED-P</code>.
+</p>
+<p>
+If the connection is successful, the stream protocol outlined in the
+next section can be used on the socket object.
 </p>
 </div>
 
@@ -317,6 +316,19 @@ The value returned from <code>MAKE-IPV4-TCP-SERVER</code> adheres to the stream
 server protocol.
 </p>
 <p>
+The object returned by <code>MAKE-IPV4-TCP-SERVER</code> implements the following
+functions
+</p><dl>
+<dt><code>HOST-ADDRESS</code></dt><dd>Obtain the host address component of the socket
+                    address the server is using.
+</dd>
+<dt><code>PORT</code></dt><dd>Obtain the port component of the socket address the server
+            is using.
+</dd>
+</dl>
+
+
+<p>
 The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> establishes a connection to
 a IPv4 TCP server.
 </p>
@@ -330,6 +342,25 @@ The pair <code>PORT</code> and <code>HOST-ADDRESS</code> represent the port numb
 name of the server to connect to. The value returned adheres to the
 future connection protocol.
 </p>
+<p>
+Streams created from IPV4 TCP socket objects extend the stream
+protocol with the following functions
+</p><dl>
+<dt><code>REMOTE-HOST-ADDRESS</code></dt><dd>The host address component of the socket
+     address used by the remote end of the stream.
+</dd>
+<dt><code>REMOTE-PORT</code></dt><dd>The port number component of the socket address
+                   used by the remote end of the stream.
+</dd>
+<dt><code>LOCAL-HOST-ADDRESS</code></dt><dd>The host address used to communicate with
+     the remote client.
+</dd>
+<dt><code>LOCAL-PORT</code></dt><dd>The port number used to communicate to the remote
+                  client.
+</dd>
+</dl>
+
+
 </div>
 
 </div>
@@ -392,7 +423,7 @@ state has occurred.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-02-03 20:08:51 EST</p>
+<p class="date">Date: 2013-02-05 07:55:04 EST</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator">Org version 7.8.11 with Emacs version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
