@@ -1,5 +1,24 @@
 (in-package "BASIC-BINARY-PACKET.IPC.TESTS")
 
+(defvar *used-server-ports* nil
+  "A list of all server ports returned by RANDOM-SERVER-PORT.")
+
+(defun random-server-port ()
+  (let ((port (loop
+		 :for port := (+ 30000 (random 10000))
+		 :while (find port *used-server-ports* :test #'=)
+		 :finally (return port))))
+    (push port *used-server-ports*)
+    port))
+
+(define-test make-ipv4-tcp-server
+  (let ((server (make-ipv4-tcp-server +ipv4-loopback+ 4545)))
+    (unwind-protect
+	 (progn
+	   (assert-true server)
+	   (assert-error 'posix-error (make-ipv4-tcp-server +ipv4-loopback+ 4545)))
+      (close-socket server))))
+
 (define-test ipv4-tcp-test/sockets
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client '(determinedp connection-succeeded-p) 10))
