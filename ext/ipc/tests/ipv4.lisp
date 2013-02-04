@@ -110,3 +110,31 @@
       (unwind-protect
 	   (perform-test client)
 	(close-socket client)))))
+
+(define-test ipv4-tcp-test/host-address-and-ports
+  (let ((client-port (random-server-port))
+	(server-port (random-server-port)))
+    (labels ((establish-channel (server client)
+	       (let ((remote-client (accept-connection server)))
+		 (assert-true (poll-socket remote-client 'connection-succeeded-p 10))
+		 (assert-true (poll-socket client 'connection-succeeded-p 10))
+		 
+		 ;; remote client tests
+		 (assert-equal server-port      (local-port remote-client))
+		 (assert-equal +ipv4-loopback+  (local-host-address remote-client))
+		 (assert-equal client-port      (remote-port remote-client))
+		 (assert-equal +ipv4-loopback+  (remote-host-address remote-client))
+
+		 ;; client tests
+		 (assert-equal client-port      (local-port client))
+		 (assert-equal +ipv4-loopback+  (local-host-address client))
+		 (assert-equal server-port      (remote-port client))
+		 (assert-equal +ipv4-loopback+  (remote-host-address client)))))
+      (let ((server (make-ipv4-tcp-server +ipv4-loopback+ server-port)))
+	(assert-false (poll-socket server 'connection-available-p 0))
+	(unwind-protect
+	     (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server) :local-port client-port)))
+	       (unwind-protect
+		    (establish-channel server client)
+		 (close-socket client)))
+	  (close-socket server))))))
