@@ -45,17 +45,38 @@
     (true '(or pollin pollhup) '(pollhup))
     (true '(not (and (not pollin) (not pollhup))) '(pollhup))))
 
-(define-test ipv4-tcp-test
+(define-test ipv4-tcp-test/sockets
   (labels ((channel-test (client remote-client)
-	     (let ((results (poll-sockets (list client remote-client) '((determinedp connection-succeeded-p) determinedp) 10)))
-	       (assert-equal '((determinedp connection-succeeded-p) determinedp) results)
-	       (assert-false (connection-failed-p client))
-	       (assert-false (connection-failed-p remote-client))
-	       (assert-true (connection-succeeded-p client))
-	       (assert-true (connection-succeeded-p remote-client))))
+	     (assert-true (poll-socket client '(determinedp connection-succeeded-p) 10))
+	     (assert-true (poll-socket remote-client 'determinedp 10))
+	     (assert-false (connection-failed-p client))
+	     (assert-false (connection-failed-p remote-client))
+	     (assert-true (connection-succeeded-p client))
+	     (assert-true (connection-succeeded-p remote-client)))
 	   (establish-channel (server client)
 	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
 	     (let ((remote-client (accept-connection server)))
+	       (unwind-protect
+		    (channel-test client remote-client)
+		 (close-socket remote-client)))))
+    (let ((server (make-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
+      (assert-false (poll-socket server 'connection-available-p 0))
+      (unwind-protect
+	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server))))
+	     (unwind-protect
+		  (establish-channel server client)
+	       (close-socket client)))
+	(close-socket server)))))
+
+(define-test ipv4-tcp-test/stream
+  (labels ((channel-test (client remote-client)
+	     #- (and)
+	     (assert-true (poll-socket client 'ready-to-write-p 0)))
+	   (establish-channel (server client)
+	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
+	     (let ((remote-client (accept-connection server)))
+	       (assert-true (poll-socket client 'connection-succeeded-p 10))
+	       (assert-true (poll-socket remote-client 'connection-succeeded-p 10))	       
 	       (unwind-protect
 		    (channel-test client remote-client)
 		 (close-socket remote-client)))))
