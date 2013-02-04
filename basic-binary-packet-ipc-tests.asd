@@ -9,4 +9,5 @@
 			:serial t
 			:components ((:file "packages")
 				     (:file "asdf")
-				     (:file "posix")))))
+				     (:file "posix")
+				     (:file "ipv4")))))
