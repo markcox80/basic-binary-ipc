@@ -115,6 +115,34 @@
 	       (close-socket client)))
 	(close-socket server)))))
 
+(define-test ipv4-tcp-test/remote-disconnected
+  (labels ((channel-test (client remote-client)
+	     (assert-true (poll-socket client 'ready-to-write-p 0))
+	     (assert-false (poll-socket remote-client 'data-available-p 0))
+
+	     (close-socket remote-client)
+	     (assert-error 'error (poll-socket remote-client 'ready-to-write-p 10))
+	     (assert-false (poll-socket client 'connection-succeeded-p 10))
+
+	     (assert-true (poll-socket client 'remote-disconnected-p 10))
+	     (assert-false (poll-socket client 'ready-to-write-p 0))
+	     (assert-false (poll-socket client 'data-available-p 0)))
+	   (establish-channel (server client)
+	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
+	     (let ((remote-client (accept-connection server)))
+	       (assert-true (poll-socket client 'connection-succeeded-p 10))
+	       (assert-true (poll-socket remote-client 'connection-succeeded-p 10))	       
+
+	       (channel-test client remote-client))))
+    (let ((server (make-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
+      (assert-false (poll-socket server 'connection-available-p 0))
+      (unwind-protect
+	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server))))
+	     (unwind-protect
+		  (establish-channel server client)
+	       (close-socket client)))
+	(close-socket server)))))
+
 (define-test connect-to-ipv4-server/does-not-exist
   (labels ((perform-test (client)
 	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 10)))
