@@ -47,8 +47,8 @@
 
 (define-test ipv4-tcp-test
   (labels ((channel-test (client remote-client)
-	     (let ((results (poll-sockets (list client remote-client) '(determinedp determinedp) 10)))
-	       (assert-equal '(determinedp determinedp) results)
+	     (let ((results (poll-sockets (list client remote-client) '((determinedp connection-succeeded-p) determinedp) 10)))
+	       (assert-equal '((determinedp connection-succeeded-p) determinedp) results)
 	       (assert-false (connection-failed-p client))
 	       (assert-false (connection-failed-p remote-client))
 	       (assert-true (connection-succeeded-p client))
