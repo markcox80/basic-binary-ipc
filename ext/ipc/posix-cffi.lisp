@@ -92,3 +92,21 @@
   (fds (:pointer (:struct pollfd)))
   (nfds nfds-t)
   (timeout :int))
+
+;; reading
+(define-system-call (%ff-recvfrom "recvfrom") :int
+  (socket :int)
+  (buffer :pointer)
+  (length size-t)
+  (flags message-flags)
+  (address :pointer)
+  (address-len (:pointer socklen-t)))
+
+;; writing
+(define-system-call (%ff-sendto "sendto") :int
+  (socket :int)
+  (buffer :pointer)
+  (length size-t)
+  (flags message-flags)
+  (dest-addr :pointer)
+  (dest-len socklen-t))

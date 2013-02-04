@@ -80,8 +80,8 @@
 (define-socket-option (reuse-address-p :so-reuseaddr soa-boolean))
 (define-socket-option (keep-alive-p :so-keepalive soa-boolean))
 
-;; Future IPv4 stream
-(defclass future-ipv4-stream ()
+;;  IPv4 stream
+(defclass ipv4-stream ()
   ((remote-host-address
     :initarg :remote-host-address
     :reader remote-host-address)
@@ -98,22 +98,72 @@
     :initarg :socket
     :reader socket)))
 
-(defmethod determinedp ((future-connection future-ipv4-stream))
+
+;; IPv4 stream - future protocol
+(defmethod determinedp ((future-connection ipv4-stream))
   (poll-socket future-connection 'determinedp :immediate))
 
-(defmethod connection-failed-p ((future-connection future-ipv4-stream))
+(defmethod connection-failed-p ((future-connection ipv4-stream))
   (poll-socket future-connection 'connection-failed-p :immediate))
 
-(defmethod connection-succeeded-p ((future-connection future-ipv4-stream))
+(defmethod connection-succeeded-p ((future-connection ipv4-stream))
   (poll-socket future-connection 'connection-succeeded-p :immediate))
 
-(defmethod print-object ((object future-ipv4-stream) stream)
+(defmethod print-object ((object ipv4-stream) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~A:~d -> ~A:~d"
 	    (local-host-address object)
 	    (local-port object)
 	    (remote-host-address object)
 	    (remote-port object))))
+
+;; IPv4 Stream - stream protocol
+(defmethod data-available-p ((stream ipv4-stream))
+  (poll-socket stream 'data-available-p :immediate))
+
+(defmethod ready-to-write-p ((stream ipv4-stream))
+  (poll-socket stream 'ready-to-write-p :immediate))
+
+(defmethod remote-disconnected-p ((stream ipv4-stream))
+  (poll-socket stream 'remote-disconnected-p :immediate))
+
+(defmethod read-from-stream ((stream ipv4-stream) buffer &key start end)
+  (declare (type (vector (unsigned-byte 8)) buffer))
+  (unless start
+    (setf start 0))
+  (unless end
+    (setf end (length buffer)))
+
+  (unless (<= start end)
+    (error "The value START is greater than END."))
+
+  (unless (and (>= start 0) (< start (length buffer)))
+    (error "The value START is not a valid index for BUFFER."))
+
+  (unless (and (>= end 0) (<= end (length buffer)))
+    (error "The value END is not a valid end index for BUFFER."))
+
+  (cffi:with-pointer-to-vector-data (ptr buffer)
+    (%ff-recvfrom (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start) 0 (cffi:null-pointer) (cffi:null-pointer))))
+
+(defmethod write-to-stream ((stream ipv4-stream) buffer &key start end)
+  (declare (type (vector (unsigned-byte 8)) buffer))
+  (unless start
+    (setf start 0))
+  (unless end
+    (setf end (length buffer)))
+
+  (unless (<= start end)
+    (error "The value START is greater than END."))
+
+  (unless (and (>= start 0) (< start (length buffer)))
+    (error "The value START is not a valid index for BUFFER."))
+
+  (unless (and (>= end 0) (<= end (length buffer)))
+    (error "The value END is not a valid end index for BUFFER."))
+
+  (cffi:with-pointer-to-vector-data (ptr buffer)
+    (%ff-sendto (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start) 0 (cffi:null-pointer) 0)))
 
 ;; IPv4
 (defparameter +ipv4-loopback+ (%ff-inet-ntoa (%ff-ntohl inaddr-loopback)))
@@ -176,7 +226,7 @@
     (cffi:with-foreign-object (ptr-size 'socklen-t)
       (setf (cffi:mem-ref ptr-size 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
       (let ((fd (%ff-accept (file-descriptor (socket server)) ptr ptr-size)))
-	(make-instance 'future-ipv4-stream
+	(make-instance 'ipv4-stream
 		       :socket (make-instance 'posix-socket
 					      :namespace (namespace (socket server))
 					      :communication-style (communication-style (socket server))
@@ -222,7 +272,7 @@
 	  (setf (cffi:mem-ref sockaddr-in-length 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
 	  (%ff-getsockname (file-descriptor socket) sockaddr-in sockaddr-in-length))
 
-	(make-instance 'future-ipv4-stream
+	(make-instance 'ipv4-stream
 		       :socket socket
 		       :local-port (port-from-sockaddr-in sockaddr-in)
 		       :local-host-address (host-address-from-sockaddr-in sockaddr-in)

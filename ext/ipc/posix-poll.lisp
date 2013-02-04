@@ -148,7 +148,7 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 		     (body-values :classes)))))))
 
 (define-poll-fd-event determinedp
-  (:classes future-ipv4-stream)
+  (:classes ipv4-stream)
   (:input pollout)
   (:test (or pollout pollhup)))
 
@@ -158,11 +158,26 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
   (:test pollin))
 
 (define-poll-fd-event connection-failed-p
-  (:classes future-ipv4-stream)
+  (:classes ipv4-stream)
   (:input pollin)
   (:test pollhup))
 
 (define-poll-fd-event connection-succeeded-p
-  (:classes future-ipv4-stream)
+  (:classes ipv4-stream)
   (:input pollout)
   (:test (and pollout (not pollhup))))
+
+(define-poll-fd-event data-available-p
+  (:classes ipv4-stream)
+  (:input pollin)
+  (:test (and pollin (not pollhup))))
+
+(define-poll-fd-event ready-to-write-p
+  (:classes ipv4-stream)
+  (:input pollout)
+  (:test (and pollout (not pollhup))))
+
+(define-poll-fd-event remote-disconnected-p
+  (:classes ipv4-stream)
+  (:input pollin)
+  (:test pollhup))

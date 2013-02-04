@@ -99,3 +99,10 @@
   (fd "fd" :type :int)
   (events "events" :type poll-events)
   (revents "revents" :type poll-events))
+
+(ctype size-t "size_t")
+(bitfield (message-flags :base-type :int)
+  ((msg-oob "MSG_OOB"))
+  ((msg-peek "MSG_PEEK"))
+  ((msg-waitall "MSG_WAITALL"))
+  ((msg-dontroute "MSG_DONTROUTE")))
