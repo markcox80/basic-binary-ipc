@@ -60,6 +60,7 @@
 		    (channel-test client remote-client)
 		 (close-socket remote-client)))))
     (let ((server (make-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
+      (assert-false (poll-socket server 'connection-available-p 0))
       (unwind-protect
 	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server))))
 	     (unwind-protect
