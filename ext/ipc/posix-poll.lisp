@@ -164,7 +164,7 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 
 (define-poll-fd-event connection-succeeded-p
   (:classes ipv4-stream)
-  (:input pollout)
+  (:input pollout pollin)
   (:test (and pollout (not pollhup))))
 
 (define-poll-fd-event data-available-p
@@ -174,7 +174,7 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 
 (define-poll-fd-event ready-to-write-p
   (:classes ipv4-stream)
-  (:input pollout)
+  (:input pollout pollin)
   (:test (and pollout (not pollhup))))
 
 (define-poll-fd-event remote-disconnected-p
