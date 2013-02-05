@@ -11,6 +11,20 @@ This library provides a simple interprocess communication API that is
 used by the ~NETWORK~ extension. This library is asynchronous by
 design and only supports the ~(UNSIGNED-BYTE 8)~ element type. 
 
+The prerequisite systems for this API are
+- [[http://common-lisp.net/project/cffi/][~CFFI~]]
+- [[https://github.com/OdonataResearchLLC/lisp-unit][Lisp Unit]] (tests only)
+These libraries can be obtained using [[http://www.quicklisp.org][Quicklisp]].
+
+Access to the operating system's networking API is performed using
+foreign function interface provided by ~CFFI~. The operating systems
+that are supported are:
+- [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7)
+- TODO [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1)
+- TODO Linux (Tested with [[http://www.debian.org][Debian]] squeeze)
+- TODO [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with version XP)
+  
+
 * Sockets
 Fundamental to this API is the socket protocol. An object implementing
 this protocol represents a resource that is associated with performing
