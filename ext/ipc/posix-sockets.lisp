@@ -188,9 +188,6 @@
 			      ,@body)
        ,family ,host-address ,port)))
 
-(defgeneric host-address (server))
-(defgeneric port (server))
-
 (defclass ipv4-tcp-server ()
   ((host-address
     :initarg :host-address
