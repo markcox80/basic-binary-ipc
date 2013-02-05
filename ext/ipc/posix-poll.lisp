@@ -35,6 +35,7 @@
 	     (write-string (message condition) stream))))
 
 (defmethod parse-poll-fd-result :before (socket socket-events revents)
+  (declare (ignore socket-events))
   (when (find 'pollerr revents)    
     (error 'poll-socket-error
 	   :message (format nil "An exceptional condition has occurred on socket ~A" socket)
