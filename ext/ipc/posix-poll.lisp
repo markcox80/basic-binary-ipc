@@ -34,18 +34,6 @@
   (:report (lambda (condition stream)
 	     (write-string (message condition) stream))))
 
-(defmethod parse-poll-fd-result :before (socket socket-events revents)
-  (declare (ignore socket-events))
-  (when (find 'pollerr revents)    
-    (error 'poll-socket-error
-	   :message (format nil "An exceptional condition has occurred on socket ~A" socket)
-	   :socket socket))
-
-  (when (find 'pollnval revents)
-    (error 'poll-socket-error
-	   :message (format nil "File descriptor for socket ~A is not open." socket)
-	   :socket socket)))
-
 ;; POLL-SOCKETS Implementation
 (defmethod poll-socket (socket socket-events timeout)
   (first (poll-sockets (list socket) (list socket-events) timeout)))
@@ -143,42 +131,67 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 		    (poll-fd-event-test ',(body-value :test) events)))
 	   ,@(mapcar #'(lambda (class)
 			 `(defmethod parse-poll-fd-result ((object ,class) (socket-events (eql ',name)) revents)
+			    (dolist (error ',(body-values :error))
+			      (when (find error revents)
+				(error 'posix-error 
+				       :message (format nil "Error with socket ~A: ~A" object
+							(get error 'poll-fd-event-error-message))
+				       :socket object)))
 			    (if (do-test revents)
 				',name
 				nil)))
 		     (body-values :classes)))))))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defmacro define-poll-fd-event-errors (&body body)
+    `(progn
+       ,@(mapcar #'(lambda (x)
+		     (destructuring-bind (event message) x
+		       `(setf (get ',event 'poll-fd-event-error-message) ,message)))
+		 body))))
+
+(define-poll-fd-event-errors
+  (pollerr  "An exceptional condition has occurred.")
+  (pollnval "File descriptor for socket is not open."))
+
 (define-poll-fd-event determinedp
   (:classes ipv4-stream)
   (:input pollout)
-  (:test (or pollout pollhup)))
+  (:test (or pollout pollhup))
+  (:error pollerr pollnval))
 
 (define-poll-fd-event connection-available-p
   (:classes ipv4-tcp-server)
   (:input pollin)
-  (:test pollin))
+  (:test pollin)
+  (:error pollerr pollnval))
 
 (define-poll-fd-event connection-failed-p
   (:classes ipv4-stream)
   (:input pollin)
-  (:test pollhup))
+  (:test pollhup)
+  (:error pollerr pollnval))
 
 (define-poll-fd-event connection-succeeded-p
   (:classes ipv4-stream)
   (:input pollout pollin)
-  (:test (and pollout (not pollhup))))
+  (:test (and pollout (not pollhup)))
+  (:error pollerr pollnval))
 
 (define-poll-fd-event data-available-p
   (:classes ipv4-stream)
   (:input pollin)
-  (:test (and pollin (not pollhup))))
+  (:test (and pollin (not pollhup)))
+  (:error pollerr pollnval))
 
 (define-poll-fd-event ready-to-write-p
   (:classes ipv4-stream)
   (:input pollout pollin)
-  (:test (and pollout (not pollhup))))
+  (:test (and pollout (not pollhup)))
+  (:error pollerr pollnval))
 
 (define-poll-fd-event remote-disconnected-p
   (:classes ipv4-stream)
   (:input pollin)
-  (:test pollhup))
+  (:test pollhup)
+  (:error pollerr pollnval))
