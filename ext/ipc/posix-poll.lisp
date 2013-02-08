@@ -108,11 +108,11 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
   (:CLASSES <class1> ... <class N>) represents the classes in which
   this event macro should be defined.
 
-  (:INPUT <input1> <input2>) is the input events that poll(2) should
-  look for.
+  (:INPUT <input1> <input2>) are the events that poll(2) should look
+  for.
 
-  (:TEST <expression>) is an expression which is T to indicate that
-  the event is present.
+  (:TEST <expression>) is an expression that determines if the event
+  occurred.
 "
     (labels ((body-values (key)
 	       (let ((v (find key body :key #'first)))
@@ -144,6 +144,9 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defmacro define-poll-fd-event-errors (&body body)
+    "A symbol macro for declaraing the messages that are to be used
+when PARSE-POLL-FD-RESULT encounters an event that represents a socket
+error. BODY is a collection (event-symbol message) forms."
     `(progn
        ,@(mapcar #'(lambda (x)
 		     (destructuring-bind (event message) x
