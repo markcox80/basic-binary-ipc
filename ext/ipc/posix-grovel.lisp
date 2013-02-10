@@ -3,6 +3,7 @@
 (include "errno.h")
 
 (constantenum (errno-enum :base-type :int)
+  ((:eagain "EAGAIN"))
   ((:ebadf "EBADF"))
   ((:eintr "EINTR"))
   ((:eio   "EIO"))
