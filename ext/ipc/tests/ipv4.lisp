@@ -134,6 +134,7 @@
   (let ((client-port (random-server-port))
 	(server-port (random-server-port)))
     (labels ((establish-channel (server client)
+	       (assert-true (poll-socket server 'connection-available-p 10))
 	       (let ((remote-client (accept-connection server)))
 		 (assert-true (poll-socket remote-client 'connection-succeeded-p 10))
 		 (assert-true (poll-socket client 'connection-succeeded-p 10))
