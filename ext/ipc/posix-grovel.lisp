@@ -1,5 +1,7 @@
 (in-package "BASIC-BINARY-PACKET.IPC")
 
+#+freebsd
+(include "sys/types.h")
 (include "errno.h")
 
 (constantenum (errno-enum :base-type :int)
