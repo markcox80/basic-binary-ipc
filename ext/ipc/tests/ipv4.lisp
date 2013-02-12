@@ -3,6 +3,8 @@
 (defvar *used-server-ports* nil
   "A list of all server ports returned by RANDOM-SERVER-PORT.")
 
+(defvar +ipv4-address-with-no-server+ "169.254.0.1")
+
 (defun random-server-port ()
   (let ((port (loop
 		 :for port := (+ 30000 (random 10000))
@@ -125,10 +127,14 @@
 	       (assert-true (find 'connection-failed-p results))
 	       (assert-false (find 'connection-succeeded-p results)))
 	     (assert-true (connection-failed-p client))))
-    (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
+    (let ((client (connect-to-ipv4-tcp-server +ipv4-address-with-no-server+ (random-server-port))))
       (unwind-protect
 	   (perform-test client)
 	(close-socket client)))))
+
+#+freebsd
+(define-test connect-to-ipv4-server/does-not-exist/loopback-error
+  (assert-error 'posix-error (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
 
 (define-test ipv4-tcp-test/host-address-and-ports
   (let ((client-port (random-server-port))
