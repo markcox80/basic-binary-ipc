@@ -7,7 +7,7 @@
   :author "Mark Cox"
   :description "The inter-process communication library used by the
   BASIC-BINARY-PACKET-NETWORK system."
-  :depends-on ("cffi-grovel" "cffi-libffi")
+  :depends-on ("cffi-grovel")
   :serial t
   :components ((:module "ext/ipc"
 			:serial t
