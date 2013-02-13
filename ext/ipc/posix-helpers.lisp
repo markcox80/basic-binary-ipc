@@ -48,9 +48,13 @@ ERRNO-ENUM type."
 	     (errnum-symbol (errnum condition))
 	     (strerror (errnum condition))))))
 
+(defun posix-error-code (condition)
+  (cffi:foreign-enum-keyword 'errno-enum (errnum condition)))
+
 (defun posix-error-code-p (condition code)
-  (= (errnum condition)
-     (cffi:foreign-enum-value 'errno-enum code)))
+  (declare (type keyword code))
+  (eql (posix-error-code condition)
+       code))
 
 (defgeneric base-type (object)
   (:documentation "The CFFI return type of the posix system call."))
