@@ -127,7 +127,7 @@
 (defmethod remote-disconnected-p ((stream ipv4-stream))
   (poll-socket stream 'remote-disconnected-p :immediate))
 
-(defmethod read-from-stream ((stream ipv4-stream) buffer &key start end)
+(defmethod read-from-stream ((stream ipv4-stream) buffer &key start end peek)
   (declare (type (vector (unsigned-byte 8)) buffer))
   (unless start
     (setf start 0))
@@ -137,14 +137,19 @@
   (unless (<= start end)
     (error "The value START is greater than END."))
 
-  (unless (and (>= start 0) (< start (length buffer)))
+  (unless (or (zerop (length buffer))
+	      (and (>= start 0) (< start (length buffer))))
     (error "The value START is not a valid index for BUFFER."))
 
   (unless (and (>= end 0) (<= end (length buffer)))
     (error "The value END is not a valid end index for BUFFER."))
 
   (cffi:with-pointer-to-vector-data (ptr buffer)
-    (%ff-recvfrom (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start) 0 (cffi:null-pointer) (cffi:null-pointer))))
+    (%ff-recvfrom (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start)
+		  (if peek
+		      (cffi:foreign-bitfield-value 'message-flags '(msg-peek))
+		      0)
+		  (cffi:null-pointer) (cffi:null-pointer))))
 
 (defmethod write-to-stream ((stream ipv4-stream) buffer &key start end)
   (declare (type (vector (unsigned-byte 8)) buffer))
