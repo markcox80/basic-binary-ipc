@@ -133,6 +133,7 @@
 				       (error "Invalid poll-fd-event-test form: ~A" exp)))))			   
 			   (substitute expression))))
     `(lambda (events socket)
+       (declare (ignorable socket))
        (labels (,@lambda-labels
 		(eventp (event)
 		  (find event events)))
@@ -169,20 +170,21 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 			  ',(body-values :input)))
 		   (body-values :classes))
 	 
-	 (labels ((do-test (events socket)
-		    (poll-fd-event-test ',(body-value :test) events socket)))
-	   ,@(mapcar #'(lambda (class)
-			 `(defmethod parse-poll-fd-result ((object ,class) (socket-events (eql ',name)) revents)
-			    (dolist (error ',(body-values :error))
-			      (when (find error revents)
-				(error 'posix-error 
-				       :message (format nil "Error with socket ~A: ~A" object
-							(get error 'poll-fd-event-error-message))
-				       :socket object)))
-			    (if (do-test revents object)
-				',name
-				nil)))
-		     (body-values :classes)))))))
+	 (let ((compiled-fn (compile-poll-fd-event-expression ',(body-value :test))))
+	   (labels ((do-test (events socket)
+		      (poll-fd-event-test compiled-fn events socket)))
+	     ,@(mapcar #'(lambda (class)
+			   `(defmethod parse-poll-fd-result ((object ,class) (socket-events (eql ',name)) revents)
+			      (dolist (error ',(body-values :error))
+				(when (find error revents)
+				  (error 'posix-error 
+					 :message (format nil "Error with socket ~A: ~A" object
+							  (get error 'poll-fd-event-error-message))
+					 :socket object)))
+			      (if (do-test revents object)
+				  ',name
+				  nil)))
+		       (body-values :classes))))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defmacro define-poll-fd-event-errors (&body body)
