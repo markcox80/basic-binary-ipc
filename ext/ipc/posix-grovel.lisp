@@ -22,6 +22,7 @@
   ((:eaddrnotavail "EADDRNOTAVAIL"))
   ((:edestaddrreq "EDESTADDRREQ"))
   ((:efault "EFAULT"))
+  ((:emsgsize "EMSGSIZE"))
   ((:einval "EINVAL"))
   ((:enotsock "ENOTSOCK"))
   ((:eopnotsupp "EOPNOTSUPP"))
@@ -29,6 +30,7 @@
   ((:econnrefused "ECONNREFUSED"))
   ((:ehostunreach "EHOSTUNREACH"))
   ((:einprogress "EINPROGRESS"))
+  ((:ehostdown "EHOSTDOWN"))
   ((:enetdown "ENETDOWN"))
   ((:enetunreach "ENETUNREACH"))
   ((:etimedout "ETIMEDOUT"))
@@ -36,7 +38,8 @@
   ((:eloop "ELOOP"))
   ((:enametoolong "ENAMETOOLONG"))
   ((:enoent "ENOENT"))
-  ((:enotdir "ENOTDIR")))
+  ((:enotdir "ENOTDIR"))
+  ((:epipe "EPIPE")))
 
 (include "fcntl.h")
 
