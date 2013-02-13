@@ -151,10 +151,6 @@ The pair ~PORT~ and ~HOST-ADDRESS~ represent the port number and host
 name of the server to connect to. The value returned adheres to the
 future connection protocol.
 
-On some operating systems, an error is signalled if
-~CONNECT-TO-IPV4-TCP-SERVER~ tries to connect to a non existent server
-on the ~+IPV4-LOOPBACK+~ host address.
-
 Streams created from IPV4 TCP socket objects extend the stream
 protocol with the following functions
 - ~REMOTE-HOST-ADDRESS~ :: The host address component of the socket

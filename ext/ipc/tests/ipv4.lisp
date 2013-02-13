@@ -132,9 +132,18 @@
 	   (perform-test client)
 	(close-socket client)))))
 
-#+freebsd
-(define-test connect-to-ipv4-server/does-not-exist/loopback-error
-  (assert-error 'posix-error (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
+(define-test connect-to-ipv4-server/does-not-exist/loopback
+  (labels ((perform-test (client)
+	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 10)))
+	       (assert-equal 2 (length results))
+	       (assert-true (find 'determinedp results))
+	       (assert-true (find 'connection-failed-p results))
+	       (assert-false (find 'connection-succeeded-p results)))
+	     (assert-true (connection-failed-p client))))
+    (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
+      (unwind-protect
+	   (perform-test client)
+	(close-socket client)))))
 
 (define-test ipv4-tcp-test/host-address-and-ports
   (let ((client-port (random-server-port))

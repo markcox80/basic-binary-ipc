@@ -198,3 +198,12 @@ error. BODY is a collection (event-symbol message) forms."
   (:input pollin)
   (:test pollhup)
   (:error pollerr pollnval))
+
+;; failed ipv4 stream
+(defmethod compute-poll-fd-events ((socket failed-ipv4-stream) socket-events)
+  nil)
+
+(defmethod parse-poll-fd-result ((socket failed-ipv4-stream) (socket-events symbol) revents)
+  (if (find socket-events '(determinedp connection-failed-p))
+      socket-events
+      nil))

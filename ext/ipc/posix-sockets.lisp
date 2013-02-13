@@ -165,6 +165,47 @@
   (cffi:with-pointer-to-vector-data (ptr buffer)
     (%ff-sendto (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start) 0 (cffi:null-pointer) 0)))
 
+;; Failed IPV4 Stream - This class is for the special situation when
+;; using CONNECT-TO-TCP4-SERVER to connect to a server listening on
+;; the loopback device. If the server does not exist, then some
+;; operating systems signal an ECONNREFUSED error. In that case an
+;; object of type FAILED-IPV4-STREAM is returned.
+(defclass failed-ipv4-stream ()
+  ((socket
+    :initarg :socket
+    :reader socket)
+   (remote-port
+    :initarg :remote-port
+    :reader remote-port)
+   (remote-host-address
+    :initarg :remote-host-address
+    :reader remote-host-address)))
+
+(defmethod print-object ((object failed-ipv4-stream) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "~A:~d"
+	    (remote-host-address object)
+	    (remote-port object))))
+
+(defmethod close-socket ((socket failed-ipv4-stream))  
+  (handler-case (close-socket (socket socket))
+    (posix-error (c)
+      (unless (posix-error-code-p c :ebadf)
+	(error c)))))
+
+;; - stream protocol
+(defmethod data-available-p ((socket-stream failed-ipv4-stream))
+  nil)
+
+(defmethod determinedp ((socket-stream failed-ipv4-stream))
+  t)
+
+(defmethod connection-failed-p ((socket-stream failed-ipv4-stream))
+  t)
+
+(defmethod connection-succeeded-p ((socket-stream failed-ipv4-stream))
+  nil)
+
 ;; IPv4
 (defparameter +ipv4-loopback+ (%ff-inet-ntoa (%ff-ntohl inaddr-loopback)))
 (defparameter +ipv4-any+      (%ff-inet-ntoa (%ff-ntohl inaddr-any)))
@@ -262,8 +303,17 @@
       (with-sockaddr-in (sockaddr-in :af-inet host-address port)
 	(handler-case (%ff-connect (file-descriptor socket) sockaddr-in (cffi:foreign-type-size '(:struct sockaddr-in)))
 	  (posix-error (c)
-	    (unless (posix-error-code-p c :einprogress)
-	      (error c))))
+	    (case (posix-error-code c)
+	      (:einprogress
+	       nil)
+	      (:econnrefused
+	       (return-from connect-to-ipv4-tcp-server
+		 (make-instance 'failed-ipv4-stream
+				:socket socket
+				:remote-port port
+				:remote-host-address host-address)))
+	      (t
+	       (error c)))))
 	
 	(cffi:with-foreign-object (sockaddr-in-length 'socklen-t)
 	  (setf (cffi:mem-ref sockaddr-in-length 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
