@@ -75,7 +75,7 @@
 	   (parse-poll-fd-result socket socket-events revents))))))
 
 ;; Posix Poll FD event definitions helpers
-(defun poll-fd-event-test (expression events)
+(defun poll-fd-event-test/sexp (expression events socket)
   (labels ((eventp (event)
 	     (find event events))
 	   (evaluate (s-exp)
@@ -90,7 +90,11 @@
 		   (every #'evaluate (rest s-exp)))
 		  (not
 		   (assert (= 2 (length s-exp)))
-		   (not (eventp (second s-exp))))
+		   (not (evaluate (second s-exp))))
+		  (lambda
+		   (destructuring-bind ((socket-var) &body body) (rest s-exp)		     
+		     (declare (ignore socket-var body))
+		     (funcall (compile nil s-exp) socket)))
 		  (t
 		   (error "Invalid poll-fd-event-test form: ~A" s-exp))))
 	       (t
@@ -98,6 +102,44 @@
     (if (evaluate expression)
 	t
 	nil)))
+
+(defun poll-fd-event-test (expression events socket)
+  (if (functionp expression)
+      (funcall expression events socket)
+      (poll-fd-event-test/sexp expression events socket)))
+
+(defun compilable-poll-fd-event-expression (expression)
+  (let* ((lambda-labels nil)
+	 (new-expression (labels ((substitute (exp)
+				    (cond
+				      ((symbolp exp)
+				       `(eventp ',exp))
+				      ((listp exp)
+				       (ecase (first exp)
+					 (or
+					  `(or ,@(mapcar #'substitute (rest exp))))
+					 (and
+					  `(and ,@(mapcar #'substitute (rest exp))))
+					 (not
+					  (assert (= 2 (length exp)))
+					  `(not ,(substitute (second exp))))
+					 (lambda
+					  (let ((fn-name (gensym)))
+					    (push (cons fn-name (rest exp)) lambda-labels)
+					    (list fn-name 'socket)))
+					 (t
+					  (error "Invalid poll-fd-event-test form: ~A" exp))))
+				      (t
+				       (error "Invalid poll-fd-event-test form: ~A" exp)))))			   
+			   (substitute expression))))
+    `(lambda (events socket)
+       (labels (,@lambda-labels
+		(eventp (event)
+		  (find event events)))
+	 ,new-expression))))
+
+(defun compile-poll-fd-event-expression (expression)
+  (compile nil (compilable-poll-fd-event-expression expression)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defmacro define-poll-fd-event (name &body body)
@@ -127,8 +169,8 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 			  ',(body-values :input)))
 		   (body-values :classes))
 	 
-	 (labels ((do-test (events)
-		    (poll-fd-event-test ',(body-value :test) events)))
+	 (labels ((do-test (events socket)
+		    (poll-fd-event-test ',(body-value :test) events socket)))
 	   ,@(mapcar #'(lambda (class)
 			 `(defmethod parse-poll-fd-result ((object ,class) (socket-events (eql ',name)) revents)
 			    (dolist (error ',(body-values :error))
@@ -137,7 +179,7 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 				       :message (format nil "Error with socket ~A: ~A" object
 							(get error 'poll-fd-event-error-message))
 				       :socket object)))
-			    (if (do-test revents)
+			    (if (do-test revents object)
 				',name
 				nil)))
 		     (body-values :classes)))))))
@@ -178,25 +220,44 @@ error. BODY is a collection (event-symbol message) forms."
 (define-poll-fd-event connection-succeeded-p
   (:classes ipv4-stream)
   (:input pollout pollin)
-  (:test (and pollout (not pollhup)))
+  (:test (and pollout (not pollhup)
+	      (or (not pollin)
+		  (lambda (socket)
+		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
+		      (declare (dynamic-extent buffer))
+		      (plusp (read-from-stream socket buffer :peek t)))))))
   (:error pollerr pollnval))
 
 (define-poll-fd-event data-available-p
   (:classes ipv4-stream)
   (:input pollin)
-  (:test (and pollin (not pollhup)))
+  (:test (and pollin (not pollhup)
+	      (lambda (socket)
+		(let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
+		  (declare (dynamic-extent buffer))
+		  (plusp (read-from-stream socket buffer :peek t))))))
   (:error pollerr pollnval))
 
 (define-poll-fd-event ready-to-write-p
   (:classes ipv4-stream)
   (:input pollout pollin)
-  (:test (and pollout (not pollhup)))
+  (:test (and pollout (not pollhup)
+	      (or (not pollin)
+		  (lambda (socket)
+		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
+		      (declare (dynamic-extent buffer))
+		      (plusp (read-from-stream socket buffer :peek t)))))))
   (:error pollerr pollnval))
 
 (define-poll-fd-event remote-disconnected-p
   (:classes ipv4-stream)
   (:input pollin)
-  (:test pollhup)
+  (:test (or pollhup
+	     (and pollin
+		  (lambda (socket)
+		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
+		      (declare (dynamic-extent buffer))
+		      (= 0 (read-from-stream socket buffer :peek t)))))))
   (:error pollerr pollnval))
 
 ;; failed ipv4 stream

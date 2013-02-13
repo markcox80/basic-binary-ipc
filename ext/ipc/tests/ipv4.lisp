@@ -98,8 +98,8 @@
 
 	     (close-socket remote-client)
 	     (assert-error 'error (poll-socket remote-client 'ready-to-write-p 10))
-	     (assert-false (poll-socket client 'connection-succeeded-p 10))
 
+	     (assert-false (poll-socket client 'connection-succeeded-p 10))
 	     (assert-true (poll-socket client 'remote-disconnected-p 10))
 	     (assert-false (poll-socket client 'ready-to-write-p 0))
 	     (assert-false (poll-socket client 'data-available-p 0)))
@@ -121,7 +121,7 @@
 
 (define-test connect-to-ipv4-server/does-not-exist
   (labels ((perform-test (client)
-	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 10)))
+	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
 	       (assert-equal 2 (length results))
 	       (assert-true (find 'determinedp results))
 	       (assert-true (find 'connection-failed-p results))
@@ -134,7 +134,7 @@
 
 (define-test connect-to-ipv4-server/does-not-exist/loopback
   (labels ((perform-test (client)
-	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 10)))
+	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
 	       (assert-equal 2 (length results))
 	       (assert-true (find 'determinedp results))
 	       (assert-true (find 'connection-failed-p results))

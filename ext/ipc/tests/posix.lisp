@@ -6,11 +6,11 @@
     (assert-true (zerop (basic-binary-packet.ipc::%ff-close fd)))
     (assert-error 'posix-error (basic-binary-packet.ipc::%ff-close fd))))
 
-(define-test poll-fd-event-test
+(define-test poll-fd-event-test/sexp
   (labels ((true (expression revents)
-	     (assert-true (basic-binary-packet.ipc::poll-fd-event-test expression revents)))
+	     (assert-true (basic-binary-packet.ipc::poll-fd-event-test expression revents nil)))
 	   (false (expression revents)
-	     (assert-false (basic-binary-packet.ipc::poll-fd-event-test expression revents))))
+	     (assert-false (basic-binary-packet.ipc::poll-fd-event-test expression revents nil))))
     (true 'pollin '(pollin))
     (false 'pollhup '(pollin))
     (true '(or pollin pollhup) '(pollin))
@@ -24,4 +24,34 @@
     (true '(or pollin pollhup) '(pollin))
     (true '(not (and (not pollin) (not pollhup))) '(pollin))
     (true '(or pollin pollhup) '(pollhup))
-    (true '(not (and (not pollin) (not pollhup))) '(pollhup))))
+    (true '(not (and (not pollin) (not pollhup))) '(pollhup))
+
+    (true '(and pollhup (lambda (socket)
+			  (null socket)))
+	  '(pollhup))))
+
+(define-test poll-fd-event-test/compiled
+  (labels ((true (expression revents)
+	     (let ((fn (basic-binary-packet.ipc::compile-poll-fd-event-expression expression)))
+	       (assert-true (basic-binary-packet.ipc::poll-fd-event-test fn revents nil))))
+	   (false (expression revents)
+	     (let ((fn (basic-binary-packet.ipc::compile-poll-fd-event-expression expression)))
+	       (assert-false (basic-binary-packet.ipc::poll-fd-event-test fn revents nil)))))
+    (true 'pollin '(pollin))
+    (false 'pollhup '(pollin))
+    (true '(or pollin pollhup) '(pollin))
+    (true '(or pollin pollhup) '(pollhup))
+    (false '(or pollin pollhup) '())
+    (true '(or pollin (not pollhup)) '())
+    (false '(and pollin (not pollhup)) '())
+    (true  '(and pollin (not pollhup)) '(pollin))
+    (false  '(and pollin (not pollhup)) '(pollin pollhup))
+
+    (true '(or pollin pollhup) '(pollin))
+    (true '(not (and (not pollin) (not pollhup))) '(pollin))
+    (true '(or pollin pollhup) '(pollhup))
+    (true '(not (and (not pollin) (not pollhup))) '(pollhup))
+
+    (true '(and pollhup (lambda (socket)
+			  (null socket)))
+	  '(pollhup))))
