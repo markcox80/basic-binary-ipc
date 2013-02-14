@@ -14,11 +14,12 @@
     port))
 
 (define-test make-ipv4-tcp-server
-  (let ((server (make-ipv4-tcp-server +ipv4-loopback+ 4545)))
+  (let* ((port   (random-server-port))
+	 (server (make-ipv4-tcp-server +ipv4-loopback+ port)))
     (unwind-protect
 	 (progn
 	   (assert-true server)
-	   (assert-error 'posix-error (make-ipv4-tcp-server +ipv4-loopback+ 4545)))
+	   (assert-error 'posix-error (make-ipv4-tcp-server +ipv4-loopback+ port)))
       (close-socket server))))
 
 (define-test ipv4-tcp-test/sockets
