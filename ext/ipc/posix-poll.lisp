@@ -293,9 +293,11 @@ error. BODY is a collection (event-symbol message) forms."
 
 ;; failed ipv4 stream
 (defmethod compute-poll-fd-events ((socket failed-ipv4-stream) socket-events)
+  (declare (ignore socket-events))
   nil)
 
 (defmethod parse-poll-fd-result ((socket failed-ipv4-stream) (socket-events symbol) revents)
+  (declare (ignore revents))
   (if (find socket-events '(determinedp connection-failed-p))
       socket-events
       nil))
