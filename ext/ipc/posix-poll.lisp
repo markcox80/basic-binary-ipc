@@ -110,19 +110,19 @@
 
 (defun compilable-poll-fd-event-expression (expression)
   (let* ((lambda-labels nil)
-	 (new-expression (labels ((substitute (exp)
+	 (new-expression (labels ((rewrite (exp)
 				    (cond
 				      ((symbolp exp)
 				       `(eventp ',exp))
 				      ((listp exp)
 				       (ecase (first exp)
 					 (or
-					  `(or ,@(mapcar #'substitute (rest exp))))
+					  `(or ,@(mapcar #'rewrite (rest exp))))
 					 (and
-					  `(and ,@(mapcar #'substitute (rest exp))))
+					  `(and ,@(mapcar #'rewrite (rest exp))))
 					 (not
 					  (assert (= 2 (length exp)))
-					  `(not ,(substitute (second exp))))
+					  `(not ,(rewrite (second exp))))
 					 (lambda
 					  (let ((fn-name (gensym)))
 					    (push (cons fn-name (rest exp)) lambda-labels)
@@ -131,7 +131,7 @@
 					  (error "Invalid poll-fd-event-test form: ~A" exp))))
 				      (t
 				       (error "Invalid poll-fd-event-test form: ~A" exp)))))			   
-			   (substitute expression))))
+			   (rewrite expression))))
     `(lambda (events socket)
        (declare (ignorable socket))
        (labels (,@lambda-labels
