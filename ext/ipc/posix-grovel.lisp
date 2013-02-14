@@ -85,6 +85,8 @@
 (constant (inaddr-none      "INADDR_NONE"))
 
 ; poll
+#+linux
+(define "__USE_XOPEN" 1)
 (include "poll.h")
 
 (ctype nfds-t "nfds_t")
