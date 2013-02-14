@@ -177,7 +177,7 @@ of expressions starting with :CLASSES, :INPUT or :TEST.
 			   `(defmethod parse-poll-fd-result ((object ,class) (socket-events (eql ',name)) revents)
 			      (dolist (error ',(body-values :error))
 				(when (find error revents)
-				  (error 'posix-error 
+				  (error 'poll-socket-error 
 					 :message (format nil "Error with socket ~A: ~A" object
 							  (get error 'poll-fd-event-error-message))
 					 :socket object)))
