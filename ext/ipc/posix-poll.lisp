@@ -201,24 +201,27 @@ error. BODY is a collection (event-symbol message) forms."
   (pollerr  "An exceptional condition has occurred.")
   (pollnval "File descriptor for socket is not open."))
 
-(define-poll-fd-event determinedp
-  (:classes ipv4-stream)
-  (:input pollout)
-  (:test (or pollout pollhup))
-  (:error pollerr pollnval))
-
 (define-poll-fd-event connection-available-p
   (:classes ipv4-tcp-server)
   (:input pollin)
   (:test pollin)
   (:error pollerr pollnval))
 
+#-linux
+(define-poll-fd-event determinedp
+  (:classes ipv4-stream)
+  (:input pollout)
+  (:test (or pollout pollhup))
+  (:error pollerr pollnval))
+
+#-linux
 (define-poll-fd-event connection-failed-p
   (:classes ipv4-stream)
   (:input pollin)
   (:test pollhup)
   (:error pollerr pollnval))
 
+#-linux
 (define-poll-fd-event connection-succeeded-p
   (:classes ipv4-stream)
   (:input pollout pollin)
@@ -229,6 +232,32 @@ error. BODY is a collection (event-symbol message) forms."
 		      (declare (dynamic-extent buffer))
 		      (plusp (read-from-stream socket buffer :peek t)))))))
   (:error pollerr pollnval))
+
+#+linux
+(define-poll-fd-event determinedp
+  (:classes ipv4-stream)
+  (:input pollin pollout)
+  (:test (or pollout pollhup pollerr))
+  (:error pollnval))
+
+#+linux
+(define-poll-fd-event connection-failed-p
+  (:classes ipv4-stream)
+  (:input pollin)
+  (:test (or pollhup pollerr))
+  (:error pollnval))
+
+#+linux
+(define-poll-fd-event connection-succeeded-p
+  (:classes ipv4-stream)
+  (:input pollout pollin)
+  (:test (and pollout (not pollhup) (not pollerr)
+	      (or (not pollin)
+		  (lambda (socket)
+		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
+		      (declare (dynamic-extent buffer))
+		      (plusp (read-from-stream socket buffer :peek t)))))))
+  (:error pollnval))
 
 (define-poll-fd-event data-available-p
   (:classes ipv4-stream)
