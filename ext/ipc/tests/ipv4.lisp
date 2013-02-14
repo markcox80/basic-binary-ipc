@@ -121,6 +121,7 @@
 
 (define-test connect-to-ipv4-server/does-not-exist
   (labels ((perform-test (client)
+	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
 	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
 	       (assert-equal 2 (length results))
 	       (assert-true (find 'determinedp results))
@@ -134,6 +135,7 @@
 
 (define-test connect-to-ipv4-server/does-not-exist/loopback
   (labels ((perform-test (client)
+	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
 	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
 	       (assert-equal 2 (length results))
 	       (assert-true (find 'determinedp results))
