@@ -372,7 +372,8 @@
   (defun do-with-sockaddr-un (function pathname)
     (let ((pathname (namestring pathname))
 	  (maximum-pathname-length (or #+darwin 104
-				       #-(or darwin)
+				       #+freebsd 104
+				       #-(or darwin freebsd)
 				       (error "Maximum pathname length not specified for this operating system. Please inspect sys/un.h."))))
       (assert (<= (+ maximum-pathname-length (cffi:foreign-type-size 'posix-socket-address-family))
 		  (cffi:foreign-type-size '(:struct sockaddr-un))))
