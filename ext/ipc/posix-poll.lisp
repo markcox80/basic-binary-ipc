@@ -202,28 +202,29 @@ error. BODY is a collection (event-symbol message) forms."
   (pollnval "File descriptor for socket is not open."))
 
 (define-poll-fd-event connection-available-p
-  (:classes ipv4-tcp-server)
+  (:classes ipv4-tcp-server
+	    local-server)
   (:input pollin)
   (:test pollin)
   (:error pollerr pollnval))
 
 #-linux
 (define-poll-fd-event determinedp
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollout)
   (:test (or pollout pollhup))
   (:error pollerr pollnval))
 
 #-linux
 (define-poll-fd-event connection-failed-p
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollin)
   (:test pollhup)
   (:error pollerr pollnval))
 
 #-linux
 (define-poll-fd-event connection-succeeded-p
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollout pollin)
   (:test (and pollout (not pollhup)
 	      (or (not pollin)
@@ -235,21 +236,21 @@ error. BODY is a collection (event-symbol message) forms."
 
 #+linux
 (define-poll-fd-event determinedp
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollin pollout)
   (:test (or pollout pollhup pollerr))
   (:error pollnval))
 
 #+linux
 (define-poll-fd-event connection-failed-p
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollin)
   (:test (or pollhup pollerr))
   (:error pollnval))
 
 #+linux
 (define-poll-fd-event connection-succeeded-p
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollout pollin)
   (:test (and pollout (not pollhup) (not pollerr)
 	      (or (not pollin)
@@ -260,7 +261,7 @@ error. BODY is a collection (event-symbol message) forms."
   (:error pollnval))
 
 (define-poll-fd-event data-available-p
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollin)
   (:test (and pollin (not pollhup)
 	      (lambda (socket)
@@ -270,7 +271,7 @@ error. BODY is a collection (event-symbol message) forms."
   (:error pollerr pollnval))
 
 (define-poll-fd-event ready-to-write-p
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollout pollin)
   (:test (and pollout (not pollhup)
 	      (or (not pollin)
@@ -281,7 +282,7 @@ error. BODY is a collection (event-symbol message) forms."
   (:error pollerr pollnval))
 
 (define-poll-fd-event remote-disconnected-p
-  (:classes ipv4-stream)
+  (:classes posix-stream)
   (:input pollin)
   (:test (or pollhup
 	     (and pollin
@@ -291,12 +292,12 @@ error. BODY is a collection (event-symbol message) forms."
 		      (= 0 (read-from-stream socket buffer :peek t)))))))
   (:error pollerr pollnval))
 
-;; failed ipv4 stream
-(defmethod compute-poll-fd-events ((socket failed-ipv4-stream) socket-events)
+;; failed posix stream
+(defmethod compute-poll-fd-events ((socket failed-posix-stream) socket-events)
   (declare (ignore socket-events))
   nil)
 
-(defmethod parse-poll-fd-result ((socket failed-ipv4-stream) (socket-events symbol) revents)
+(defmethod parse-poll-fd-result ((socket failed-posix-stream) (socket-events symbol) revents)
   (declare (ignore revents))
   (if (find socket-events '(determinedp connection-failed-p))
       socket-events

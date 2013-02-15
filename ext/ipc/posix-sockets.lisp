@@ -80,54 +80,32 @@
 (define-socket-option (reuse-address-p :so-reuseaddr soa-boolean))
 (define-socket-option (keep-alive-p :so-keepalive soa-boolean))
 
-;;  IPv4 stream
-(defclass ipv4-stream ()
-  ((remote-host-address
-    :initarg :remote-host-address
-    :reader remote-host-address)
-   (remote-port
-    :initarg :remote-port
-    :reader remote-port)
-   (local-host-address
-    :initarg :local-host-address
-    :reader local-host-address)
-   (local-port
-    :initarg :local-port
-    :reader local-port)
-   (socket
+(defclass posix-stream ()
+  ((socket
     :initarg :socket
     :reader socket)))
 
-
-;; IPv4 stream - future protocol
-(defmethod determinedp ((future-connection ipv4-stream))
+;; Posix stream - future protocol
+(defmethod determinedp ((future-connection posix-stream))
   (poll-socket future-connection 'determinedp :immediate))
 
-(defmethod connection-failed-p ((future-connection ipv4-stream))
+(defmethod connection-failed-p ((future-connection posix-stream))
   (poll-socket future-connection 'connection-failed-p :immediate))
 
-(defmethod connection-succeeded-p ((future-connection ipv4-stream))
+(defmethod connection-succeeded-p ((future-connection posix-stream))
   (poll-socket future-connection 'connection-succeeded-p :immediate))
 
-(defmethod print-object ((object ipv4-stream) stream)
-  (print-unreadable-object (object stream :type t :identity t)
-    (format stream "~A:~d -> ~A:~d"
-	    (local-host-address object)
-	    (local-port object)
-	    (remote-host-address object)
-	    (remote-port object))))
-
 ;; IPv4 Stream - stream protocol
-(defmethod data-available-p ((stream ipv4-stream))
+(defmethod data-available-p ((stream posix-stream))
   (poll-socket stream 'data-available-p :immediate))
 
-(defmethod ready-to-write-p ((stream ipv4-stream))
+(defmethod ready-to-write-p ((stream posix-stream))
   (poll-socket stream 'ready-to-write-p :immediate))
 
-(defmethod remote-disconnected-p ((stream ipv4-stream))
+(defmethod remote-disconnected-p ((stream posix-stream))
   (poll-socket stream 'remote-disconnected-p :immediate))
 
-(defmethod read-from-stream ((stream ipv4-stream) buffer &key start end peek)
+(defmethod read-from-stream ((stream posix-stream) buffer &key start end peek)
   (declare (type (vector (unsigned-byte 8)) buffer))
   (unless start
     (setf start 0))
@@ -151,7 +129,7 @@
 		      0)
 		  (cffi:null-pointer) (cffi:null-pointer))))
 
-(defmethod write-to-stream ((stream ipv4-stream) buffer &key start end)
+(defmethod write-to-stream ((stream posix-stream) buffer &key start end)
   (declare (type (vector (unsigned-byte 8)) buffer))
   (unless start
     (setf start 0))
@@ -170,16 +148,61 @@
   (cffi:with-pointer-to-vector-data (ptr buffer)
     (%ff-sendto (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start) 0 (cffi:null-pointer) 0)))
 
+;; Failed stream
+(defclass failed-posix-stream ()
+  ((socket
+    :initarg :socket
+    :reader socket)))
+
+(defmethod close-socket ((socket failed-posix-stream))  
+  (handler-case (close-socket (socket socket))
+    (posix-error (c)
+      (unless (posix-error-code-p c :ebadf)
+	(error c)))))
+
+;; - stream protocol
+(defmethod data-available-p ((socket-stream failed-posix-stream))
+  nil)
+
+(defmethod determinedp ((socket-stream failed-posix-stream))
+  t)
+
+(defmethod connection-failed-p ((socket-stream failed-posix-stream))
+  t)
+
+(defmethod connection-succeeded-p ((socket-stream failed-posix-stream))
+  nil)
+
+;;  IPv4 stream
+(defclass ipv4-stream (posix-stream)
+  ((remote-host-address
+    :initarg :remote-host-address
+    :reader remote-host-address)
+   (remote-port
+    :initarg :remote-port
+    :reader remote-port)
+   (local-host-address
+    :initarg :local-host-address
+    :reader local-host-address)
+   (local-port
+    :initarg :local-port
+    :reader local-port)))
+
+(defmethod print-object ((object ipv4-stream) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "~A:~d -> ~A:~d"
+	    (local-host-address object)
+	    (local-port object)
+	    (remote-host-address object)
+	    (remote-port object))))
+
 ;; Failed IPV4 Stream - This class is for the special situation when
 ;; using CONNECT-TO-TCP4-SERVER to connect to a server listening on
 ;; the loopback device. If the server does not exist, then some
 ;; operating systems signal an ECONNREFUSED error. In that case an
 ;; object of type FAILED-IPV4-STREAM is returned.
-(defclass failed-ipv4-stream ()
-  ((socket
-    :initarg :socket
-    :reader socket)
-   (remote-port
+(defclass failed-ipv4-stream (failed-posix-stream)
+  ((remote-port
     :initarg :remote-port
     :reader remote-port)
    (remote-host-address
@@ -191,25 +214,6 @@
     (format stream "~A:~d"
 	    (remote-host-address object)
 	    (remote-port object))))
-
-(defmethod close-socket ((socket failed-ipv4-stream))  
-  (handler-case (close-socket (socket socket))
-    (posix-error (c)
-      (unless (posix-error-code-p c :ebadf)
-	(error c)))))
-
-;; - stream protocol
-(defmethod data-available-p ((socket-stream failed-ipv4-stream))
-  nil)
-
-(defmethod determinedp ((socket-stream failed-ipv4-stream))
-  t)
-
-(defmethod connection-failed-p ((socket-stream failed-ipv4-stream))
-  t)
-
-(defmethod connection-succeeded-p ((socket-stream failed-ipv4-stream))
-  nil)
 
 ;; IPv4
 (defparameter +ipv4-loopback+ (%ff-inet-ntoa (%ff-ntohl inaddr-loopback)))
@@ -330,3 +334,109 @@
 		       :local-host-address (host-address-from-sockaddr-in sockaddr-in)
 		       :remote-port port
 		       :remote-host-address host-address)))))
+
+;; Local Sockets
+(defgeneric local-pathname (socket)
+  (:documentation "The pathname to the local socket."))
+
+(defgeneric delete-on-close-p (socket)
+  (:documentation "Delete the pathname when closing the socket."))
+
+;; - Local Streams
+(defclass local-stream (posix-stream)
+  ((local-pathname
+    :initarg :local-pathname
+    :reader local-pathname)))
+
+(defmethod print-object ((object local-stream) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "~S" (local-pathname object))))
+
+(defclass local-server ()
+  ((socket
+    :initarg :socket
+    :reader socket)
+   (local-pathname
+    :initarg :local-pathname
+    :reader local-pathname)
+   (delete-on-close-p
+    :initarg :delete-on-close-p
+    :reader delete-on-close-p)))
+
+(defmethod close-socket ((socket local-server))
+  (close-socket (socket socket))
+  (when (delete-on-close-p socket)
+    (delete-file (local-pathname socket))))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun do-with-sockaddr-un (function pathname)
+    (let ((pathname (namestring pathname))
+	  (maximum-pathname-length (or #+darwin 104
+				       #-(or darwin)
+				       (error "Maximum pathname length not specified for this operating system. Please inspect sys/un.h."))))
+      (assert (<= (+ maximum-pathname-length (cffi:foreign-type-size 'posix-socket-address-family))
+		  (cffi:foreign-type-size '(:struct sockaddr-un))))
+      (unless (<= (1+ (length pathname)) maximum-pathname-length)
+	(error "Pathname for local socket exceeds the allowable length of ~d characters." maximum-pathname-length))
+      (cffi:with-foreign-object (sockaddr-un '(:struct sockaddr-un))
+	(zero-memory sockaddr-un '(:struct sockaddr-un))
+	(setf (cffi:foreign-slot-value sockaddr-un '(:struct sockaddr-un) 'sun-family) :af-local)
+	(let ((sun-name-ptr (cffi:foreign-slot-pointer sockaddr-un '(:struct sockaddr-un) 'sun-path)))
+	  (dotimes (i (length pathname))
+	    (setf (cffi:mem-aref sun-name-ptr :char i) (char-code (elt pathname i)))))
+	(funcall function sockaddr-un (+ (cffi:foreign-type-size 'posix-socket-address-family)
+					 (length pathname)
+					 1)))))
+
+  (defmacro with-sockaddr-un ((ptr-var length-var pathname) &body body)
+    `(do-with-sockaddr-un #'(lambda (,ptr-var ,length-var)
+			      ,@body)
+       ,pathname)))
+
+(defun make-local-server (pathname &key (backlog 5) (delete-on-close t))
+  (let ((socket (make-posix-socket :pf-local :sock-stream 0)))
+    (setf (operating-modes socket) '(o-nonblock))
+    (with-accessors ((file-descriptor file-descriptor)) socket
+      (posix-socket-initialisation-progn (socket)
+	(with-sockaddr-un (sockaddr-un sockaddr-length pathname)
+	  (%ff-bind file-descriptor sockaddr-un sockaddr-length))
+	
+	(alexandria:unwind-protect-case ()
+	    (progn
+	      (%ff-listen file-descriptor backlog)
+	      (make-instance 'local-server
+			     :local-pathname pathname
+			     :socket socket
+			     :delete-on-close-p delete-on-close))
+	  (:abort
+	   (delete-file pathname)))))))
+
+(defmethod connection-available-p ((server local-server))
+  (let ((results (poll-socket server 'connection-available-p :immediate)))
+    (if results t nil)))
+
+(defmethod accept-connection ((server local-server))
+  (cffi:with-foreign-object (ptr '(:struct sockaddr-un))
+    (cffi:with-foreign-object (ptr-size 'socklen-t)
+      (setf (cffi:mem-ref ptr-size 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-un)))
+      (let ((fd (%ff-accept (file-descriptor (socket server)) ptr ptr-size)))
+	(make-instance 'local-stream
+		       :socket (make-instance 'posix-socket
+					      :namespace (namespace (socket server))
+					      :communication-style (communication-style (socket server))
+					      :protocol (protocol (socket server))
+					      :file-descriptor fd)
+		       :local-pathname (local-pathname server))))))
+
+(defun connect-to-local-server (pathname &key)
+  (let ((socket (make-posix-socket :pf-local :sock-stream 0)))
+    (posix-socket-initialisation-progn (socket)
+      (setf (operating-modes socket) '(o-nonblock))
+
+      ;; Connect to the host.
+      (with-sockaddr-un (sockaddr-un sockaddr-length pathname)
+	(%ff-connect (file-descriptor socket) sockaddr-un sockaddr-length))
+
+      (make-instance 'local-stream
+		     :socket socket
+		     :local-pathname pathname))))

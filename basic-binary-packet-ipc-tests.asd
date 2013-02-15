@@ -10,4 +10,5 @@
 			:components ((:file "packages")
 				     (:file "asdf")
 				     (:file "posix")
-				     (:file "ipv4")))))
+				     (:file "ipv4")
+				     (:file "local")))))

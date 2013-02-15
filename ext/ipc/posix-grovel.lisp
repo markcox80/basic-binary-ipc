@@ -53,7 +53,8 @@
 (include "sys/socket.h")
 
 (constantenum (posix-socket-namespace :base-type :int)
-  ((:pf-inet "PF_INET")))
+  ((:pf-inet "PF_INET"))
+  ((:pf-local "PF_LOCAL")))
 
 (constantenum (posix-socket-type :base-type :int)
   ((:sock-stream "SOCK_STREAM"))
@@ -69,7 +70,8 @@
 
 (ctype sa-family-t "sa_family_t")
 (constantenum (posix-socket-address-family :base-type sa-family-t)
-  ((:af-inet "AF_INET")))
+  ((:af-inet "AF_INET"))
+  ((:af-local "AF_LOCAL")))
 
 (cstruct in-addr "struct in_addr"
   (s-addr "s_addr" :type :uint32))
@@ -83,6 +85,13 @@
 (constant (inaddr-any       "INADDR_ANY"))
 (constant (inaddr-broadcast "INADDR_BROADCAST"))
 (constant (inaddr-none      "INADDR_NONE"))
+
+; Local Sockets
+(include "sys/un.h")
+
+(cstruct sockaddr-un "struct sockaddr_un"
+  (sun-family "sun_family" :type posix-socket-address-family)
+  (sun-path   "sun_path" :type :char))
 
 ; poll
 #+linux

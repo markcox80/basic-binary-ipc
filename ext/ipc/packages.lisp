@@ -37,4 +37,10 @@
 	   #:local-host-address
 	   #:local-port
 	   #:remote-host-address
-	   #:remote-port))
+	   #:remote-port)
+
+  ;; Local Sockets
+  (:export #:make-local-server
+	   #:connect-to-local-server
+	   
+	   #:local-pathname))
