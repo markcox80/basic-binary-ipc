@@ -109,8 +109,8 @@
 	       (close-socket client)))
 	(close-socket server)))))
 
-(define-test connect-to-local-server/does-not-exist
-  (assert-error 'posix-error (connect-to-local-server (local-socket-pathname))))
+(define-test connect-to-local-server/does-not-exist  
+  (assert-error 'no-local-server-error (connect-to-local-server (local-socket-pathname))))
 
 (define-test local-test/pathname
   (labels ((establish-channel (server client)

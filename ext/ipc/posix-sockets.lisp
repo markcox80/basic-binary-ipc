@@ -430,6 +430,13 @@
 					      :file-descriptor fd)
 		       :local-pathname (local-pathname server))))))
 
+(define-condition no-local-server-error ()
+  ((local-pathname
+    :initarg :local-pathname
+    :reader local-pathname))
+  (:report (lambda (condition stream)
+	     (format stream "No local server exists at pathname ~S." (local-pathname condition)))))
+
 (defun connect-to-local-server (pathname &key)
   (let ((socket (make-posix-socket :pf-local :sock-stream 0)))
     (posix-socket-initialisation-progn (socket)
@@ -437,7 +444,11 @@
 
       ;; Connect to the host.
       (with-sockaddr-un (sockaddr-un sockaddr-length pathname)
-	(%ff-connect (file-descriptor socket) sockaddr-un sockaddr-length))
+	(handler-case (%ff-connect (file-descriptor socket) sockaddr-un sockaddr-length)
+	  (posix-error (c)
+	    (if (posix-error-code-p c :enoent)
+		(error 'no-local-server-error :local-pathname pathname)
+		(error c)))))
 
       (make-instance 'local-stream
 		     :socket socket

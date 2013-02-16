@@ -42,5 +42,6 @@
   ;; Local Sockets
   (:export #:make-local-server
 	   #:connect-to-local-server
+	   #:no-local-server-error
 	   
 	   #:local-pathname))
