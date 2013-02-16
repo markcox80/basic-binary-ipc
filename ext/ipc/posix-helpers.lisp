@@ -2,7 +2,12 @@
 
 ;; All of the ERRNO wrapper stuff is inspired by the one in OSICAT.
 
-(cffi:defcvar (%ff-errno "errno") :int)
+#+ (or darwin freebsd)
+(cffi:defcfun (%ff-get-errno-pointer "__error") (:pointer :int))
+
+(defun %ff-get-errno ()
+  (cffi:mem-ref (%ff-get-errno-pointer) :int))
+
 (cffi:defcfun (%ff-strerror "strerror_r") :string
   (errnum :int)
   (buffer :pointer)
@@ -91,7 +96,7 @@ ERRNO-ENUM type."
       (error 'posix-error
 	     :lisp-function-name (lisp-function-name type)
 	     :c-function-name (c-function-name type)
-	     :errnum %ff-errno)))
+	     :errnum (%ff-get-errno))))
 
 (defmacro define-system-call (name return-value &body arguments)
   (destructuring-bind (lisp-function-name c-function-name) name
