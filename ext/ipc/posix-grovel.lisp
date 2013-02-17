@@ -6,6 +6,7 @@
 
 (constantenum (errno-enum :base-type :int)
   ((:eagain "EAGAIN"))
+  ((:ewouldblock "EWOULDBLOCK"))
   ((:ebadf "EBADF"))
   ((:eintr "EINTR"))
   ((:eio   "EIO"))

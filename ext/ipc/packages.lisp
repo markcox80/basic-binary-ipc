@@ -6,7 +6,9 @@
 
   ;; Stream servers
   (:export #:accept-connection
-	   #:connection-available-p)
+	   #:connection-available-p
+	   #:no-connection-available-error
+	   #:socket)
 
   ;; Future connections
   (:export #:determinedp

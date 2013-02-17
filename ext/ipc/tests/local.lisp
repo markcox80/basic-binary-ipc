@@ -8,6 +8,7 @@
     (unwind-protect
 	 (progn
 	   (assert-true server)
+	   (assert-error 'no-connection-available-error (accept-connection server))
 	   (assert-error 'posix-error (make-local-server (local-socket-pathname))))
       (close-socket server))))
 

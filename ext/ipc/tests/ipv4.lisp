@@ -19,6 +19,7 @@
     (unwind-protect
 	 (progn
 	   (assert-true server)
+	   (assert-error 'no-connection-available-error (accept-connection server))
 	   (assert-error 'posix-error (make-ipv4-tcp-server +ipv4-loopback+ port)))
       (close-socket server))))
 

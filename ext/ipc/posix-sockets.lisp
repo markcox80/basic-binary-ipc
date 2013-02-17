@@ -268,11 +268,31 @@
   (let ((results (poll-socket server 'connection-available-p :immediate)))
     (if results t nil)))
 
+(defun posix-error-would-block-p (condition)
+  "The predicate POSIX-ERROR-WOULD-BLOCK-P handles the potential
+  sitation where EAGAIN and EWOULDBLOCK are defined to be the same
+  ERRNO constant (this is true on OSX). This causes difficulties with
+  the mapping between error codes and keywords in the enum
+  ERRNO-ENUM."
+  (let ((code (posix-error-code condition)))
+    (cond
+      ((= (cffi:foreign-enum-value 'errno-enum :eagain)
+	  (cffi:foreign-enum-value 'errno-enum :ewouldblock))
+       (or (eql code :eagain)
+	   (eql code :ewouldblock)))
+
+      (t
+       (eql code :ewouldblock)))))
+
 (defmethod accept-connection ((server ipv4-tcp-server))
   (cffi:with-foreign-object (ptr '(:struct sockaddr-in))
     (cffi:with-foreign-object (ptr-size 'socklen-t)
       (setf (cffi:mem-ref ptr-size 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
-      (let ((fd (%ff-accept (file-descriptor (socket server)) ptr ptr-size)))
+      (let ((fd (handler-case (%ff-accept (file-descriptor (socket server)) ptr ptr-size)
+		  (posix-error (c)
+		    (if (posix-error-would-block-p c)
+			(error 'no-connection-available-error :socket server)
+			(error c))))))
 	(make-instance 'ipv4-stream
 		       :socket (make-instance 'posix-socket
 					      :namespace (namespace (socket server))
@@ -421,7 +441,11 @@
   (cffi:with-foreign-object (ptr '(:struct sockaddr-un))
     (cffi:with-foreign-object (ptr-size 'socklen-t)
       (setf (cffi:mem-ref ptr-size 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-un)))
-      (let ((fd (%ff-accept (file-descriptor (socket server)) ptr ptr-size)))
+      (let ((fd (handler-case (%ff-accept (file-descriptor (socket server)) ptr ptr-size)
+		  (posix-error (c)
+		    (if (posix-error-would-block-p c)
+			(error 'no-connection-available-error :socket server)
+			(error c))))))
 	(make-instance 'local-stream
 		       :socket (make-instance 'posix-socket
 					      :namespace (namespace (socket server))
