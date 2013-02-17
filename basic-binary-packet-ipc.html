@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="IPC Extension for Basic Binary Packet"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-02-17T21:13+1000"/>
+<meta name="generated" content="2013-02-18T07:26+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -216,7 +216,7 @@ following namespaces
           transmission control protocol.
 </dd>
 <dt><a href="#sec-4">Local</a></dt><dd>Local or Unix domain sockets for communicating between
-           processes on the same physical device.
+           processes located on the same physical device.
 </dd>
 </dl>
 
@@ -226,7 +226,7 @@ Each namespace only provides functions for creating servers and
 clients. Once created, all servers implement the <a href="#sec-2-1">stream server</a>
 protocol and all clients implement the <a href="#sec-2-2">stream client</a> protocol. Once a
 stream has been completely established, the <a href="#sec-2-3">stream protocol</a> can be
-used to transfer data using the stream. 
+used to communicate via the stream.
 </p>
 
 </div>
@@ -236,13 +236,13 @@ used to transfer data using the stream.
 <div class="outline-text-3" id="text-2-1">
 
 <p>The stream server protocol represents sockets that listen for
-connections from clients. Amusingly, a server object is not actually
-capable of conducting communication. Its purpose is to provide an
-application with the ability to accept incoming connections. 
+connections from clients. A server object is not actually capable of
+conducting communication. Its purpose is to allow an application to
+accept incoming connections.
 </p>
 <p>
-Accepting a client's request is performed using the
-<code>ACCEPT-CONNECTION</code> function.
+Accepting a new connection is performed using the <code>ACCEPT-CONNECTION</code>
+function.
 </p>
 
 
@@ -251,15 +251,26 @@ Accepting a client's request is performed using the
 
 <p>
 This function returns a new object that implements the <a href="#sec-2-2">stream client</a>
-protocol. It should be noted that the returned object is now no longer
-associated with the server object that acknowledged the client's
-request. This function signals an error when there is no client
-waiting acknowledgment.
+protocol.  The <code>ACCEPT-CONNECTION</code> function will signal a
+<code>NO-CONNECTION-AVAILABLE-ERROR</code> condition if no client is waiting for
+acknowledgment.
 </p>
 <p>
-The predicate <code>CONNECTION-AVAILABLE-P</code> returns non <code>NIL</code> value if the
-server has connections available.
+It should be noted that the returned stream client object is
+dissociated from the server that created the connection i.e. calling
+<code>CLOSE-SOCKET</code> on a server object will <i>not</i> terminate any of its
+accepted connections.
 </p>
+<p>
+The predicate <code>CONNECTION-AVAILABLE-P</code> returns non <code>NIL</code> if the server
+has connections available.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-available-p</span> (server))
+</pre>
+
+
 </div>
 
 </div>
@@ -518,7 +529,7 @@ state has occurred.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-02-17T21:13+1000</p>
+<p class="date">Date: 2013-02-18T07:26+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3e with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>

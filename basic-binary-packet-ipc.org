@@ -49,33 +49,40 @@ following namespaces
 - [[*IPv4][IPv4]] :: The Internet protocol version 4 namespace using the
           transmission control protocol.
 - [[*Local][Local]] :: Local or Unix domain sockets for communicating between
-           processes on the same physical device.
+           processes located on the same physical device.
 
 Each namespace only provides functions for creating servers and
 clients. Once created, all servers implement the [[*Stream Servers][stream server]]
 protocol and all clients implement the [[*Stream Clients][stream client]] protocol. Once a
 stream has been completely established, the [[*Streams][stream protocol]] can be
-used to transfer data using the stream. 
+used to communicate via the stream.
 
 ** Stream Servers
 The stream server protocol represents sockets that listen for
-connections from clients. Amusingly, a server object is not actually
-capable of conducting communication. Its purpose is to provide an
-application with the ability to accept incoming connections. 
+connections from clients. A server object is not actually capable of
+conducting communication. Its purpose is to allow an application to
+accept incoming connections.
 
-Accepting a client's request is performed using the
-~ACCEPT-CONNECTION~ function.
+Accepting a new connection is performed using the ~ACCEPT-CONNECTION~
+function.
 #+begin_src lisp
 (defgeneric accept-connection (server))
 #+end_src
 This function returns a new object that implements the [[*Stream Clients][stream client]]
-protocol. It should be noted that the returned object is now no longer
-associated with the server object that acknowledged the client's
-request. This function signals an error when there is no client
-waiting acknowledgment.
+protocol.  The ~ACCEPT-CONNECTION~ function will signal a
+~NO-CONNECTION-AVAILABLE-ERROR~ condition if no client is waiting for
+acknowledgment.
 
-The predicate ~CONNECTION-AVAILABLE-P~ returns non ~NIL~ value if the
-server has connections available.
+It should be noted that the returned stream client object is
+dissociated from the server that created the connection i.e. calling
+~CLOSE-SOCKET~ on a server object will /not/ terminate any of its
+accepted connections.
+
+The predicate ~CONNECTION-AVAILABLE-P~ returns non ~NIL~ if the server
+has connections available.
+#+begin_src lisp
+(defgeneric connection-available-p (server))
+#+end_src
 
 ** Stream Clients
 The steps to connect to a stream server follow two distinct stages,
