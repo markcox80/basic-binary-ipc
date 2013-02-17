@@ -1,48 +1,63 @@
 #+TITLE: IPC Extension for Basic Binary Packet
 #+AUTHOR: Mark Cox
 
-This library is a supporting library that provides the inter process
+This library is a supporting library that provides inter process
 communication facilities to the basic binary packet library.
 
 [TABLE-OF-CONTENTS]
 
 * Introduction
-This library provides a simple interprocess communication API that is
-used by the ~NETWORK~ extension. This library is asynchronous by
-design and only supports the ~(UNSIGNED-BYTE 8)~ element type. 
+This library provides a simple interface for performing inter-process
+communication with ~(UNSIGNED-BYTE 8)~ communication channels.
 
-The prerequisite systems for this API are
+The prerequisite systems for this extension are
 - [[http://common-lisp.net/project/cffi/][~CFFI~]]
 - [[https://github.com/OdonataResearchLLC/lisp-unit][Lisp Unit]] (tests only)
 These libraries can be obtained using [[http://www.quicklisp.org][Quicklisp]].
 
-Access to the operating system's networking API is performed using
+Access to the operating system's networking API is performed using the
 foreign function interface provided by ~CFFI~. The operating systems
 that are supported are:
 - [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7)
-- TODO [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1)
-- TODO Linux (Tested with [[http://www.debian.org][Debian]] squeeze)
-- TODO [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with version XP)
-  
+- [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1)
+- Linux (Tested with [[http://www.debian.org][Debian]] squeeze)
+- NEED-TO-IMPLEMENT [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with version XP)  
 
 * Sockets
 Fundamental to this API is the socket protocol. An object implementing
-this protocol represents a resource that is associated with performing
-communication.
+this protocol represents one end of a communication channel.
 
-A socket can be used as a server or a client for a number of
-protocols. This implementation provides /no/ generic interface for
-creating server or client sockets. These functions are protocol
-specific and are described in their respective sections.
-
-Once a socket object has been created, its resources can be released
-using the ~CLOSE-SOCKET~ function.
+The socket protocol consists of one function, ~CLOSE-SOCKET~. This
+function releases all operating system resources associated with the
+socket.
 #+begin_src lisp
 (defgeneric close-socket (object))
 #+end_src
 
+The type of communication channel supported by this library is a
+stream. A stream can be defined as a channel that guarantees that the
+order in which data is read is the same as the order it was
+written. 
+
+This extension provides an interface for creating servers and for
+starting a connection to server. The term client is used to refer to
+the process of starting a connection. 
+
+Where a server listens for clients is determined by the namespace used
+to create the server. This library provides functions for the
+following namespaces
+- [[*IPv4][IPv4]] :: The Internet protocol version 4 namespace using the
+          transmission control protocol.
+- [[*Local][Local]] :: Local or Unix domain sockets for communicating between
+           processes on the same physical device.
+
+Each namespace only provides functions for creating servers and
+clients. Once created, all servers implement the [[*Stream Servers][stream server]]
+protocol and all [[*Stream Clients][stream client]] protocol. Once a stream has been
+completely established, the [[*Streams][stream protocol]] can be used to transfer
+data using the stream.
 ** Stream Servers
-The stream server protocol represent socket objects that listen for
+The stream server protocol represents sockets that listen for
 connections from remote processes.
 
 Connections received by the server are accepted using the
@@ -161,6 +176,10 @@ protocol with the following functions
      the remote client.
 - ~LOCAL-PORT~ :: The port number used to communicate to the remote
                   client.
+
+* Local
+This section outlines how to create a communication channel between
+two processes running on the same physical machine. 
 
 * Polling
 All functions outlined above work directly on the current state of the

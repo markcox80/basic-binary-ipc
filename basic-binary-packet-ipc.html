@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="IPC Extension for Basic Binary Packet"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-02-06 07:34:08 EST"/>
+<meta name="generated" content="2013-02-17T20:50+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -61,6 +61,30 @@
   /*]]>*/-->
 </style>
 <script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
 <!--/*--><![CDATA[/*><!--*/
  function CodeHighlightOn(elem, id)
  {
@@ -93,7 +117,7 @@
 <div id="content">
 <h1 class="title">IPC Extension for Basic Binary Packet</h1>
 
-<p>This library is a supporting library that provides the inter process
+<p>This library is a supporting library that provides inter process
 communication facilities to the basic binary packet library.
 </p>
 <div id="table-of-contents">
@@ -109,7 +133,8 @@ communication facilities to the basic binary packet library.
 </ul>
 </li>
 <li><a href="#sec-3">3 IPv4</a></li>
-<li><a href="#sec-4">4 Polling</a></li>
+<li><a href="#sec-4">4 Local</a></li>
+<li><a href="#sec-5">5 Polling</a></li>
 </ul>
 </div>
 </div>
@@ -119,12 +144,11 @@ communication facilities to the basic binary packet library.
 <h2 id="sec-1"><span class="section-number-2">1</span> Introduction</h2>
 <div class="outline-text-2" id="text-1">
 
-<p>This library provides a simple interprocess communication API that is
-used by the <code>NETWORK</code> extension. This library is asynchronous by
-design and only supports the <code>(UNSIGNED-BYTE 8)</code> element type. 
+<p>This library provides a simple interface for performing inter-process
+communication with <code>(UNSIGNED-BYTE 8)</code> communication channels.
 </p>
 <p>
-The prerequisite systems for this API are
+The prerequisite systems for this extension are
 </p><ul>
 <li><a href="http://common-lisp.net/project/cffi/"><code>CFFI</code></a>
 </li>
@@ -135,20 +159,19 @@ The prerequisite systems for this API are
 <p>These libraries can be obtained using <a href="http://www.quicklisp.org">Quicklisp</a>.
 </p>
 <p>
-Access to the operating system's networking API is performed using
+Access to the operating system's networking API is performed using the
 foreign function interface provided by <code>CFFI</code>. The operating systems
 that are supported are:
 </p><ul>
 <li><a href="http://www.apple.com/osx/">Apple OSX</a> (Tested with version 10.7)
 </li>
-<li>TODO <a href="http://www.freebsd.org">FreeBSD</a> (Tested with version 9.1)
+<li><a href="http://www.freebsd.org">FreeBSD</a> (Tested with version 9.1)
 </li>
-<li>TODO Linux (Tested with <a href="http://www.debian.org">Debian</a> squeeze)
+<li>Linux (Tested with <a href="http://www.debian.org">Debian</a> squeeze)
 </li>
-<li>TODO <a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with version XP)
+<li>NEED-TO-IMPLEMENT <a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with version XP)  
 </li>
 </ul>
-
 
 
 </div>
@@ -160,33 +183,58 @@ that are supported are:
 <div class="outline-text-2" id="text-2">
 
 <p>Fundamental to this API is the socket protocol. An object implementing
-this protocol represents a resource that is associated with performing
-communication.
+this protocol represents one end of a communication channel.
 </p>
 <p>
-A socket can be used as a server or a client for a number of
-protocols. This implementation provides <i>no</i> generic interface for
-creating server or client sockets. These functions are protocol
-specific and are described in their respective sections.
-</p>
-<p>
-Once a socket object has been created, its resources can be released
-using the <code>CLOSE-SOCKET</code> function.
+The socket protocol consists of one function, <code>CLOSE-SOCKET</code>. This
+function releases all operating system resources associated with the
+socket.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">close-socket</span> (object))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">close-socket</span> (object))
 </pre>
 
 
+<p>
+The type of communication channel supported by this library is a
+stream. A stream can be defined as a channel that guarantees that the
+order in which data is read is the same as the order it was
+written. 
+</p>
+<p>
+This extension provides an interface for creating servers and for
+starting a connection to server. The term client is used to refer to
+the process of starting a connection. 
+</p>
+<p>
+Where a server listens for clients is determined by the namespace used
+to create the server. This library provides functions for the
+following namespaces
+</p><dl>
+<dt><a href="#sec-3">IPv4</a></dt><dd>The Internet protocol version 4 namespace using the
+          transmission control protocol.
+</dd>
+<dt><a href="#sec-4">Local</a></dt><dd>Local or Unix domain sockets for communicating between
+           processes on the same physical device.
+</dd>
+</dl>
 
+
+<p>
+Each namespace only provides functions for creating servers and
+clients. Once created, all servers implement the <a href="#sec-2-1">stream server</a>
+protocol and all <a href="#sec-2-2">stream client</a> protocol. Once a stream has been
+completely established, the <a href="#sec-2-3">stream protocol</a> can be used to transfer
+data using the stream.
+</p>
 </div>
 
 <div id="outline-container-2-1" class="outline-3">
 <h3 id="sec-2-1"><span class="section-number-3">2.1</span> Stream Servers</h3>
 <div class="outline-text-3" id="text-2-1">
 
-<p>The stream server protocol represent socket objects that listen for
+<p>The stream server protocol represents sockets that listen for
 connections from remote processes.
 </p>
 <p>
@@ -196,7 +244,7 @@ available,
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">accept-connection</span> (server))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">accept-connection</span> (server))
 </pre>
 
 
@@ -227,7 +275,7 @@ protocol, the first is <code>DETERMINEDP</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">determinedp</span> (future-connection))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">determinedp</span> (future-connection))
 </pre>
 
 <p>
@@ -265,8 +313,8 @@ this data can be performed using the function <code>READ-FROM-STREAM</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">data-available-p</span> (stream))
-(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">read-from-stream</span> (stream buffer <span style="color: #228b22;">&amp;key</span> start end))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">data-available-p</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">read-from-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end))
 </pre>
 
 <p>
@@ -282,7 +330,7 @@ Writing data to the stream is performed using the function
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">write-to-stream</span> (stream buffer <span style="color: #228b22;">&amp;key</span> start end))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">write-to-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end))
 </pre>
 
 <p>
@@ -293,7 +341,7 @@ written immediately.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">ready-to-write-p</span> (stream))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">ready-to-write-p</span> (stream))
 </pre>
 
 <p>
@@ -306,7 +354,7 @@ If the connection between the two hosts is severed, then the function
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">remote-disconnected-p</span> (stream))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-disconnected-p</span> (stream))
 </pre>
 
 
@@ -324,7 +372,7 @@ listens for connections to <code>PORT</code> on the host <code>ADDRESS</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defun</span> <span style="color: #0000ff;">make-ipv4-tcp-server</span> (host-address port <span style="color: #228b22;">&amp;key</span> reuse-socket-address backlog))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">make-ipv4-tcp-server</span> (host-address port <span style="color: #a57705;">&amp;key</span> reuse-socket-address backlog))
 </pre>
 
 <p>
@@ -362,7 +410,7 @@ a IPv4 TCP server.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defun</span> <span style="color: #0000ff;">connect-to-ipv4-tcp-server</span> (host-address port))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-ipv4-tcp-server</span> (host-address port))
 </pre>
 
 <p>
@@ -394,8 +442,19 @@ protocol with the following functions
 </div>
 
 <div id="outline-container-4" class="outline-2">
-<h2 id="sec-4"><span class="section-number-2">4</span> Polling</h2>
+<h2 id="sec-4"><span class="section-number-2">4</span> Local</h2>
 <div class="outline-text-2" id="text-4">
+
+<p>This section outlines how to create a communication channel between
+two processes running on the same physical machine. 
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Polling</h2>
+<div class="outline-text-2" id="text-5">
 
 <p>All functions outlined above work directly on the current state of the
 socket. The function <code>POLL-SOCKET</code> allows an application to block
@@ -404,7 +463,7 @@ remote host has disconnected.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defgeneric</span> <span style="color: #0000ff;">poll-socket</span> (socket socket-events timeout))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">poll-socket</span> (socket socket-events timeout))
 </pre>
 
 <p>
@@ -434,7 +493,7 @@ function.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #7f007f;">defun</span> <span style="color: #0000ff;">poll-sockets</span> (all-sockets all-sockets-events timeout))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">poll-sockets</span> (all-sockets all-sockets-events timeout))
 </pre>
 
 <p>
@@ -451,9 +510,9 @@ state has occurred.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-02-06 07:34:08 EST</p>
+<p class="date">Date: 2013-02-17T20:50+1000</p>
 <p class="author">Author: Mark Cox</p>
-<p class="creator">Org version 7.8.11 with Emacs version 24</p>
+<p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3e with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
 
 </div>
