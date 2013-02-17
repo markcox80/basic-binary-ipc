@@ -53,19 +53,26 @@ following namespaces
 
 Each namespace only provides functions for creating servers and
 clients. Once created, all servers implement the [[*Stream Servers][stream server]]
-protocol and all [[*Stream Clients][stream client]] protocol. Once a stream has been
-completely established, the [[*Streams][stream protocol]] can be used to transfer
-data using the stream.
+protocol and all clients implement the [[*Stream Clients][stream client]] protocol. Once a
+stream has been completely established, the [[*Streams][stream protocol]] can be
+used to transfer data using the stream. 
+
 ** Stream Servers
 The stream server protocol represents sockets that listen for
-connections from remote processes.
+connections from clients. Amusingly, a server object is not actually
+capable of conducting communication. Its purpose is to provide an
+application with the ability to accept incoming connections. 
 
-Connections received by the server are accepted using the
-~ACCEPT-CONNECTION~ function. An error is signaled if no connection is
-available,
+Accepting a client's request is performed using the
+~ACCEPT-CONNECTION~ function.
 #+begin_src lisp
 (defgeneric accept-connection (server))
 #+end_src
+This function returns a new object that implements the [[*Stream Clients][stream client]]
+protocol. It should be noted that the returned object is now no longer
+associated with the server object that acknowledged the client's
+request. This function signals an error when there is no client
+waiting acknowledgment.
 
 The predicate ~CONNECTION-AVAILABLE-P~ returns non ~NIL~ value if the
 server has connections available.
