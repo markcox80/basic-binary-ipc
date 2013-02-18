@@ -85,28 +85,35 @@ has connections available.
 #+end_src
 
 ** Stream Clients
-The steps to connect to a stream server follow two distinct stages,
-connecting to the server and then obtaining the connection.
+A stream is not a stream until two stream sockets have agreed that
+they are able to talk to each other. A stream socket represents one of
+the two sockets needed to build a stream. There are two ways to create
+a stream socket, the first is to use a namespace specific function to
+initiate a connection to a server. The second is using the
+~ACCEPT-CONNECTION~ function on a server object when a new connection
+arrives.
 
-A protocol specific function begins the connection process. This
-function returns an object that allows an application to obtain
-information about the connection process via the future connection
-protocol. 
+Once a stream socket has been created, it immediately starts to
+negotiate with the other stream socket. This negotiation may take a
+significant amount of time, and in some cases may fail to complete for
+reasons beyond each socket's control e.g. a network failure, an
+overloaded server, a not reachable host. This period of uncertainty is
+modeled in this library by the future connection protocol and is
+implemented by all stream socket objects.
 
-There are a number predicate functions in the future connection
-protocol, the first is ~DETERMINEDP~.
+The future connection protocol is all about querying the state of the
+negotiating process. The most important is the predicate ~DETERMINEDP~.
 #+begin_src lisp
 (defgeneric determinedp (future-connection))
 #+end_src
-A non ~NIL~ return value of ~DETERMINEDP~ indicates that connecting to
-the server has finished. The process may have failed or succeeded.
-
-The second predicate function is ~CONNECTION-FAILED-P~. This predicate
-can be used to differentiate between a failed or successful
-connection.
-
-The third predicate function is ~CONNECTION-SUCCEDED-P~. This
-predicate is the opposite of ~CONNECTION-FAILED-P~.
+A non ~NIL~ return value of ~DETERMINEDP~ indicates that the operating
+system has finished trying to negotiate a new stream connection. The
+result of negotiation can be obtained using the predicates
+~CONNECTION-FAILED-P~ and ~CONNECTION-SUCCEEDED-P~.
+#+begin_src lisp
+(defgeneric connection-failed-p (future-connection))
+(defgeneric connection-succeeded-p (future-connection))
+#+end_src
 
 If the connection is successful, the stream protocol outlined in the
 next section can be used on the socket object.

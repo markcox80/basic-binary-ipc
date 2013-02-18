@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="IPC Extension for Basic Binary Packet"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-02-18T07:26+1000"/>
+<meta name="generated" content="2013-02-18T08:09+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -279,18 +279,26 @@ has connections available.
 <h3 id="sec-2-2"><span class="section-number-3">2.2</span> Stream Clients</h3>
 <div class="outline-text-3" id="text-2-2">
 
-<p>The steps to connect to a stream server follow two distinct stages,
-connecting to the server and then obtaining the connection.
+<p>A stream is not a stream until two stream sockets have agreed that
+they are able to talk to each other. A stream socket represents one of
+the two sockets needed to build a stream. There are two ways to create
+a stream socket, the first is to use a namespace specific function to
+initiate a connection to a server. The second is using the
+<code>ACCEPT-CONNECTION</code> function on a server object when a new connection
+arrives.
 </p>
 <p>
-A protocol specific function begins the connection process. This
-function returns an object that allows an application to obtain
-information about the connection process via the future connection
-protocol. 
+Once a stream socket has been created, it immediately starts to
+negotiate with the other stream socket. This negotiation may take a
+significant amount of time, and in some cases may fail to complete for
+reasons beyond each socket's control e.g. a network failure, an
+overloaded server, a not reachable host. This period of uncertainty is
+modeled in this library by the future connection protocol and is
+implemented by all stream socket objects.
 </p>
 <p>
-There are a number predicate functions in the future connection
-protocol, the first is <code>DETERMINEDP</code>.
+The future connection protocol is all about querying the state of the
+negotiating process. The most important is the predicate <code>DETERMINEDP</code>.
 </p>
 
 
@@ -298,18 +306,18 @@ protocol, the first is <code>DETERMINEDP</code>.
 </pre>
 
 <p>
-A non <code>NIL</code> return value of <code>DETERMINEDP</code> indicates that connecting to
-the server has finished. The process may have failed or succeeded.
+A non <code>NIL</code> return value of <code>DETERMINEDP</code> indicates that the operating
+system has finished trying to negotiate a new stream connection. The
+result of negotiation can be obtained using the predicates
+<code>CONNECTION-FAILED-P</code> and <code>CONNECTION-SUCCEEDED-P</code>.
 </p>
-<p>
-The second predicate function is <code>CONNECTION-FAILED-P</code>. This predicate
-can be used to differentiate between a failed or successful
-connection.
-</p>
-<p>
-The third predicate function is <code>CONNECTION-SUCCEDED-P</code>. This
-predicate is the opposite of <code>CONNECTION-FAILED-P</code>.
-</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-failed-p</span> (future-connection))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-succeeded-p</span> (future-connection))
+</pre>
+
+
 <p>
 If the connection is successful, the stream protocol outlined in the
 next section can be used on the socket object.
@@ -529,7 +537,7 @@ state has occurred.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-02-18T07:26+1000</p>
+<p class="date">Date: 2013-02-18T08:09+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3e with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
