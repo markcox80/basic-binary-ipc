@@ -31,5 +31,9 @@
 (defgeneric poll-sockets (all-sockets all-socket-events timeout))
 
 ;; IPv4 protocol
-(defgeneric host-address (ipv4-socket))
-(defgeneric port (ipv4-socket))
+(defgeneric host-address (server))
+(defgeneric port (server))
+(defgeneric local-host-address (stream))
+(defgeneric local-port (stream))
+(defgeneric remote-host-address (stream))
+(defgeneric remote-port (stream))
