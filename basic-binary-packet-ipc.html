@@ -1,16 +1,13 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+	       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>IPC Extension for Basic Binary Packet</title>
-<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="title" content="IPC Extension for Basic Binary Packet"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-02-18T08:09+1000"/>
 <meta name="author" content="Mark Cox"/>
-<meta name="description" content=""/>
-<meta name="keywords" content=""/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
   html { font-family: Times, serif; font-size: 12pt; }
@@ -59,13 +56,12 @@
   .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
                                  font-weight:bold; }
   /*]]>*/-->
-</style>
-<script type="text/javascript">
+</style><script type="text/javascript">
 /*
 @licstart  The following is the entire license notice for the
 JavaScript code in this tag.
 
-Copyright (C) 2012-2013 Free Software Foundation, Inc.
+Copyright (C) 2012  Free Software Foundation, Inc.
 
 The JavaScript code in this tag is free software: you can
 redistribute it and/or modify it under the terms of the GNU
@@ -106,399 +102,436 @@ for the JavaScript code in this tag.
  }
 /*]]>*///-->
 </script>
-
 </head>
 <body>
-
-<div id="preamble">
-
-</div>
-
 <div id="content">
 <h1 class="title">IPC Extension for Basic Binary Packet</h1>
-
-<p>This library is a supporting library that provides inter process
-communication facilities to the basic binary packet library.
-</p>
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#sec-1">1 Introduction</a></li>
-<li><a href="#sec-2">2 Sockets</a>
+<li><a href="#sec-1">1. Installation</a></li>
+<li><a href="#sec-2">2. Introduction</a></li>
+<li><a href="#sec-3">3. Sockets</a>
 <ul>
-<li><a href="#sec-2-1">2.1 Stream Servers</a></li>
-<li><a href="#sec-2-2">2.2 Stream Clients</a></li>
-<li><a href="#sec-2-3">2.3 Streams</a></li>
+<li><a href="#sec-3-1">3.1. Stream Servers</a></li>
+<li><a href="#sec-3-2">3.2. Stream Sockets</a></li>
+<li><a href="#sec-3-3">3.3. Streams</a></li>
 </ul>
 </li>
-<li><a href="#sec-3">3 IPv4</a></li>
-<li><a href="#sec-4">4 Local</a></li>
-<li><a href="#sec-5">5 Polling</a></li>
+<li><a href="#sec-4">4. IPv4</a></li>
+<li><a href="#sec-5">5. Local</a></li>
+<li><a href="#sec-6">6. Polling</a></li>
 </ul>
 </div>
 </div>
+<p>
+This library is a supporting library that provides inter process
+communication facilities to the basic binary packet library.
+</p>
 
+<p>
+[TABLE-OF-CONTENTS]
+</p>
 
 <div id="outline-container-1" class="outline-2">
-<h2 id="sec-1"><span class="section-number-2">1</span> Introduction</h2>
+<h2 id="sec-1"><span class="section-number-2">1</span> Installation</h2>
 <div class="outline-text-2" id="text-1">
-
-<p>This library provides a simple interface for performing inter-process
+<p>
+This library provides a simple interface for performing inter-process
 communication with <code>(UNSIGNED-BYTE 8)</code> communication channels.
 </p>
+
 <p>
 The prerequisite systems for this extension are
-</p><ul>
-<li><a href="http://common-lisp.net/project/cffi/"><code>CFFI</code></a>
+</p>
+<ul class="org-ul">
+<li><a href="http://common-lisp.net/project/cffi/" ><code>CFFI</code></a>
 </li>
-<li><a href="https://github.com/OdonataResearchLLC/lisp-unit">Lisp Unit</a> (tests only)
+<li><a href="https://github.com/OdonataResearchLLC/lisp-unit" >Lisp Unit</a> (tests only)
 </li>
 </ul>
-
-<p>These libraries can be obtained using <a href="http://www.quicklisp.org">Quicklisp</a>.
+<p>
+These libraries can be obtained using <a href="http://www.quicklisp.org" >Quicklisp</a>.
 </p>
+
 <p>
 Access to the operating system's networking API is performed using the
 foreign function interface provided by <code>CFFI</code>. The operating systems
 that are supported are:
-</p><ul>
-<li><a href="http://www.apple.com/osx/">Apple OSX</a> (Tested with version 10.7)
+</p>
+<ul class="org-ul">
+<li><a href="http://www.apple.com/osx/" >Apple OSX</a> (Tested with version 10.7)
 </li>
-<li><a href="http://www.freebsd.org">FreeBSD</a> (Tested with version 9.1)
+<li><a href="http://www.freebsd.org" >FreeBSD</a> (Tested with version 9.1)
 </li>
-<li>Linux (Tested with <a href="http://www.debian.org">Debian</a> squeeze)
+<li>Linux (Tested with <a href="http://www.debian.org" >Debian</a> squeeze)
 </li>
-<li>NEED-TO-IMPLEMENT <a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with version XP)  
+<li>NEED-TO-IMPLEMENT <a href="http://windows.microsoft.com/en-US/windows/home" >Microsoft Windows</a> (Tested with version XP)
 </li>
 </ul>
-
-
 </div>
-
 </div>
-
 <div id="outline-container-2" class="outline-2">
-<h2 id="sec-2"><span class="section-number-2">2</span> Sockets</h2>
+<h2 id="sec-2"><span class="section-number-2">2</span> Introduction</h2>
 <div class="outline-text-2" id="text-2">
-
-<p>Fundamental to this API is the socket protocol. An object implementing
-this protocol represents one end of a communication channel.
-</p>
 <p>
-The socket protocol consists of one function, <code>CLOSE-SOCKET</code>. This
-function releases all operating system resources associated with the
-socket.
+This extension provides an interface to conduct communication between
+two processes. The interface is designed primarily for use within an
+event loop.
 </p>
 
-
-<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">close-socket</span> (object))
-</pre>
-
-
 <p>
-The type of communication channel supported by this library is a
-stream. A stream can be defined as a channel that guarantees that the
-order in which data is read is the same as the order it was
-written. 
+The main focus of the interface is to provide an easy interface to
+establishing a communication channel known as a stream. A stream has
+the characteristic that it is bidirectional and full duplex channel
+with a guarantee that the order in which data is read is the same as
+the order it was written and that the data written is the same as the
+data read.
 </p>
+
 <p>
-This extension provides an interface for creating servers and for
-starting a connection to server. The term client is used to refer to
-the process of starting a connection. 
+A stream is considered to be established only when two entities,
+termed <a href="#sec-3-2" >stream sockets</a>, have agreed that they want and can talk to each
+other. Stream sockets can only be created in two ways, by telling a <a href="#sec-3-1" >server</a> to accept a connection, or by initiating a connection to a
+remote server.
 </p>
+
 <p>
-Where a server listens for clients is determined by the namespace used
-to create the server. This library provides functions for the
-following namespaces
-</p><dl>
-<dt><a href="#sec-3">IPv4</a></dt><dd>The Internet protocol version 4 namespace using the
-          transmission control protocol.
+It is important that the process initiating the connection and the
+server process waiting for connections are both using the same network
+namespace. This library provides applications with the ability to
+communicate using the following namespaces
+</p>
+<dl class="org-dl">
+<dt> <a href="#sec-4" >4</a> </dt><dd>The Internet protocol version 4 namespace using the
+transmission control protocol.
 </dd>
-<dt><a href="#sec-4">Local</a></dt><dd>Local or Unix domain sockets for communicating between
-           processes located on the same physical device.
+<dt> <a href="#sec-5" >5</a> </dt><dd>Local or Unix domain sockets for communicating between
+processes located on the same physical device. 
 </dd>
 </dl>
 
-
 <p>
-Each namespace only provides functions for creating servers and
-clients. Once created, all servers implement the <a href="#sec-2-1">stream server</a>
-protocol and all clients implement the <a href="#sec-2-2">stream client</a> protocol. Once a
-stream has been completely established, the <a href="#sec-2-3">stream protocol</a> can be
-used to communicate via the stream.
+Once a namespace is chosen and the objects created, the application
+can use a number of protocols to ascertain their state. These
+protocols cover the following areas of:
+</p>
+<ul class="org-ul">
+<li>telling a server to accept incoming connections.
+</li>
+<li>provide feedback during the period where a stream is being
+established.
+</li>
+<li>send and receive data over an established stream.
+</li>
+<li>polling for events.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Sockets</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Fundamental to the interface is the notion of a socket. A socket
+represents an operating system that is capable of performing
+communication. 
 </p>
 
+<p>
+An object representing a socket always uses operating system
+resources. These resources can be released by using the <code>CLOSE-SOCKET</code>
+function.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">close-socket</span> (object))
+</pre>
 </div>
 
-<div id="outline-container-2-1" class="outline-3">
-<h3 id="sec-2-1"><span class="section-number-3">2.1</span> Stream Servers</h3>
-<div class="outline-text-3" id="text-2-1">
+<p>
+There are two types of sockets that can be created, a stream server or
+a stream socket. Creating these sockets is specific to the namespace
+chosen by the application, but once they are created, they utilise the
+protocols outlined next.
+</p>
+</div>
 
-<p>The stream server protocol represents sockets that listen for
+<div id="outline-container-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> Stream Servers</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+The stream server protocol represents sockets that listen for
 connections from clients. A server object is not actually capable of
 conducting communication. Its purpose is to allow an application to
 accept incoming connections.
 </p>
+
 <p>
 Accepting a new connection is performed using the <code>ACCEPT-CONNECTION</code>
 function.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">accept-connection</span> (server))
 </pre>
-
+</div>
 <p>
-This function returns a new object that implements the <a href="#sec-2-2">stream client</a>
+This function returns a new object that implements the <i>stream client</i>
 protocol.  The <code>ACCEPT-CONNECTION</code> function will signal a
 <code>NO-CONNECTION-AVAILABLE-ERROR</code> condition if no client is waiting for
 acknowledgment.
 </p>
+
 <p>
 It should be noted that the returned stream client object is
 dissociated from the server that created the connection i.e. calling
 <code>CLOSE-SOCKET</code> on a server object will <i>not</i> terminate any of its
 accepted connections.
 </p>
+
 <p>
 The predicate <code>CONNECTION-AVAILABLE-P</code> returns non <code>NIL</code> if the server
 has connections available.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-available-p</span> (server))
 </pre>
-
-
 </div>
-
 </div>
-
-<div id="outline-container-2-2" class="outline-3">
-<h3 id="sec-2-2"><span class="section-number-3">2.2</span> Stream Clients</h3>
-<div class="outline-text-3" id="text-2-2">
-
-<p>A stream is not a stream until two stream sockets have agreed that
+</div>
+<div id="outline-container-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> Stream Sockets</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+A stream is not a stream until two stream sockets have agreed that
 they are able to talk to each other. A stream socket represents one of
-the two sockets needed to build a stream. There are two ways to create
-a stream socket, the first is to use a namespace specific function to
-initiate a connection to a server. The second is using the
-<code>ACCEPT-CONNECTION</code> function on a server object when a new connection
-arrives.
+the two sockets needed to construct a stream.
 </p>
+
+<p>
+There are two ways to create a stream socket, the first is to use a
+namespace specific function to initiate a connection to a server. The
+second is using the <code>ACCEPT-CONNECTION</code> function on a server object
+when a new connection arrives.
+</p>
+
 <p>
 Once a stream socket has been created, it immediately starts to
-negotiate with the other stream socket. This negotiation may take a
+negotiate with the remote stream socket. This negotiation may take a
 significant amount of time, and in some cases may fail to complete for
 reasons beyond each socket's control e.g. a network failure, an
 overloaded server, a not reachable host. This period of uncertainty is
-modeled in this library by the future connection protocol and is
-implemented by all stream socket objects.
-</p>
-<p>
-The future connection protocol is all about querying the state of the
-negotiating process. The most important is the predicate <code>DETERMINEDP</code>.
+modelled by the future connection protocol and is implemented by all
+stream socket objects.
 </p>
 
+<p>
+The future connection protocol is about being informed about the state
+of the connection. The non <code>NIL</code> value of the predicate
+</p>
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">determinedp</span> (future-connection))
 </pre>
-
+</div>
 <p>
-A non <code>NIL</code> return value of <code>DETERMINEDP</code> indicates that the operating
-system has finished trying to negotiate a new stream connection. The
-result of negotiation can be obtained using the predicates
-<code>CONNECTION-FAILED-P</code> and <code>CONNECTION-SUCCEEDED-P</code>.
+ indicates that the operating system has finished trying to negotiate
+a new stream connection. The result can be obtained using the
+predicates <code>CONNECTION-FAILED-P</code> and <code>CONNECTION-SUCCEEDED-P</code>.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-failed-p</span> (future-connection))
 (<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-succeeded-p</span> (future-connection))
 </pre>
-
+</div>
 
 <p>
 If the connection is successful, the stream protocol outlined in the
-next section can be used on the socket object.
+next section can be used on the socket object to send and receive data
+over the newly created stream.
 </p>
 </div>
-
 </div>
-
-<div id="outline-container-2-3" class="outline-3">
-<h3 id="sec-2-3"><span class="section-number-3">2.3</span> Streams</h3>
-<div class="outline-text-3" id="text-2-3">
-
-<p>The stream protocol represents a communication channel that acts
-as a stream between the local host and a remote host.
+<div id="outline-container-3-3" class="outline-3">
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> Streams</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+The stream protocol represents a communication channel between two
+processes. The protocol provides functions for reading and sending
+data, as well as querying the current state of the connection.
 </p>
+
 <p>
 The function <code>DATA-AVAILABLE-P</code> can be used to determine if there is
-data that can be read immediately from the stream. Actually reading
-this data can be performed using the function <code>READ-FROM-STREAM</code>.
+data that can be read immediately from the stream using the function
+<code>READ-FROM-STREAM</code>.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">data-available-p</span> (stream))
 (<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">read-from-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end))
 </pre>
-
+</div>
 <p>
 The return value of <code>READ-FROM-STREAM</code> is the number of bytes written
 to <code>BUFFER</code>. This can be either the number of bytes that are
 immediately available for reading or the value <code>(- END START)</code>. Note
 that it is possible for <code>READ-FROM-STREAM</code> to signal an error despite
-<code>DATA-AVAILABLE-P</code> having returned true!
+<code>DATA-AVAILABLE-P</code> having returned true! This is the nature of
+communication channels where the path connecting the two stream
+sockets is governed by a large number of interacting agents.
 </p>
+
 <p>
 Writing data to the stream is performed using the function
 <code>WRITE-TO-STREAM</code>.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">write-to-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end))
 </pre>
-
+</div>
 <p>
-This function will write the data as soon as all other data has been
-written. The function will not block the application. The predicate
+This function will queue the data in <code>BUFFER</code> and schedule it for
+writing once all other data in the queue has been written. Please note
+that the function will not block the application. The predicate
 <code>READY-TO-WRITE-P</code> can be used to determine if the data will be
-written immediately.
+written immediately or will be queued.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">ready-to-write-p</span> (stream))
 </pre>
-
+</div>
 <p>
 Please be aware that the function <code>WRITE-TO-STREAM</code> can still fail
-even if <code>READY-TO-WRITE-P</code> was returned non <code>NIL</code>.
-</p>
-<p>
-If the connection between the two hosts is severed, then the function
-<code>REMOTE-DISCONNECTED-P</code> will be non <code>NIL</code>.
+even if <code>READY-TO-WRITE-P</code> returned non <code>NIL</code>.
 </p>
 
+<p>
+Last but not least, the predicate <code>REMOTE-DISCONNECTED-P</code> can be used
+to determine if the connection between the two stream socket has been
+severed.
+</p>
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-disconnected-p</span> (stream))
 </pre>
-
-
 </div>
 </div>
-
 </div>
-
-<div id="outline-container-3" class="outline-2">
-<h2 id="sec-3"><span class="section-number-2">3</span> IPv4</h2>
-<div class="outline-text-2" id="text-3">
-
-<p>The function <code>MAKE-IPV4-TCP-SERVER</code> creates an IPV4 TCP/IP server that
+</div>
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> IPv4</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The function <code>MAKE-IPV4-TCP-SERVER</code> creates an IPV4 TCP/IP server that
 listens for connections to <code>PORT</code> on the host <code>ADDRESS</code>. 
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">make-ipv4-tcp-server</span> (host-address port <span style="color: #a57705;">&amp;key</span> reuse-socket-address backlog))
 </pre>
-
+</div>
 <p>
 The number <code>PORT</code> must be of type <code>(UNSIGNED-BYTE 16)</code>. The value of
 <code>HOST-ADDRESS</code> can be a string in dotted-quad format. e.g <code>127.0.0.1</code>
 or one of the constants:
-</p><dl>
-<dt><code>+IPV4-LOOPBACK+</code></dt><dd>The address of the localhost network interface.
+</p>
+<dl class="org-dl">
+<dt> <code>+IPV4-LOOPBACK+</code> </dt><dd>The address of the localhost network interface.
 </dd>
-<dt><code>+IPV4-ANY+</code></dt><dd>All network interfaces for the host.
+<dt> <code>+IPV4-ANY+</code> </dt><dd>All network interfaces for the host.
 </dd>
 </dl>
-
 
 <p>
 The value returned from <code>MAKE-IPV4-TCP-SERVER</code> adheres to the stream
 server protocol.
 </p>
+
 <p>
 The object returned by <code>MAKE-IPV4-TCP-SERVER</code> implements the following
 functions
-</p><dl>
-<dt><code>HOST-ADDRESS</code></dt><dd>Obtain the host address component of the socket
-                    address the server is using.
+</p>
+<dl class="org-dl">
+<dt> <code>HOST-ADDRESS</code> </dt><dd>Obtain the host address component of the socket
+address the server is using.
 </dd>
-<dt><code>PORT</code></dt><dd>Obtain the port component of the socket address the server
-            is using.
+<dt> <code>PORT</code> </dt><dd>Obtain the port component of the socket address the server
+is using.
 </dd>
 </dl>
-
 
 <p>
 The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> establishes a connection to
 a IPv4 TCP server.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-ipv4-tcp-server</span> (host-address port))
 </pre>
-
+</div>
 <p>
 The pair <code>PORT</code> and <code>HOST-ADDRESS</code> represent the port number and host
 name of the server to connect to. The value returned adheres to the
 future connection protocol.
 </p>
+
 <p>
 Streams created from IPV4 TCP socket objects extend the stream
 protocol with the following functions
-</p><dl>
-<dt><code>REMOTE-HOST-ADDRESS</code></dt><dd>The host address component of the socket
-     address used by the remote end of the stream.
+</p>
+<dl class="org-dl">
+<dt> <code>REMOTE-HOST-ADDRESS</code> </dt><dd>The host address component of the socket
+address used by the remote end of the stream.
 </dd>
-<dt><code>REMOTE-PORT</code></dt><dd>The port number component of the socket address
-                   used by the remote end of the stream.
+<dt> <code>REMOTE-PORT</code> </dt><dd>The port number component of the socket address
+used by the remote end of the stream.
 </dd>
-<dt><code>LOCAL-HOST-ADDRESS</code></dt><dd>The host address used to communicate with
-     the remote client.
+<dt> <code>LOCAL-HOST-ADDRESS</code> </dt><dd>The host address used to communicate with
+the remote client.
 </dd>
-<dt><code>LOCAL-PORT</code></dt><dd>The port number used to communicate to the remote
-                  client.
+<dt> <code>LOCAL-PORT</code> </dt><dd>The port number used to communicate to the remote
+client.
 </dd>
 </dl>
-
-
 </div>
-
 </div>
-
-<div id="outline-container-4" class="outline-2">
-<h2 id="sec-4"><span class="section-number-2">4</span> Local</h2>
-<div class="outline-text-2" id="text-4">
-
-<p>This section outlines how to create a communication channel between
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Local</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+This section outlines how to create a communication channel between
 two processes running on the same physical machine. 
 </p>
 </div>
-
 </div>
-
-<div id="outline-container-5" class="outline-2">
-<h2 id="sec-5"><span class="section-number-2">5</span> Polling</h2>
-<div class="outline-text-2" id="text-5">
-
-<p>All functions outlined above work directly on the current state of the
+<div id="outline-container-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> Polling</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+All functions outlined above work directly on the current state of the
 socket. The function <code>POLL-SOCKET</code> allows an application to block
 until an object changes state. e.g. data is now available or the
 remote host has disconnected.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">poll-socket</span> (socket socket-events timeout))
 </pre>
-
+</div>
 <p>
 The <code>TIMEOUT</code> argument specifies how long to wait (in seconds) until a
 state changes occurs on the socket. A value of <code>:IMMEDIATE</code> indicates
 that <code>POLL-SOCKET</code> should not wait and return the current state. A value of
 <code>:INDEFINITE</code> means to wait until an event occurs.
 </p>
+
 <p>
 The <code>SOCKET-EVENTS</code> argument tells the <code>POLL-SOCKET</code> function what to
 wait for. This argument is socket specific and can be either a symbol
@@ -509,20 +542,22 @@ future-connection objects, the symbol <code>DETERMINEDP</code> is permitted and
 for streams the list of valid symbols is <code>DATA-AVAILABLE-P</code>,
 <code>READY-TO-WRITE-P</code> and <code>REMOTE-DISCONNECTED-P</code>.
 </p>
+
 <p>
 The return value of <code>POLL-SOCKET</code> is either <code>SOCKET</code> or <code>NIL</code>. A value of
 <code>NIL</code> indicates that no events have occurred on the socket and the
 <code>POLL</code> timer expired.
 </p>
+
 <p>
 An extremely useful variant of <code>POLL-SOCKET</code> is the <code>POLL-SOCKETS</code>
 function.
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">poll-sockets</span> (all-sockets all-sockets-events timeout))
 </pre>
-
+</div>
 <p>
 This function waits for an event to occur on any one of the sockets
 passed in with <code>ALL-SOCKETS</code>. The argument <code>ALL-SOCKETS-EVENTS</code> is a
@@ -532,16 +567,15 @@ return value is a list that has the same length as <code>ALL-SOCKETS</code> and
 contains either the socket object at the same position in
 <code>ALL-SOCKETS</code> or <code>NIL</code>. A <code>NIL</code> value indicates that no change in
 state has occurred.
-</p></div>
+</p>
 </div>
 </div>
 
-<div id="postamble">
-<p class="date">Date: 2013-02-18T08:09+1000</p>
-<p class="author">Author: Mark Cox</p>
-<p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3e with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
+</div><div id="postamble">
+<p class="date">Date: </p>
+<p class="author">Author : Mark Cox</p>
+<p class="creator">Generated by <a href="http://orgmode.org">Org</a> mode 7.9.3e in <a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.2.1.</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
-
 </div>
 </body>
 </html>
