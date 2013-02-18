@@ -175,15 +175,26 @@ Please be aware that the function ~WRITE-TO-STREAM~ can still fail
 even if ~READY-TO-WRITE-P~ returned non ~NIL~.
 
 Last but not least, the predicate ~REMOTE-DISCONNECTED-P~ can be used
-to determine if the connection between the two stream socket has been
+to determine if the connection between the two stream sockets has been
 severed.
 #+begin_src lisp
 (defgeneric remote-disconnected-p (stream))
 #+end_src
 
 * IPv4
-The function ~MAKE-IPV4-TCP-SERVER~ creates an IPV4 TCP/IP server that
-listens for connections to ~PORT~ on the host ~ADDRESS~. 
+The IPv4 namespace is the namespace that is the foundation of the
+Internet. The Transmission Control Protocol (TCP) is the underlying
+protocol used to establish a stream in the IPv4 namespace. The
+underlying socket used to conduct communication is termed a TCP stream
+socket which consists of a host address and a port number.
+
+The host address and the port number together define a socket address
+for the TCP/IPv4 protocol. It should be noted that there can be many
+TCP stream sockets with the same host address and port number, but the
+stream defined by two TCP stream sockets is always unique.
+
+The function ~MAKE-IPV4-TCP-SERVER~ creates a TCP/IPv4 server that
+listens for incoming connections to ~PORT~ on the host ~ADDRESS~.
 #+begin_src lisp
 (defun make-ipv4-tcp-server (host-address port &key reuse-socket-address backlog))
 #+end_src
@@ -193,36 +204,35 @@ or one of the constants:
 - ~+IPV4-LOOPBACK+~ :: The address of the localhost network interface.
 - ~+IPV4-ANY+~ :: All network interfaces for the host.
 
-The value returned from ~MAKE-IPV4-TCP-SERVER~ adheres to the stream
-server protocol.
-
-The object returned by ~MAKE-IPV4-TCP-SERVER~ implements the following
+The value returned from ~MAKE-IPV4-TCP-SERVER~ adheres to the [[*Stream Server][stream
+server]] protocol. The object returned also implements the following
 functions
-- ~HOST-ADDRESS~ :: Obtain the host address component of the socket
-                    address the server is using.
-- ~PORT~ :: Obtain the port component of the socket address the server
-            is using.
+#+begin_src lisp
+  (defgeneric host-address (ipv4/tcp-server)
+    (:documentation "Obtain the host address component of the socket
+    address the server is using."))
+  
+  (defgeneric port (ipv4/tcp-server)
+    (:documentation "Obtain the port component of the socket address the
+    server is using."))
+#+end_src
 
 The function ~CONNECT-TO-IPV4-TCP-SERVER~ establishes a connection to
-a IPv4 TCP server.
+a TCP/IPv4 server listening on the socket address defined by
+~HOST-ADDRESS~ and ~PORT~.
 #+begin_src lisp
-(defun connect-to-ipv4-tcp-server (host-address port))
+(defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port))
 #+end_src
-The pair ~PORT~ and ~HOST-ADDRESS~ represent the port number and host
-name of the server to connect to. The value returned adheres to the
-future connection protocol.
 
-Streams created from IPV4 TCP socket objects extend the stream
-protocol with the following functions
-- ~REMOTE-HOST-ADDRESS~ :: The host address component of the socket
-     address used by the remote end of the stream.
-- ~REMOTE-PORT~ :: The port number component of the socket address
-                   used by the remote end of the stream.
-- ~LOCAL-HOST-ADDRESS~ :: The host address used to communicate with
-     the remote client.
-- ~LOCAL-PORT~ :: The port number used to communicate to the remote
-                  client.
-
+Stream sockets obtained by using ~ACCEPT-CONNECTION~ or
+~CONNECT-TO-IPV4-TCP-SERVER~ extend the stream socket protocol with
+the following functions.
+#+begin_src lisp
+  (defgeneric local-host-address (stream))
+  (defgeneric local-port (stream))
+  (defgeneric remote-host-address (stream))
+  (defgeneric remote-port (stream))
+#+end_src
 * Local
 This section outlines how to create a communication channel between
 two processes running on the same physical machine. 

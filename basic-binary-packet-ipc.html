@@ -106,25 +106,6 @@ for the JavaScript code in this tag.
 <body>
 <div id="content">
 <h1 class="title">IPC Extension for Basic Binary Packet</h1>
-<div id="table-of-contents">
-<h2>Table of Contents</h2>
-<div id="text-table-of-contents">
-<ul>
-<li><a href="#sec-1">1. Installation</a></li>
-<li><a href="#sec-2">2. Introduction</a></li>
-<li><a href="#sec-3">3. Sockets</a>
-<ul>
-<li><a href="#sec-3-1">3.1. Stream Servers</a></li>
-<li><a href="#sec-3-2">3.2. Stream Sockets</a></li>
-<li><a href="#sec-3-3">3.3. Streams</a></li>
-</ul>
-</li>
-<li><a href="#sec-4">4. IPv4</a></li>
-<li><a href="#sec-5">5. Local</a></li>
-<li><a href="#sec-6">6. Polling</a></li>
-</ul>
-</div>
-</div>
 <p>
 This library is a supporting library that provides inter process
 communication facilities to the basic binary packet library.
@@ -414,7 +395,7 @@ even if <code>READY-TO-WRITE-P</code> returned non <code>NIL</code>.
 
 <p>
 Last but not least, the predicate <code>REMOTE-DISCONNECTED-P</code> can be used
-to determine if the connection between the two stream socket has been
+to determine if the connection between the two stream sockets has been
 severed.
 </p>
 <div class="org-src-container">
@@ -429,8 +410,23 @@ severed.
 <h2 id="sec-4"><span class="section-number-2">4</span> IPv4</h2>
 <div class="outline-text-2" id="text-4">
 <p>
-The function <code>MAKE-IPV4-TCP-SERVER</code> creates an IPV4 TCP/IP server that
-listens for connections to <code>PORT</code> on the host <code>ADDRESS</code>. 
+The IPv4 namespace is the namespace that is the foundation of the
+Internet. The Transmission Control Protocol (TCP) is the underlying
+protocol used to establish a stream in the IPv4 namespace. The
+underlying socket used to conduct communication is termed a TCP stream
+socket which consists of a host address and a port number.
+</p>
+
+<p>
+The host address and the port number together define a socket address
+for the TCP/IPv4 protocol. It should be noted that there can be many
+TCP stream sockets with the same host address and port number, but the
+stream defined by two TCP stream sockets is always unique.
+</p>
+
+<p>
+The function <code>MAKE-IPV4-TCP-SERVER</code> creates a TCP/IPv4 server that
+listens for incoming connections to <code>PORT</code> on the host <code>ADDRESS</code>.
 </p>
 <div class="org-src-container">
 
@@ -450,58 +446,49 @@ or one of the constants:
 </dl>
 
 <p>
-The value returned from <code>MAKE-IPV4-TCP-SERVER</code> adheres to the stream
-server protocol.
-</p>
-
-<p>
-The object returned by <code>MAKE-IPV4-TCP-SERVER</code> implements the following
+The value returned from <code>MAKE-IPV4-TCP-SERVER</code> adheres to the <i>stream
+server</i> protocol. The object returned also implements the following
 functions
-</p>
-<dl class="org-dl">
-<dt> <code>HOST-ADDRESS</code> </dt><dd>Obtain the host address component of the socket
-address the server is using.
-</dd>
-<dt> <code>PORT</code> </dt><dd>Obtain the port component of the socket address the server
-is using.
-</dd>
-</dl>
-
-<p>
-The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> establishes a connection to
-a IPv4 TCP server.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-ipv4-tcp-server</span> (host-address port))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">host-address</span> (ipv4/tcp-server)
+  (<span style="color: #728a05;">:documentation</span> <span style="color: #259185;">"Obtain the host address component of the socket</span>
+<span style="color: #259185;">  address the server is using."</span>))
+
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">port</span> (ipv4/tcp-server)
+  (<span style="color: #728a05;">:documentation</span> <span style="color: #259185;">"Obtain the port component of the socket address the</span>
+<span style="color: #259185;">  server is using."</span>))
 </pre>
 </div>
-<p>
-The pair <code>PORT</code> and <code>HOST-ADDRESS</code> represent the port number and host
-name of the server to connect to. The value returned adheres to the
-future connection protocol.
-</p>
 
 <p>
-Streams created from IPV4 TCP socket objects extend the stream
-protocol with the following functions
+The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> establishes a connection to
+a TCP/IPv4 server listening on the socket address defined by
+<code>HOST-ADDRESS</code> and <code>PORT</code>.
 </p>
-<dl class="org-dl">
-<dt> <code>REMOTE-HOST-ADDRESS</code> </dt><dd>The host address component of the socket
-address used by the remote end of the stream.
-</dd>
-<dt> <code>REMOTE-PORT</code> </dt><dd>The port number component of the socket address
-used by the remote end of the stream.
-</dd>
-<dt> <code>LOCAL-HOST-ADDRESS</code> </dt><dd>The host address used to communicate with
-the remote client.
-</dd>
-<dt> <code>LOCAL-PORT</code> </dt><dd>The port number used to communicate to the remote
-client.
-</dd>
-</dl>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-ipv4-tcp-server</span> (host-address port <span style="color: #a57705;">&amp;key</span> local-host-address local-port))
+</pre>
+</div>
+
+<p>
+Stream sockets obtained by using <code>ACCEPT-CONNECTION</code> or
+<code>CONNECT-TO-IPV4-TCP-SERVER</code> extend the stream socket protocol with
+the following functions.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">local-host-address</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">local-port</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-host-address</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-port</span> (stream))
+</pre>
 </div>
 </div>
+</div>
+
 <div id="outline-container-5" class="outline-2">
 <h2 id="sec-5"><span class="section-number-2">5</span> Local</h2>
 <div class="outline-text-2" id="text-5">
