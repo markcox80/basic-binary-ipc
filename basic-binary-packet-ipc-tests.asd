@@ -11,4 +11,5 @@
 				     (:file "asdf")
 				     (:file "posix")
 				     (:file "ipv4")
-				     (:file "local")))))
+				     (:file "local")
+				     (:file "poll-sockets")))))
