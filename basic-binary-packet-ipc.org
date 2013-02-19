@@ -264,14 +264,11 @@ accepted. For stream socket objects, the symbols ~DETERMINEDP~,
 ~READY-TO-WRITE-P~ and/or ~REMOTE-DISCONNECTED-P~ are all permitted.
 
 The return value of ~POLL-SOCKET~ is either a ~SYMBOL~, a list of
-~SYMBOLS~ or ~NIL~. A value of ~NIL~ indicates that no events have
-occurred on the socket within ~TIMEOUT~ seconds or an event occurred
-on the socket but when testing the socket it determined that it does
-not satisfy the criteria for any of the symbols in
-~SOCKET-EVENTS~. The last scenario is unfortunate and unavoidable as
-some operating systems provide no means of discriminating all of the
-above events with polling alone. The only way to perform the
-discrimination is to inspect the socket directly.
+~SYMBOLS~ or ~NIL~. A symbol is returned only if ~SOCKET-EVENTS~ is a
+symbol. A value of ~NIL~ indicates that no events that match the
+criteria of ~SOCKET-EVENTS~ has occurred. One should not conclude that
+~TIMEOUT~ seconds has transpired. It is possible for ~POLL-SOCKETS~ to
+return with a value of ~NIL~ without timing out. 
 
 An extremely useful variant of ~POLL-SOCKET~ is the ~POLL-SOCKETS~
 function.
