@@ -5,12 +5,14 @@
 
 (define-test make-local-server
   (let ((server (make-local-server (local-socket-pathname))))
+    (assert-true (probe-file (local-socket-pathname)))
     (unwind-protect
 	 (progn
 	   (assert-true server)
 	   (assert-error 'no-connection-available-error (accept-connection server))
 	   (assert-error 'posix-error (make-local-server (local-socket-pathname))))
-      (close-socket server))))
+      (close-socket server)
+      (assert-false (probe-file (local-socket-pathname))))))
 
 (define-test local-test/sockets
   (labels ((channel-test (client remote-client)
