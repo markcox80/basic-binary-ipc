@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="IPC Extension for Basic Binary Packet"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-02-20T07:37+1000"/>
+<meta name="generated" content="2013-02-20T07:43+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -556,8 +556,9 @@ The return value of <code>POLL-SOCKET</code> is either a <code>SYMBOL</code>, a 
 <code>SYMBOLS</code> or <code>NIL</code>. A symbol is returned only if <code>SOCKET-EVENTS</code> is a
 symbol. A value of <code>NIL</code> indicates that no events that match the
 criteria of <code>SOCKET-EVENTS</code> has occurred. One should not conclude that
-<code>TIMEOUT</code> seconds has transpired. It is possible for <code>POLL-SOCKETS</code> to
-return with a value of <code>NIL</code> without timing out. 
+<code>TIMEOUT</code> seconds has transpired when <code>POLL-SOCKET</code> returns <code>NIL</code>. It
+is possible for <code>POLL-SOCKETS</code> to return with a value of <code>NIL</code> without
+timing out.
 </p>
 <p>
 An extremely useful variant of <code>POLL-SOCKET</code> is the <code>POLL-SOCKETS</code>
@@ -569,7 +570,7 @@ function.
 </pre>
 
 <p>
-This function as if
+This function acts like the following
 </p>
 
 
@@ -582,9 +583,8 @@ This function as if
 <p>
 where the hypothetical function <code>MULTIPLEXING-COLLECT</code> executes all
 <code>POLL-SOCKET</code> calls simultaneously and stops them all as soon as an
-event on any socket of the sockets. The return value is a list
-containing the results of performing <code>POLL-SOCKET</code> on that socket
-alone. For example
+event occurs on any socket. The return value is a list containing the
+results of performing <code>POLL-SOCKET</code> on that socket alone. For example
 </p>
 
 
@@ -601,7 +601,7 @@ alone. For example
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-02-20T07:37+1000</p>
+<p class="date">Date: 2013-02-20T07:43+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3e with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>

@@ -267,15 +267,16 @@ The return value of ~POLL-SOCKET~ is either a ~SYMBOL~, a list of
 ~SYMBOLS~ or ~NIL~. A symbol is returned only if ~SOCKET-EVENTS~ is a
 symbol. A value of ~NIL~ indicates that no events that match the
 criteria of ~SOCKET-EVENTS~ has occurred. One should not conclude that
-~TIMEOUT~ seconds has transpired. It is possible for ~POLL-SOCKETS~ to
-return with a value of ~NIL~ without timing out. 
+~TIMEOUT~ seconds has transpired when ~POLL-SOCKET~ returns ~NIL~. It
+is possible for ~POLL-SOCKETS~ to return with a value of ~NIL~ without
+timing out.
 
 An extremely useful variant of ~POLL-SOCKET~ is the ~POLL-SOCKETS~
 function.
 #+begin_src lisp
 (defun poll-sockets (all-sockets all-sockets-events timeout))
 #+end_src
-This function as if
+This function acts like the following
 #+begin_src lisp
 (multiplexing-collect
   (poll-socket socket-1 socket-1-events 10)
@@ -284,9 +285,8 @@ This function as if
 #+end_src
 where the hypothetical function ~MULTIPLEXING-COLLECT~ executes all
 ~POLL-SOCKET~ calls simultaneously and stops them all as soon as an
-event on any socket of the sockets. The return value is a list
-containing the results of performing ~POLL-SOCKET~ on that socket
-alone. For example
+event occurs on any socket. The return value is a list containing the
+results of performing ~POLL-SOCKET~ on that socket alone. For example
 #+begin_src lisp
   (destructuring-bind (s1-result s2-result s3-result)
       (poll-sockets (list s1 s2 s3)
