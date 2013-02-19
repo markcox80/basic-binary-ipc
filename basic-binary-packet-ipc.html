@@ -106,6 +106,24 @@ for the JavaScript code in this tag.
 <body>
 <div id="content">
 <h1 class="title">IPC Extension for Basic Binary Packet</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Installation</a></li>
+<li><a href="#sec-2">2. Introduction</a></li>
+<li><a href="#sec-3">3. Sockets</a>
+<ul>
+<li><a href="#sec-3-1">3.1. Stream Servers</a></li>
+<li><a href="#sec-3-2">3.2. Stream Sockets</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. IPv4</a></li>
+<li><a href="#sec-5">5. Local</a></li>
+<li><a href="#sec-6">6. Polling</a></li>
+</ul>
+</div>
+</div>
 <p>
 This library is a supporting library that provides inter process
 communication facilities to the basic binary packet library.
@@ -164,66 +182,47 @@ event loop.
 
 <p>
 The main focus of the interface is to provide an easy interface to
-establishing a communication channel known as a stream. A stream has
-the characteristic that it is bidirectional and full duplex channel
-with a guarantee that the order in which data is read is the same as
-the order it was written and that the data written is the same as the
-data read.
+establishing a communication channel known as a stream. A stream is a
+bidirectional, full duplex communication channel with the guarantee
+that the order in which data is read is the same as the order it was
+written and that the data written is the same as the data read.
 </p>
 
 <p>
-A stream is considered to be established only when two entities,
-termed <a href="#sec-3-2" >stream sockets</a>, have agreed that they want and can talk to each
-other. Stream sockets can only be created in two ways, by telling a <a href="#sec-3-1" >server</a> to accept a connection, or by initiating a connection to a
-remote server.
-</p>
-
-<p>
-It is important that the process initiating the connection and the
-server process waiting for connections are both using the same network
-namespace. This library provides applications with the ability to
-communicate using the following namespaces
+An application must consider the namespace in which the stream is
+created. A namespace represents the lower level protocol that the
+stream is constructed on top of. This library can construct streams in
+the following namespaces
 </p>
 <dl class="org-dl">
-<dt> <a href="#sec-4" >4</a> </dt><dd>The Internet protocol version 4 namespace using the
+<dt> <a href="#sec-4" >IPv4 namespace</a> </dt><dd>The Internet protocol version 4 namespace using the
 transmission control protocol.
 </dd>
-<dt> <a href="#sec-5" >5</a> </dt><dd>Local or Unix domain sockets for communicating between
+<dt> <a href="#sec-5" >Local namespace</a> </dt><dd>Local or Unix domain sockets for communicating between
 processes located on the same physical device. 
 </dd>
 </dl>
 
 <p>
-Once a namespace is chosen and the objects created, the application
-can use a number of protocols to ascertain their state. These
-protocols cover the following areas of:
+Once a namespace is chosen, the functions for that namespace determine
+how to initiate a connection to a server or start a new server that is
+capable of accepting incoming connections. Once an object is created,
+a number of protocols can be used to query and manage their state.
 </p>
-<ul class="org-ul">
-<li>telling a server to accept incoming connections.
-</li>
-<li>provide feedback during the period where a stream is being
-established.
-</li>
-<li>send and receive data over an established stream.
-</li>
-<li>polling for events.
-</li>
-</ul>
+
+<p>
+The next section outlines the concept of a socket and the protocols
+used to for the different types of socket objects.
+</p>
 </div>
 </div>
 <div id="outline-container-3" class="outline-2">
 <h2 id="sec-3"><span class="section-number-2">3</span> Sockets</h2>
 <div class="outline-text-2" id="text-3">
 <p>
-Fundamental to the interface is the notion of a socket. A socket
-represents an operating system that is capable of performing
-communication. 
-</p>
-
-<p>
-An object representing a socket always uses operating system
-resources. These resources can be released by using the <code>CLOSE-SOCKET</code>
-function.
+A socket represents a resource that is necessary to perform
+communication. Once a socket is no longer required, its resources must
+be released using the <code>CLOSE-SOCKET</code> function.
 </p>
 <div class="org-src-container">
 
@@ -232,10 +231,8 @@ function.
 </div>
 
 <p>
-There are two types of sockets that can be created, a stream server or
-a stream socket. Creating these sockets is specific to the namespace
-chosen by the application, but once they are created, they utilise the
-protocols outlined next.
+This library provides protocols for two different types of sockets,
+the stream server socket and the stream socket. 
 </p>
 </div>
 
@@ -244,14 +241,8 @@ protocols outlined next.
 <div class="outline-text-3" id="text-3-1">
 <p>
 The stream server protocol represents sockets that listen for
-connections from clients. A server object is not actually capable of
-conducting communication. Its purpose is to allow an application to
-accept incoming connections.
-</p>
-
-<p>
-Accepting a new connection is performed using the <code>ACCEPT-CONNECTION</code>
-function.
+connections from clients. Accepting a new connection is performed
+using the <code>ACCEPT-CONNECTION</code> function.
 </p>
 <div class="org-src-container">
 
@@ -259,17 +250,16 @@ function.
 </pre>
 </div>
 <p>
-This function returns a new object that implements the <i>stream client</i>
+This function returns a new object that implements the <i>stream socket</i>
 protocol.  The <code>ACCEPT-CONNECTION</code> function will signal a
-<code>NO-CONNECTION-AVAILABLE-ERROR</code> condition if no client is waiting for
-acknowledgment.
+<code>NO-CONNECTION-AVAILABLE-ERROR</code> condition if there is no client
+waiting for acknowledgment from the server.
 </p>
 
 <p>
-It should be noted that the returned stream client object is
-dissociated from the server that created the connection i.e. calling
-<code>CLOSE-SOCKET</code> on a server object will <i>not</i> terminate any of its
-accepted connections.
+It should be noted that the returned stream socket is dissociated from
+the server that created the connection i.e. calling <code>CLOSE-SOCKET</code> on
+a server will <i>not</i> terminate any of its accepted connections.
 </p>
 
 <p>
@@ -287,31 +277,26 @@ has connections available.
 <h3 id="sec-3-2"><span class="section-number-3">3.2</span> Stream Sockets</h3>
 <div class="outline-text-3" id="text-3-2">
 <p>
-A stream is not a stream until two stream sockets have agreed that
-they are able to talk to each other. A stream socket represents one of
-the two sockets needed to construct a stream.
-</p>
-
-<p>
-There are two ways to create a stream socket, the first is to use a
-namespace specific function to initiate a connection to a server. The
-second is using the <code>ACCEPT-CONNECTION</code> function on a server object
-when a new connection arrives.
+A stream socket represents a stream that is either established or in
+the process of being established. There are two ways to create a
+stream socket, the first is to use a namespace specific function to
+initiate a connection to a server. The second is using the
+<code>ACCEPT-CONNECTION</code> function on a server object when a new connection
+arrives to the server.
 </p>
 
 <p>
 Once a stream socket has been created, it immediately starts to
-negotiate with the remote stream socket. This negotiation may take a
-significant amount of time, and in some cases may fail to complete for
-reasons beyond each socket's control e.g. a network failure, an
-overloaded server, a not reachable host. This period of uncertainty is
-modelled by the future connection protocol and is implemented by all
-stream socket objects.
+establish the stream by negotiating with the remote end of the
+stream. This negotiation may take a significant amount of time, and in
+some cases may fail to complete e.g. a network failure, an overloaded
+server or an unreachable host. This period of uncertainty is modelled
+by the future connection protocol and is implemented by all stream
+socket objects.
 </p>
 
 <p>
-The future connection protocol is about being informed about the state
-of the connection. The non <code>NIL</code> value of the predicate
+The predicate 
 </p>
 <div class="org-src-container">
 
@@ -319,9 +304,10 @@ of the connection. The non <code>NIL</code> value of the predicate
 </pre>
 </div>
 <p>
- indicates that the operating system has finished trying to negotiate
-a new stream connection. The result can be obtained using the
-predicates <code>CONNECTION-FAILED-P</code> and <code>CONNECTION-SUCCEEDED-P</code>.
+can be used to determine if the the operating system has finished
+trying to negotiate a new stream connection. The result of the
+negotiation can be obtained using the predicates <code>CONNECTION-FAILED-P</code>
+or <code>CONNECTION-SUCCEEDED-P</code>.
 </p>
 <div class="org-src-container">
 
@@ -331,19 +317,8 @@ predicates <code>CONNECTION-FAILED-P</code> and <code>CONNECTION-SUCCEEDED-P</co
 </div>
 
 <p>
-If the connection is successful, the stream protocol outlined in the
-next section can be used on the socket object to send and receive data
-over the newly created stream.
-</p>
-</div>
-</div>
-<div id="outline-container-3-3" class="outline-3">
-<h3 id="sec-3-3"><span class="section-number-3">3.3</span> Streams</h3>
-<div class="outline-text-3" id="text-3-3">
-<p>
-The stream protocol represents a communication channel between two
-processes. The protocol provides functions for reading and sending
-data, as well as querying the current state of the connection.
+If the connection is successful, the stream protocol outlined next can
+ be used to send and receive data over the newly created stream.
 </p>
 
 <p>
@@ -378,8 +353,8 @@ Writing data to the stream is performed using the function
 </div>
 <p>
 This function will queue the data in <code>BUFFER</code> and schedule it for
-writing once all other data in the queue has been written. Please note
-that the function will not block the application. The predicate
+writing once all other data in the queue has been written. This
+function will not block the application. The predicate
 <code>READY-TO-WRITE-P</code> can be used to determine if the data will be
 written immediately or will be queued.
 </p>
@@ -412,21 +387,16 @@ severed.
 <p>
 The IPv4 namespace is the namespace that is the foundation of the
 Internet. The Transmission Control Protocol (TCP) is the underlying
-protocol used to establish a stream in the IPv4 namespace. The
-underlying socket used to conduct communication is termed a TCP stream
-socket which consists of a host address and a port number.
+protocol used to establish a stream in the IPv4 namespace. A stream
+socket in the IPv4 namespace is uniquely defined by a local host
+address, a local port number, a remote host address and a remote port
+number.
 </p>
 
 <p>
-The host address and the port number together define a socket address
-for the TCP/IPv4 protocol. It should be noted that there can be many
-TCP stream sockets with the same host address and port number, but the
-stream defined by two TCP stream sockets is always unique.
-</p>
-
-<p>
-The function <code>MAKE-IPV4-TCP-SERVER</code> creates a TCP/IPv4 server that
-listens for incoming connections to <code>PORT</code> on the host <code>ADDRESS</code>.
+The function <code>MAKE-IPV4-TCP-SERVER</code> can be used to create a IPv4
+stream server that listens for incoming connections to <code>PORT</code> on the
+host <code>ADDRESS</code>.
 </p>
 <div class="org-src-container">
 
@@ -434,14 +404,15 @@ listens for incoming connections to <code>PORT</code> on the host <code>ADDRESS<
 </pre>
 </div>
 <p>
-The number <code>PORT</code> must be of type <code>(UNSIGNED-BYTE 16)</code>. The value of
-<code>HOST-ADDRESS</code> can be a string in dotted-quad format. e.g <code>127.0.0.1</code>
-or one of the constants:
+The number <code>PORT</code> must be of type <code>(UNSIGNED-BYTE 16)</code> and the value
+of <code>HOST-ADDRESS</code> must be a string in dotted-quad format. e.g
+<code>127.0.0.1</code> or one of the constants:
 </p>
 <dl class="org-dl">
-<dt> <code>+IPV4-LOOPBACK+</code> </dt><dd>The address of the localhost network interface.
+<dt> <code>+IPV4-LOOPBACK+</code> </dt><dd>The address of the localhost IPv4 network
+interface.
 </dd>
-<dt> <code>+IPV4-ANY+</code> </dt><dd>All network interfaces for the host.
+<dt> <code>+IPV4-ANY+</code> </dt><dd>All IPv4 network interfaces for the host.
 </dd>
 </dl>
 
@@ -463,15 +434,22 @@ functions
 </div>
 
 <p>
-The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> establishes a connection to
-a TCP/IPv4 server listening on the socket address defined by
-<code>HOST-ADDRESS</code> and <code>PORT</code>.
+The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> creates a stream socket that
+connects to the TCP/IPv4 server listening on the socket address
+defined by <code>HOST-ADDRESS</code> and <code>PORT</code>.
 </p>
 <div class="org-src-container">
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-ipv4-tcp-server</span> (host-address port <span style="color: #a57705;">&amp;key</span> local-host-address local-port))
 </pre>
 </div>
+<p>
+The arguments <code>LOCAL-HOST-ADDRESS</code> and <code>LOCAL-PORT</code> can be used to
+specify which local host address and port number should be used to
+connect to the server. If these are not specified, then a random port
+number is chosen and an appropriate (and valid) host address is
+picked.
+</p>
 
 <p>
 Stream sockets obtained by using <code>ACCEPT-CONNECTION</code> or
@@ -494,7 +472,49 @@ the following functions.
 <div class="outline-text-2" id="text-5">
 <p>
 This section outlines how to create a communication channel between
-two processes running on the same physical machine. 
+two processes running on the same physical machine. Local stream
+sockets are defined by a filesystem pathname to a server. Unlike IPv4,
+the Local namespace does not have the ability to determine if two
+stream sockets refer to the same stream.
+</p>
+
+<p>
+The function <code>MAKE-LOCAL-SERVER</code> creates a server that is capable of
+accepting incoming connections on the local namespace.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">make-local-server</span> (pathname <span style="color: #a57705;">&amp;key</span> (backlog 5) (delete-on-close t))
+</pre>
+</div>
+<p>
+The <code>PATHNAME</code> argument specifies the filesystem pathname where the
+server listens for connections. This pathname must not exist prior to
+calling <code>MAKE-LOCAL-SERVER</code>. A non <code>-NIL</code> argument for
+<code>DELETE-ON-CLOSE</code> specifies that <code>CLOSE-SOCKET</code> should delete
+<code>PATHNAME</code>.
+</p>
+
+<p>
+The object returned by <code>MAKE-LOCAL-SERVER</code> implements the stream
+server protocol. It also implements the function <code>LOCAL-PATHNAME</code>
+which returns the <code>PATHNAME</code> argument to <code>MAKE-LOCAL-SERVER</code>.
+</p>
+
+<p>
+Connections to local servers can be initiated using the function
+<code>CONNECT-TO-LOCAL-SERVER</code>.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-local-server</span> (pathname <span style="color: #a57705;">&amp;key</span>))
+</pre>
+</div>
+<p>
+where <code>PATHNAME</code> is the filesystem pathname of the server. The object
+returned implements the <i>stream socket</i> protocol and also implements the
+<code>LOCAL-PATHNAME</code> function. If no server exists at <code>PATHNAME</code>, then a
+<code>NO-LOCAL-SERVER-ERRROR</code> is signalled.
 </p>
 </div>
 </div>
@@ -514,26 +534,26 @@ remote host has disconnected.
 </div>
 <p>
 The <code>TIMEOUT</code> argument specifies how long to wait (in seconds) until a
-state changes occurs on the socket. A value of <code>:IMMEDIATE</code> indicates
-that <code>POLL-SOCKET</code> should not wait and return the current state. A value of
-<code>:INDEFINITE</code> means to wait until an event occurs.
+state change occurs on the socket. A value of <code>:IMMEDIATE</code> indicates
+that <code>POLL-SOCKET</code> should not wait and return the current state. A
+value of <code>:INDEFINITE</code> means to wait until an event occurs.
 </p>
 
 <p>
-The <code>SOCKET-EVENTS</code> argument tells the <code>POLL-SOCKET</code> function what to
-wait for. This argument is socket specific and can be either a symbol
-or a list of symbols. The symbols accepted correspond to the predicate
-functions for each socket object. For example, for stream server
-objects, only the symbol <code>CONNECTION-AVAILABLE-P</code> is accepted. For
-future-connection objects, the symbol <code>DETERMINEDP</code> is permitted and
-for streams the list of valid symbols is <code>DATA-AVAILABLE-P</code>,
-<code>READY-TO-WRITE-P</code> and <code>REMOTE-DISCONNECTED-P</code>.
+The <code>SOCKET-EVENTS</code> argument tells the <code>POLL-SOCKET</code> function what
+event(s) to wait for. This argument is socket specific and can be
+either a symbol or a list of symbols. The symbols accepted correspond
+to the predicate functions for each socket object. For example, for
+stream server objects, only the symbol <code>CONNECTION-AVAILABLE-P</code> is
+accepted. For stream socket objects, the symbols <code>DETERMINEDP</code>,
+<code>CONNECTION-SUCCEEDED-P</code>, <code>CONNECTION-FAILED-P</code>, <code>DATA-AVAILABLE-P</code>,
+<code>READY-TO-WRITE-P</code> and/or <code>REMOTE-DISCONNECTED-P</code> are all permitted.
 </p>
 
 <p>
-The return value of <code>POLL-SOCKET</code> is either <code>SOCKET</code> or <code>NIL</code>. A value of
-<code>NIL</code> indicates that no events have occurred on the socket and the
-<code>POLL</code> timer expired.
+The return value of <code>POLL-SOCKET</code> is either a <code>SYMBOL</code>, a list of
+<code>SYMBOLS</code> or <code>NIL</code>. A value of <code>NIL</code> indicates that no events have
+occurred on the socket within <code>TIMEOUT</code> seconds.
 </p>
 
 <p>
@@ -546,15 +566,31 @@ function.
 </pre>
 </div>
 <p>
-This function waits for an event to occur on any one of the sockets
-passed in with <code>ALL-SOCKETS</code>. The argument <code>ALL-SOCKETS-EVENTS</code> is a
-list of events that are suitable for the <code>POLL-SOCKET</code> function. The
-value of <code>TIMEOUT</code> is exactly the same as used in <code>POLL-SOCKET</code>. The
-return value is a list that has the same length as <code>ALL-SOCKETS</code> and
-contains either the socket object at the same position in
-<code>ALL-SOCKETS</code> or <code>NIL</code>. A <code>NIL</code> value indicates that no change in
-state has occurred.
+This function acts like
 </p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(whichever-returns-first
+  (poll-socket socket-1 socket-1-events 10)
+  (poll-socket socket-2 socket-2-events 10)
+  ..)
+</pre>
+</div>
+<p>
+where the hypothetical function <code>WHICHEVER-RETURNS-FIRST</code> executes all
+<code>POLL-SOCKET</code> simultaneously and stops them all as soon as an event
+occurs. Each item in the return value of <code>POLL-SOCKETS</code> can be
+interpreted as the result performing <code>POLL-SOCKET</code> on that socket
+alone. For example
+</p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #728a05;">destructuring-bind</span> (s1-result s2-result s3-result) (poll-sockets (list s1 s2 s3)
+                                                                  (list s1-events s2-events s3-events)
+                                                                  10)
+  )
+</pre>
+</div>
 </div>
 </div>
 
