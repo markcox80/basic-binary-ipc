@@ -265,7 +265,13 @@ accepted. For stream socket objects, the symbols ~DETERMINEDP~,
 
 The return value of ~POLL-SOCKET~ is either a ~SYMBOL~, a list of
 ~SYMBOLS~ or ~NIL~. A value of ~NIL~ indicates that no events have
-occurred on the socket within ~TIMEOUT~ seconds.
+occurred on the socket within ~TIMEOUT~ seconds or an event occurred
+on the socket but when testing the socket it determined that it does
+not satisfy the criteria for any of the symbols in
+~SOCKET-EVENTS~. The last scenario is unfortunate and unavoidable as
+some operating systems provide no means of discriminating all of the
+above events with polling alone. The only way to perform the
+discrimination is to inspect the socket directly.
 
 An extremely useful variant of ~POLL-SOCKET~ is the ~POLL-SOCKETS~
 function.
@@ -280,13 +286,15 @@ This function acts like
   ..)
 #+end_src
 where the hypothetical function ~WHICHEVER-RETURNS-FIRST~ executes all
-~POLL-SOCKET~ simultaneously and stops them all as soon as an event
-occurs. Each item in the return value of ~POLL-SOCKETS~ can be
+~POLL-SOCKET~ calls simultaneously and stops them all as soon as an
+event occurs. Each item in the return value of ~POLL-SOCKETS~ can be
 interpreted as the result performing ~POLL-SOCKET~ on that socket
 alone. For example
 #+begin_src lisp
-  (destructuring-bind (s1-result s2-result s3-result) (poll-sockets (list s1 s2 s3)
-                                                                    (list s1-events s2-events s3-events)
-                                                                    10)
-    )
+    (destructuring-bind (s1-result s2-result s3-result)
+        (poll-sockets (list s1 s2 s3)
+                      (list s1-events s2-events s3-events)
+                      10)
+      ;; do stuff with results
+      )
 #+end_src

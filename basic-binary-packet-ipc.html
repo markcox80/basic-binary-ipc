@@ -553,7 +553,13 @@ accepted. For stream socket objects, the symbols <code>DETERMINEDP</code>,
 <p>
 The return value of <code>POLL-SOCKET</code> is either a <code>SYMBOL</code>, a list of
 <code>SYMBOLS</code> or <code>NIL</code>. A value of <code>NIL</code> indicates that no events have
-occurred on the socket within <code>TIMEOUT</code> seconds.
+occurred on the socket within <code>TIMEOUT</code> seconds or an event occurred
+on the socket but when testing the socket it determined that it does
+not satisfy the criteria for any of the symbols in
+<code>SOCKET-EVENTS</code>. The last scenario is unfortunate and unavoidable as
+some operating systems provide no means of discriminating all of the
+above events with polling alone. The only way to perform the
+discrimination is to inspect the socket directly.
 </p>
 
 <p>
@@ -578,16 +584,18 @@ This function acts like
 </div>
 <p>
 where the hypothetical function <code>WHICHEVER-RETURNS-FIRST</code> executes all
-<code>POLL-SOCKET</code> simultaneously and stops them all as soon as an event
-occurs. Each item in the return value of <code>POLL-SOCKETS</code> can be
+<code>POLL-SOCKET</code> calls simultaneously and stops them all as soon as an
+event occurs. Each item in the return value of <code>POLL-SOCKETS</code> can be
 interpreted as the result performing <code>POLL-SOCKET</code> on that socket
 alone. For example
 </p>
 <div class="org-src-container">
 
-<pre class="src src-lisp">(<span style="color: #728a05;">destructuring-bind</span> (s1-result s2-result s3-result) (poll-sockets (list s1 s2 s3)
-                                                                  (list s1-events s2-events s3-events)
-                                                                  10)
+<pre class="src src-lisp">(<span style="color: #728a05;">destructuring-bind</span> (s1-result s2-result s3-result)
+    (poll-sockets (list s1 s2 s3)
+                  (list s1-events s2-events s3-events)
+                  10)
+  <span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">do stuff with results</span>
   )
 </pre>
 </div>
