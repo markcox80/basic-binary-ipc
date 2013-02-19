@@ -56,7 +56,7 @@ A socket represents a resource that is necessary to perform
 communication. Once a socket is no longer required, its resources must
 be released using the ~CLOSE-SOCKET~ function.
 #+begin_src lisp
-(defgeneric close-socket (object))
+  (defgeneric close-socket (object))
 #+end_src
 
 This library provides protocols for two different types of sockets,
@@ -67,7 +67,7 @@ The stream server protocol represents sockets that listen for
 connections from clients. Accepting a new connection is performed
 using the ~ACCEPT-CONNECTION~ function.
 #+begin_src lisp
-(defgeneric accept-connection (server))
+  (defgeneric accept-connection (server))
 #+end_src
 This function returns a new object that implements the [[*Stream Clients][stream socket]]
 protocol.  The ~ACCEPT-CONNECTION~ function will signal a
@@ -81,7 +81,7 @@ a server will /not/ terminate any of its accepted connections.
 The predicate ~CONNECTION-AVAILABLE-P~ returns non ~NIL~ if the server
 has connections available.
 #+begin_src lisp
-(defgeneric connection-available-p (server))
+  (defgeneric connection-available-p (server))
 #+end_src
 
 ** Stream Sockets
@@ -109,8 +109,8 @@ trying to negotiate a new stream connection. The result of the
 negotiation can be obtained using the predicates ~CONNECTION-FAILED-P~
 or ~CONNECTION-SUCCEEDED-P~.
 #+begin_src lisp
-(defgeneric connection-failed-p (future-connection))
-(defgeneric connection-succeeded-p (future-connection))
+  (defgeneric connection-failed-p (future-connection))
+  (defgeneric connection-succeeded-p (future-connection))
 #+end_src
 
 If the connection is successful, the stream protocol outlined next can
@@ -120,8 +120,8 @@ The function ~DATA-AVAILABLE-P~ can be used to determine if there is
 data that can be read immediately from the stream using the function
 ~READ-FROM-STREAM~.
 #+begin_src lisp
-(defgeneric data-available-p (stream))
-(defgeneric read-from-stream (stream buffer &key start end))
+  (defgeneric data-available-p (stream))
+  (defgeneric read-from-stream (stream buffer &key start end))
 #+end_src
 The return value of ~READ-FROM-STREAM~ is the number of bytes written
 to ~BUFFER~. This can be either the number of bytes that are
@@ -134,7 +134,7 @@ sockets is governed by a large number of interacting agents.
 Writing data to the stream is performed using the function
 ~WRITE-TO-STREAM~.
 #+begin_src lisp
-(defgeneric write-to-stream (stream buffer &key start end))
+  (defgeneric write-to-stream (stream buffer &key start end))
 #+end_src
 This function will queue the data in ~BUFFER~ and schedule it for
 writing once all other data in the queue has been written. This
@@ -192,7 +192,7 @@ The function ~CONNECT-TO-IPV4-TCP-SERVER~ creates a stream socket that
 connects to the TCP/IPv4 server listening on the socket address
 defined by ~HOST-ADDRESS~ and ~PORT~.
 #+begin_src lisp
-(defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port))
+  (defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port))
 #+end_src
 The arguments ~LOCAL-HOST-ADDRESS~ and ~LOCAL-PORT~ can be used to
 specify which local host address and port number should be used to
@@ -219,7 +219,7 @@ stream sockets refer to the same stream.
 The function ~MAKE-LOCAL-SERVER~ creates a server that is capable of
 accepting incoming connections on the local namespace.
 #+begin_src lisp
-(defun make-local-server (pathname &key (backlog 5) (delete-on-close t))
+  (defun make-local-server (pathname &key (backlog 5) (delete-on-close t)))
 #+end_src
 The ~PATHNAME~ argument specifies the filesystem pathname where the
 server listens for connections. This pathname must not exist prior to
@@ -291,10 +291,10 @@ event on any socket of the sockets. The return value is a list
 containing the results of performing ~POLL-SOCKET~ on that socket
 alone. For example
 #+begin_src lisp
-    (destructuring-bind (s1-result s2-result s3-result)
-        (poll-sockets (list s1 s2 s3)
-                      (list s1-events s2-events s3-events)
-                      10)
-      ;; do stuff with results
-      )
+  (destructuring-bind (s1-result s2-result s3-result)
+      (poll-sockets (list s1 s2 s3)
+                    (list s1-events s2-events s3-events)
+                    10)
+    ;; do stuff with results
+    )
 #+end_src
