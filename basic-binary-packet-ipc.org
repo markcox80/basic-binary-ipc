@@ -278,17 +278,17 @@ function.
 #+begin_src lisp
 (defun poll-sockets (all-sockets all-sockets-events timeout))
 #+end_src
-This function acts like
+This function as if
 #+begin_src lisp
-(whichever-returns-first
+(multiplexing-collect
   (poll-socket socket-1 socket-1-events 10)
   (poll-socket socket-2 socket-2-events 10)
   ..)
 #+end_src
-where the hypothetical function ~WHICHEVER-RETURNS-FIRST~ executes all
+where the hypothetical function ~MULTIPLEXING-COLLECT~ executes all
 ~POLL-SOCKET~ calls simultaneously and stops them all as soon as an
-event occurs. Each item in the return value of ~POLL-SOCKETS~ can be
-interpreted as the result performing ~POLL-SOCKET~ on that socket
+event on any socket of the sockets. The return value is a list
+containing the results of performing ~POLL-SOCKET~ on that socket
 alone. For example
 #+begin_src lisp
     (destructuring-bind (s1-result s2-result s3-result)
