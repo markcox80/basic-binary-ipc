@@ -8,7 +8,7 @@ communication facilities to the basic binary packet library.
 
 * Installation
 This library provides a simple interface for performing inter-process
-communication with ~(UNSIGNED-BYTE 8)~ communication channels.
+communication (IPC) with ~(UNSIGNED-BYTE 8)~ communication channels.
 
 The prerequisite systems for this extension are
 - [[http://common-lisp.net/project/cffi/][~CFFI~]]
@@ -18,17 +18,25 @@ These libraries can be obtained using [[http://www.quicklisp.org][Quicklisp]].
 Access to the operating system's networking API is performed using the
 foreign function interface provided by ~CFFI~. The operating systems
 that are supported are:
-- [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7)
+- [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7.5)
 - [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1)
 - Linux (Tested with [[http://www.debian.org][Debian]] squeeze)
 - NEED-TO-IMPLEMENT [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with version XP)
 
-* Introduction
-This extension provides an interface to conduct communication between
-two processes. The interface is designed primarily for use within an
-event loop.
+The IPC extension can be loaded in to the current Lisp environment via
+ASDF.
+#+begin_src lisp
+(asdf:load-system "basic-binary-packet-ipc")
+#+end_src
 
-The main focus of the interface is to provide an easy interface to
+The tests for the basic binary packet library can be executed via ASDF
+as well.
+#+begin_src lisp
+(asdf:test-system "basic-binary-packet-ipc")
+#+end_src
+
+* Introduction
+The main focus of the IPC extension is to provide an easy method of
 establishing a communication channel known as a stream. A stream is a
 bidirectional, full duplex communication channel with the guarantee
 that the order in which data is read is the same as the order it was
@@ -49,7 +57,7 @@ capable of accepting incoming connections. Once an object is created,
 a number of protocols can be used to query and manage their state.
 
 The next section outlines the concept of a socket and the protocols
-used to for the different types of socket objects.
+used for the different types of socket objects.
 
 * Sockets
 A socket represents a resource that is necessary to perform
@@ -89,8 +97,7 @@ A stream socket represents a stream that is either established or in
 the process of being established. There are two ways to create a
 stream socket, the first is to use a namespace specific function to
 initiate a connection to a server. The second is using the
-~ACCEPT-CONNECTION~ function on a server object when a new connection
-arrives to the server.
+~ACCEPT-CONNECTION~ function on a server object.
 
 Once a stream socket has been created, it immediately starts to
 establish the stream by negotiating with the remote end of the
@@ -121,13 +128,17 @@ data that can be read immediately from the stream using the function
 ~READ-FROM-STREAM~.
 #+begin_src lisp
   (defgeneric data-available-p (stream))
-  (defgeneric read-from-stream (stream buffer &key start end))
+  (defgeneric read-from-stream (stream buffer &key start end peek))
 #+end_src
 The return value of ~READ-FROM-STREAM~ is the number of bytes written
 to ~BUFFER~. This can be either the number of bytes that are
-immediately available for reading or the value ~(- END START)~. Note
-that it is possible for ~READ-FROM-STREAM~ to signal an error despite
-~DATA-AVAILABLE-P~ having returned true! This is the nature of
+immediately available for reading or the value ~(- END START)~. If
+~PEEK~ is ~T~ then ~READ-FROM-STREAM~ obtains data from the stream
+without removing it from the stream. i.e. the next call to
+~READ-FROM-STREAM~ will contain exactly the same data.
+
+Note that it is possible for ~READ-FROM-STREAM~ to signal an error
+despite ~DATA-AVAILABLE-P~ having returned true! This is the nature of
 communication channels where the path connecting the two stream
 sockets is governed by a large number of interacting agents.
 

@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="IPC Extension for Basic Binary Packet"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-02-20T07:43+1000"/>
+<meta name="generated" content="2013-02-20T07:58+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -145,7 +145,7 @@ communication facilities to the basic binary packet library.
 <div class="outline-text-2" id="text-1">
 
 <p>This library provides a simple interface for performing inter-process
-communication with <code>(UNSIGNED-BYTE 8)</code> communication channels.
+communication (IPC) with <code>(UNSIGNED-BYTE 8)</code> communication channels.
 </p>
 <p>
 The prerequisite systems for this extension are
@@ -163,7 +163,7 @@ Access to the operating system's networking API is performed using the
 foreign function interface provided by <code>CFFI</code>. The operating systems
 that are supported are:
 </p><ul>
-<li><a href="http://www.apple.com/osx/">Apple OSX</a> (Tested with version 10.7)
+<li><a href="http://www.apple.com/osx/">Apple OSX</a> (Tested with version 10.7.5)
 </li>
 <li><a href="http://www.freebsd.org">FreeBSD</a> (Tested with version 9.1)
 </li>
@@ -174,6 +174,26 @@ that are supported are:
 </ul>
 
 
+<p>
+The IPC extension can be loaded in to the current Lisp environment via
+ASDF.
+</p>
+
+
+<pre class="src src-lisp">(asdf:load-system <span style="color: #259185;">"basic-binary-packet-ipc"</span>)
+</pre>
+
+
+<p>
+The tests for the basic binary packet library can be executed via ASDF
+as well.
+</p>
+
+
+<pre class="src src-lisp">(asdf:test-system <span style="color: #259185;">"basic-binary-packet-ipc"</span>)
+</pre>
+
+
 </div>
 
 </div>
@@ -182,12 +202,7 @@ that are supported are:
 <h2 id="sec-2"><span class="section-number-2">2</span> Introduction</h2>
 <div class="outline-text-2" id="text-2">
 
-<p>This extension provides an interface to conduct communication between
-two processes. The interface is designed primarily for use within an
-event loop.
-</p>
-<p>
-The main focus of the interface is to provide an easy interface to
+<p>The main focus of the IPC extension is to provide an easy method of
 establishing a communication channel known as a stream. A stream is a
 bidirectional, full duplex communication channel with the guarantee
 that the order in which data is read is the same as the order it was
@@ -216,7 +231,7 @@ a number of protocols can be used to query and manage their state.
 </p>
 <p>
 The next section outlines the concept of a socket and the protocols
-used to for the different types of socket objects.
+used for the different types of socket objects.
 </p>
 </div>
 
@@ -289,8 +304,7 @@ has connections available.
 the process of being established. There are two ways to create a
 stream socket, the first is to use a namespace specific function to
 initiate a connection to a server. The second is using the
-<code>ACCEPT-CONNECTION</code> function on a server object when a new connection
-arrives to the server.
+<code>ACCEPT-CONNECTION</code> function on a server object.
 </p>
 <p>
 Once a stream socket has been created, it immediately starts to
@@ -334,15 +348,20 @@ data that can be read immediately from the stream using the function
 
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">data-available-p</span> (stream))
-(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">read-from-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">read-from-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end peek))
 </pre>
 
 <p>
 The return value of <code>READ-FROM-STREAM</code> is the number of bytes written
 to <code>BUFFER</code>. This can be either the number of bytes that are
-immediately available for reading or the value <code>(- END START)</code>. Note
-that it is possible for <code>READ-FROM-STREAM</code> to signal an error despite
-<code>DATA-AVAILABLE-P</code> having returned true! This is the nature of
+immediately available for reading or the value <code>(- END START)</code>. If
+<code>PEEK</code> is <code>T</code> then <code>READ-FROM-STREAM</code> obtains data from the stream
+without removing it from the stream. i.e. the next call to
+<code>READ-FROM-STREAM</code> will contain exactly the same data.
+</p>
+<p>
+Note that it is possible for <code>READ-FROM-STREAM</code> to signal an error
+despite <code>DATA-AVAILABLE-P</code> having returned true! This is the nature of
 communication channels where the path connecting the two stream
 sockets is governed by a large number of interacting agents.
 </p>
@@ -601,7 +620,7 @@ results of performing <code>POLL-SOCKET</code> on that socket alone. For example
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-02-20T07:43+1000</p>
+<p class="date">Date: 2013-02-20T07:58+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3e with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
