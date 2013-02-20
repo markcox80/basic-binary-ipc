@@ -29,8 +29,7 @@ ASDF.
 (asdf:load-system "basic-binary-packet-ipc")
 #+end_src
 
-The tests for the basic binary packet library can be executed via ASDF
-as well.
+The tests for the IPC extension can be executed via ASDF as well.
 #+begin_src lisp
 (asdf:test-system "basic-binary-packet-ipc")
 #+end_src
