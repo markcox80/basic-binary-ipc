@@ -31,6 +31,7 @@
 	   #:binary-boolean
 	   #:binary-single-float
 	   #:binary-double-float
+	   #:binary-integer
 	   #:binary-utf8-string
 	   #:binary-keyword
 	   #:binary-symbol

@@ -112,6 +112,12 @@
   (:values -1d0 0d0 1d0 1.5d0 3.5d0 -10.0d0 most-negative-double-float)
   (:errors "hello"))
 
+(define-binary-number-test binary-integer-test
+  (:type integer)
+  (:encoder binary-integer)
+  (:values -1 1 0 (expt 2 65) (- (expt 8 1000)))
+  (:errors 1.0 "hello"))
+
 (define-encode-decode-test binary-boolean-test
   (:type (member nil T))
   (:encoder binary-boolean)
