@@ -45,6 +45,8 @@
   ( 15 binary-int64)
   ( 16 binary-single-float)
   ( 17 binary-double-float)
+  ( 18 binary-integer)
+  ( 19 binary-ratio)
   (100 binary-list-generic)
   (101 binary-list-fixed))
 
@@ -132,7 +134,10 @@
     ((typep object '(signed-byte 64))
      'binary-int64)
     (t
-     (error "Do not know how to encode integer ~d" object))))
+     'binary-integer)))
+
+(defmethod binary-type-for-object ((object ratio))
+  'binary-ratio)
 
 ;; binary types built on the above
 (define-binary-type binary-nil ()

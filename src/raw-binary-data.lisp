@@ -132,3 +132,11 @@
       (write-value 'binary-uint32 out (length words))
       (dolist (word words)
 	(write-value 'binary-uint32 out word)))))
+
+(define-binary-type binary-ratio ()
+  (:reader (in)
+    (/ (read-value 'binary-integer in)
+       (read-value 'binary-integer in)))
+  (:writer (out value)
+    (write-value 'binary-integer out (numerator value))
+    (write-value 'binary-integer out (denominator value))))

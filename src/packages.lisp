@@ -32,6 +32,7 @@
 	   #:binary-single-float
 	   #:binary-double-float
 	   #:binary-integer
+	   #:binary-ratio
 	   #:binary-utf8-string
 	   #:binary-keyword
 	   #:binary-symbol

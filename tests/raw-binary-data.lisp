@@ -1,7 +1,8 @@
 (in-package "BASIC-BINARY-PACKET.TESTS")
 
 (defun encode-decode-test (value-type encoding-type value test)
-  (assert (typep value value-type))
+  (assert (typep value value-type) (value value-type)
+	  "The value ~A is not of type ~A" value value-type)
   (let ((bytes (flexi-streams:with-output-to-sequence (out)
 		 (write-value encoding-type out value))))
     (flexi-streams:with-input-from-sequence (in bytes)
@@ -117,6 +118,13 @@
   (:encoder binary-integer)
   (:values -1 1 0 (expt 2 65) (- (expt 8 1000)))
   (:errors 1.0 "hello"))
+
+(define-binary-number-test binary-ratio-test
+  (:type (or ratio
+	     integer))
+  (:encoder binary-ratio)
+  (:values (/ 0 1) (/ 5 2) (/ -5 3) (/ 3 -5))
+  (:errors "hello"))
 
 (define-encode-decode-test binary-boolean-test
   (:type (member nil T))
