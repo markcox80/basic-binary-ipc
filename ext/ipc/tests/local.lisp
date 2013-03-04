@@ -25,6 +25,9 @@
 	   (establish-channel (server client)
 	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
 	     (let ((remote-client (accept-connection server)))
+	       (assert-true (typep server 'stream-server))
+	       (assert-true (typep client 'stream-socket))
+	       (assert-true (typep remote-client 'stream-socket))
 	       (unwind-protect
 		    (channel-test client remote-client)
 		 (close-socket remote-client)))))

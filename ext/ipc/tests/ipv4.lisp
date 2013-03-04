@@ -34,6 +34,9 @@
 	   (establish-channel (server client)
 	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
 	     (let ((remote-client (accept-connection server)))
+	       (assert-true (typep server 'stream-server))
+	       (assert-true (typep client 'stream-socket))
+	       (assert-true (typep remote-client 'stream-socket))
 	       (unwind-protect
 		    (channel-test client remote-client)
 		 (close-socket remote-client)))))
@@ -137,6 +140,7 @@
 
 (define-test connect-to-ipv4-server/does-not-exist/loopback
   (labels ((perform-test (client)
+	     (assert-true (typep client 'stream-socket))
 	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
 	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
 	       (assert-equal 2 (length results))

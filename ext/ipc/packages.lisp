@@ -2,21 +2,26 @@
   (:use "COMMON-LISP")
    
   ;; Sockets
-  (:export #:close-socket)
+  (:export #:socket
+	   #:close-socket)
 
   ;; Stream servers
-  (:export #:accept-connection
+  (:export #:stream-server
+	   #:accept-connection
 	   #:connection-available-p
 	   #:no-connection-available-error
 	   #:socket)
 
-  ;; Future connections
-  (:export #:determinedp
-	   #:connection-failed-p
-	   #:connection-succeeded-p)
-
   ;; Streams
-  (:export #:remote-disconnected-p
+  (:export #:stream-socket
+	   
+	   ;; - connecting state
+	   #:determinedp
+	   #:connection-failed-p
+	   #:connection-succeeded-p
+	   
+	   ;; - connected state
+	   #:remote-disconnected-p
 	   #:ready-to-write-p
 	   #:data-available-p
 
@@ -28,7 +33,10 @@
 	   #:poll-sockets)
 
   ;; IPv4
-  (:export #:make-ipv4-tcp-server
+  (:export #:ipv4-tcp-server
+	   #:make-ipv4-tcp-server
+
+	   #:ipv4-tcp-stream
 	   #:connect-to-ipv4-tcp-server
 	   #:host-address
 	   #:port
@@ -42,7 +50,10 @@
 	   #:remote-port)
 
   ;; Local Sockets
-  (:export #:make-local-server
+  (:export #:local-server
+	   #:make-local-server
+
+	   #:local-stream
 	   #:connect-to-local-server
 	   #:no-local-server-error
 	   

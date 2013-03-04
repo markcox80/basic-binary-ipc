@@ -80,7 +80,7 @@
 (define-socket-option (reuse-address-p :so-reuseaddr soa-boolean))
 (define-socket-option (keep-alive-p :so-keepalive soa-boolean))
 
-(defclass posix-stream ()
+(defclass posix-stream (stream-socket)
   ((socket
     :initarg :socket
     :reader socket)))
@@ -149,7 +149,7 @@
     (%ff-sendto (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start) 0 (cffi:null-pointer) 0)))
 
 ;; Failed stream
-(defclass failed-posix-stream ()
+(defclass failed-posix-stream (stream-socket)
   ((socket
     :initarg :socket
     :reader socket)))
@@ -174,7 +174,7 @@
   nil)
 
 ;;  IPv4 stream
-(defclass ipv4-stream (posix-stream)
+(defclass ipv4-tcp-stream (posix-stream)
   ((remote-host-address
     :initarg :remote-host-address
     :reader remote-host-address)
@@ -188,7 +188,7 @@
     :initarg :local-port
     :reader local-port)))
 
-(defmethod print-object ((object ipv4-stream) stream)
+(defmethod print-object ((object ipv4-tcp-stream) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~A:~d -> ~A:~d"
 	    (local-host-address object)
@@ -200,8 +200,8 @@
 ;; using CONNECT-TO-TCP4-SERVER to connect to a server listening on
 ;; the loopback device. If the server does not exist, then some
 ;; operating systems signal an ECONNREFUSED error. In that case an
-;; object of type FAILED-IPV4-STREAM is returned.
-(defclass failed-ipv4-stream (failed-posix-stream)
+;; object of type FAILED-IPV4-TCP-STREAM is returned.
+(defclass failed-ipv4-tcp-stream (failed-posix-stream)
   ((remote-port
     :initarg :remote-port
     :reader remote-port)
@@ -209,7 +209,7 @@
     :initarg :remote-host-address
     :reader remote-host-address)))
 
-(defmethod print-object ((object failed-ipv4-stream) stream)
+(defmethod print-object ((object failed-ipv4-tcp-stream) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~A:~d"
 	    (remote-host-address object)
@@ -238,7 +238,7 @@
 			      ,@body)
        ,family ,host-address ,port)))
 
-(defclass ipv4-tcp-server ()
+(defclass ipv4-tcp-server (stream-server)
   ((host-address
     :initarg :host-address
     :reader host-address)
@@ -293,7 +293,7 @@
 		    (if (posix-error-would-block-p c)
 			(error 'no-connection-available-error :socket server)
 			(error c))))))
-	(make-instance 'ipv4-stream
+	(make-instance 'ipv4-tcp-stream
 		       :socket (make-instance 'posix-socket
 					      :namespace (namespace (socket server))
 					      :communication-style (communication-style (socket server))
@@ -337,7 +337,7 @@
 	       nil)
 	      (:econnrefused
 	       (return-from connect-to-ipv4-tcp-server
-		 (make-instance 'failed-ipv4-stream
+		 (make-instance 'failed-ipv4-tcp-stream
 				:socket socket
 				:remote-port port
 				:remote-host-address host-address)))
@@ -348,7 +348,7 @@
 	  (setf (cffi:mem-ref sockaddr-in-length 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
 	  (%ff-getsockname (file-descriptor socket) sockaddr-in sockaddr-in-length))
 
-	(make-instance 'ipv4-stream
+	(make-instance 'ipv4-tcp-stream
 		       :socket socket
 		       :local-port (port-from-sockaddr-in sockaddr-in)
 		       :local-host-address (host-address-from-sockaddr-in sockaddr-in)
@@ -372,7 +372,7 @@
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~S" (local-pathname object))))
 
-(defclass local-server ()
+(defclass local-server (stream-server)
   ((socket
     :initarg :socket
     :reader socket)

@@ -66,6 +66,9 @@ be released using the ~CLOSE-SOCKET~ function.
   (defgeneric close-socket (object))
 #+end_src
 
+Objects implementing the socket protocol inherit from the ~SOCKET~
+class.
+
 This library provides protocols for two different types of sockets,
 the stream server socket and the stream socket. 
 
@@ -91,6 +94,9 @@ has connections available.
   (defgeneric connection-available-p (server))
 #+end_src
 
+All objects implementing the stream server protocol inherit from the
+~STREAM-SERVER~ class.
+
 ** Stream Sockets
 A stream socket represents a stream that is either established or in
 the process of being established. There are two ways to create a
@@ -103,8 +109,8 @@ establish the stream by negotiating with the remote end of the
 stream. This negotiation may take a significant amount of time, and in
 some cases may fail to complete e.g. a network failure, an overloaded
 server or an unreachable host. This period of uncertainty is modelled
-by the future connection protocol and is implemented by all stream
-socket objects.
+by the future connection protocol and is implemented by all instances
+of the ~STREAM-SOCKET~ class.
 
 The predicate 
 #+begin_src lisp
@@ -185,9 +191,9 @@ of ~HOST-ADDRESS~ must be a string in dotted-quad format. e.g
      interface.
 - ~+IPV4-ANY+~ :: All IPv4 network interfaces for the host.
 
-The value returned from ~MAKE-IPV4-TCP-SERVER~ adheres to the [[*Stream Server][stream
-server]] protocol. The object returned also implements the following
-functions
+The value returned from ~MAKE-IPV4-TCP-SERVER~ is an instance of type
+~IPV4-TCP-SERVER~ and adheres to the [[*Stream Server][stream server]] protocol. The
+object returned also implements the following functions
 #+begin_src lisp
   (defgeneric host-address (ipv4/tcp-server)
     (:documentation "Obtain the host address component of the socket
@@ -211,8 +217,8 @@ number is chosen and an appropriate (and valid) host address is
 picked.
 
 Stream sockets obtained by using ~ACCEPT-CONNECTION~ or
-~CONNECT-TO-IPV4-TCP-SERVER~ extend the stream socket protocol with
-the following functions.
+~CONNECT-TO-IPV4-TCP-SERVER~ are of type ~IPV4-TCP-STREAM~ which
+extends the stream socket protocol with the following functions.
 #+begin_src lisp
   (defgeneric local-host-address (stream))
   (defgeneric local-port (stream))
@@ -237,9 +243,13 @@ calling ~MAKE-LOCAL-SERVER~. A non ~-NIL~ argument for
 ~DELETE-ON-CLOSE~ specifies that ~CLOSE-SOCKET~ should delete
 ~PATHNAME~.
 
-The object returned by ~MAKE-LOCAL-SERVER~ implements the stream
-server protocol. It also implements the function ~LOCAL-PATHNAME~
-which returns the ~PATHNAME~ argument to ~MAKE-LOCAL-SERVER~.
+The object returned by ~MAKE-LOCAL-SERVER~ is an instance of the class
+~LOCAL-SERVER~ and implements the stream server protocol. It also
+implements the function ~LOCAL-PATHNAME~ which returns the ~PATHNAME~
+argument to ~MAKE-LOCAL-SERVER~.
+
+All stream objects returned by ~ACCEPT-CONNECTION~ are instances of
+the class ~LOCAL-STREAM~.
 
 Connections to local servers can be initiated using the function
 ~CONNECT-TO-LOCAL-SERVER~.
@@ -247,8 +257,10 @@ Connections to local servers can be initiated using the function
 (defun connect-to-local-server (pathname &key))
 #+end_src
 where ~PATHNAME~ is the filesystem pathname of the server. The object
-returned implements the [[*Stream Socket][stream socket]] protocol and also implements the
-~LOCAL-PATHNAME~ function. If no server exists at ~PATHNAME~, then a
+returned is instance of type ~LOCAL-STREAM~ which implements the
+[[*Stream
+   Socket][stream socket]] protocol and also implements the ~LOCAL-PATHNAME~
+function. If no server exists at ~PATHNAME~, then a
 ~NO-LOCAL-SERVER-ERRROR~ is signalled.
 
 * Polling
