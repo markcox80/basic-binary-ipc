@@ -123,11 +123,15 @@
     (error "The value END is not a valid end index for BUFFER."))
 
   (cffi:with-pointer-to-vector-data (ptr buffer)
-    (%ff-recvfrom (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start)
-		  (if peek
-		      (cffi:foreign-bitfield-value 'message-flags '(msg-peek))
-		      0)
-		  (cffi:null-pointer) (cffi:null-pointer))))
+    (handler-case (%ff-recvfrom (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start)
+				(if peek
+				    (cffi:foreign-bitfield-value 'message-flags '(msg-peek))
+				    0)
+				(cffi:null-pointer) (cffi:null-pointer))
+      (posix-error (c)
+	(if (posix-error-code-p c :ewouldblock)
+	    0
+	    (error c))))))
 
 (defmethod write-to-stream ((stream posix-stream) buffer &key start end)
   (declare (type (vector (unsigned-byte 8)) buffer))
