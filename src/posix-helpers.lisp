@@ -1,4 +1,4 @@
-(in-package "BASIC-BINARY-PACKET.IPC")
+(in-package "BASIC-BINARY-IPC")
 
 ;; All of the ERRNO wrapper stuff is inspired by the one in OSICAT.
 

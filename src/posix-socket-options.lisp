@@ -1,4 +1,4 @@
-(in-package "BASIC-BINARY-PACKET.IPC")
+(in-package "BASIC-BINARY-IPC")
 
 ;; Socket option arguments
 (defgeneric soa-base-type (soa))

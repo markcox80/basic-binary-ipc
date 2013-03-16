@@ -1,4 +1,4 @@
-(in-package "BASIC-BINARY-PACKET.IPC")
+(in-package "BASIC-BINARY-IPC")
 
 (defgeneric file-descriptor (object)
   (:documentation "Return the file descriptor of the object."))

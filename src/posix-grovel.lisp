@@ -1,4 +1,4 @@
-(in-package "BASIC-BINARY-PACKET.IPC")
+(in-package "BASIC-BINARY-IPC")
 
 #+freebsd
 (include "sys/types.h")

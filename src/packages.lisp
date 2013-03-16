@@ -1,4 +1,4 @@
-(defpackage "BASIC-BINARY-PACKET.IPC"
+(defpackage "BASIC-BINARY-IPC"
   (:use "COMMON-LISP")
    
   ;; Sockets

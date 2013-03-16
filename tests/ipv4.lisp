@@ -1,20 +1,29 @@
-(in-package "BASIC-BINARY-PACKET.IPC.TESTS")
+(in-package "BASIC-BINARY-IPC.TESTS")
 
-(defun local-socket-pathname ()
-  "/tmp/test.socket")
+(defvar *used-server-ports* nil
+  "A list of all server ports returned by RANDOM-SERVER-PORT.")
 
-(define-test make-local-server
-  (let ((server (make-local-server (local-socket-pathname))))
-    (assert-true (probe-file (local-socket-pathname)))
+(defvar +ipv4-address-with-no-server+ "169.254.0.1")
+
+(defun random-server-port ()
+  (let ((port (loop
+		 :for port := (+ 30000 (random 10000))
+		 :while (find port *used-server-ports* :test #'=)
+		 :finally (return port))))
+    (push port *used-server-ports*)
+    port))
+
+(define-test make-ipv4-tcp-server
+  (let* ((port   (random-server-port))
+	 (server (make-ipv4-tcp-server +ipv4-loopback+ port)))
     (unwind-protect
 	 (progn
 	   (assert-true server)
 	   (assert-error 'no-connection-available-error (accept-connection server))
-	   (assert-error 'posix-error (make-local-server (local-socket-pathname))))
-      (close-socket server)
-      (assert-false (probe-file (local-socket-pathname))))))
+	   (assert-error 'posix-error (make-ipv4-tcp-server +ipv4-loopback+ port)))
+      (close-socket server))))
 
-(define-test local-test/sockets
+(define-test ipv4-tcp-test/sockets
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client '(determinedp connection-succeeded-p) 10))
 	     (assert-true (poll-socket remote-client 'determinedp 10))
@@ -31,16 +40,16 @@
 	       (unwind-protect
 		    (channel-test client remote-client)
 		 (close-socket remote-client)))))
-    (let ((server (make-local-server (local-socket-pathname))))
+    (let ((server (make-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
       (assert-false (poll-socket server 'connection-available-p 0))
       (unwind-protect
-	   (let ((client (connect-to-local-server (local-socket-pathname))))
+	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server))))
 	     (unwind-protect
 		  (establish-channel server client)
 	       (close-socket client)))
 	(close-socket server)))))
 
-(define-test local-test/stream
+(define-test ipv4-tcp-test/stream
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client 'ready-to-write-p 0))
 	     (assert-false (poll-socket remote-client 'data-available-p 0))
@@ -78,16 +87,16 @@
 	       (unwind-protect
 		    (channel-test client remote-client)
 		 (close-socket remote-client)))))
-    (let ((server (make-local-server (local-socket-pathname))))
+    (let ((server (make-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
       (assert-false (poll-socket server 'connection-available-p 0))
       (unwind-protect
-	   (let ((client (connect-to-local-server (local-socket-pathname))))
+	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server))))
 	     (unwind-protect
 		  (establish-channel server client)
 	       (close-socket client)))
 	(close-socket server)))))
 
-(define-test local-test/remote-disconnected
+(define-test ipv4-tcp-test/remote-disconnected
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client 'ready-to-write-p 0))
 	     (assert-false (poll-socket remote-client 'data-available-p 0))
@@ -106,55 +115,69 @@
 	       (assert-true (poll-socket remote-client 'connection-succeeded-p 10))	       
 
 	       (channel-test client remote-client))))
-    (let ((server (make-local-server (local-socket-pathname))))
+    (let ((server (make-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
       (assert-false (poll-socket server 'connection-available-p 0))
       (unwind-protect
-	   (let ((client (connect-to-local-server (local-socket-pathname))))
+	   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server))))
 	     (unwind-protect
 		  (establish-channel server client)
 	       (close-socket client)))
 	(close-socket server)))))
 
-(define-test connect-to-local-server/does-not-exist  
-  (assert-error 'no-local-server-error (connect-to-local-server (local-socket-pathname))))
-
-(define-test local-test/pathname
-  (labels ((establish-channel (server client)
-	     (assert-true (poll-socket server 'connection-available-p 10))
-	     (let ((remote-client (accept-connection server)))
-	       (assert-true (poll-socket client 'connection-succeeded-p 10))
-
-	       (assert-true (pathname-match-p (local-pathname server)
-					      (local-pathname client)))
-	       (assert-true (pathname-match-p (local-pathname server)
-					      (local-pathname remote-client))))))
-    (let ((server (make-local-server (local-socket-pathname))))
-      (assert-false (poll-socket server 'connection-available-p 0))
+(define-test connect-to-ipv4-server/does-not-exist
+  (labels ((perform-test (client)
+	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
+	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
+	       (assert-equal 2 (length results))
+	       (assert-true (find 'determinedp results))
+	       (assert-true (find 'connection-failed-p results))
+	       (assert-false (find 'connection-succeeded-p results)))
+	     (assert-true (connection-failed-p client))))
+    (let ((client (connect-to-ipv4-tcp-server +ipv4-address-with-no-server+ (random-server-port))))
       (unwind-protect
-	   (let ((client (connect-to-local-server (local-socket-pathname))))
-	     (unwind-protect
-		  (establish-channel server client)
-	       (close-socket client)))
-	(close-socket server)))))
+	   (perform-test client)
+	(close-socket client)))))
 
-(define-test local-test/no-data
-  (labels ((channel-test (client remote-client)
-	     (let ((buffer (make-array 10 :element-type '(unsigned-byte 8))))
-	       (assert-equal 0 (read-from-stream client buffer))
-	       (assert-equal 0 (read-from-stream remote-client buffer))))
-	   (establish-channel (server client)
-	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
-	     (let ((remote-client (accept-connection server)))
-	       (assert-true (poll-socket client 'connection-succeeded-p 10))
-	       (assert-true (poll-socket remote-client 'connection-succeeded-p 10))	       
+(define-test connect-to-ipv4-server/does-not-exist/loopback
+  (labels ((perform-test (client)
+	     (assert-true (typep client 'stream-socket))
+	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
+	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
+	       (assert-equal 2 (length results))
+	       (assert-true (find 'determinedp results))
+	       (assert-true (find 'connection-failed-p results))
+	       (assert-false (find 'connection-succeeded-p results)))
+	     (assert-true (connection-failed-p client))))
+    (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port))))
+      (unwind-protect
+	   (perform-test client)
+	(close-socket client)))))
+
+(define-test ipv4-tcp-test/host-address-and-ports
+  (let ((client-port (random-server-port))
+	(server-port (random-server-port)))
+    (labels ((establish-channel (server client)
+	       (assert-true (poll-socket server 'connection-available-p 10))
+	       (let ((remote-client (accept-connection server)))
+		 (assert-true (poll-socket remote-client 'connection-succeeded-p 10))
+		 (assert-true (poll-socket client 'connection-succeeded-p 10))
+		 
+		 ;; remote client tests
+		 (assert-equal server-port      (local-port remote-client))
+		 (assert-equal +ipv4-loopback+  (local-host-address remote-client))
+		 (assert-equal client-port      (remote-port remote-client))
+		 (assert-equal +ipv4-loopback+  (remote-host-address remote-client))
+
+		 ;; client tests
+		 (assert-equal client-port      (local-port client))
+		 (assert-equal +ipv4-loopback+  (local-host-address client))
+		 (assert-equal server-port      (remote-port client))
+		 (assert-equal +ipv4-loopback+  (remote-host-address client)))))
+      (let ((server (make-ipv4-tcp-server +ipv4-loopback+ server-port)))
+	(assert-false (poll-socket server 'connection-available-p 0))
+	(unwind-protect
+	     (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server) :local-port client-port)))
 	       (unwind-protect
-		    (channel-test client remote-client)
-		 (close-socket remote-client)))))
-    (let ((server (make-local-server (local-socket-pathname))))
-      (assert-false (poll-socket server 'connection-available-p 0))
-      (unwind-protect
-	   (let ((client (connect-to-local-server (local-socket-pathname))))
-	     (unwind-protect
-		  (establish-channel server client)
-	       (close-socket client)))
-	(close-socket server)))))
+		    (establish-channel server client)
+		 (close-socket client)))
+	  (close-socket server))))))

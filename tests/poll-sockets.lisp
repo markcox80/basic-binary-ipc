@@ -1,4 +1,4 @@
-(in-package "BASIC-BINARY-PACKET.IPC.TESTS")
+(in-package "BASIC-BINARY-IPC.TESTS")
 
 (define-test poll-sockets
   (let ((port (random-server-port)))

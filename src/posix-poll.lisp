@@ -1,4 +1,4 @@
-(in-package "BASIC-BINARY-PACKET.IPC")
+(in-package "BASIC-BINARY-IPC")
 
 ;; POLL-SOCKETS helpers
 (defgeneric compute-poll-fd-events (socket socket-events)

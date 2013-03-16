@@ -3,13 +3,12 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (asdf:load-system "cffi-grovel"))
 
-(defsystem "basic-binary-packet-ipc"
+(defsystem "basic-binary-ipc"
   :author "Mark Cox"
-  :description "The inter-process communication library used by the
-  BASIC-BINARY-PACKET-NETWORK system."
+  :description "A inter-process communication library for transmitting binary data over a stream."
   :depends-on ("cffi-grovel")
   :serial t
-  :components ((:module "ext/ipc"
+  :components ((:module "src"
 			:serial t
 			:components ((:file "packages")
 				     (:file "protocols")
@@ -19,4 +18,4 @@
 				     (:file "posix-socket-options")
 				     (:file "posix-sockets")
 				     (:file "posix-poll"))))
-  :in-order-to ((test-op (test-op "basic-binary-packet-ipc-tests"))))
+  :in-order-to ((test-op (test-op "basic-binary-ipc-tests"))))

@@ -1,16 +1,16 @@
-(in-package "BASIC-BINARY-PACKET.IPC.TESTS")
+(in-package "BASIC-BINARY-IPC.TESTS")
 
 (define-test define-system-call
-  (let ((fd (basic-binary-packet.ipc::%ff-socket :pf-inet :sock-stream 0)))
+  (let ((fd (basic-binary-ipc::%ff-socket :pf-inet :sock-stream 0)))
     (assert-true (plusp fd))
-    (assert-true (zerop (basic-binary-packet.ipc::%ff-close fd)))
-    (assert-error 'posix-error (basic-binary-packet.ipc::%ff-close fd))))
+    (assert-true (zerop (basic-binary-ipc::%ff-close fd)))
+    (assert-error 'posix-error (basic-binary-ipc::%ff-close fd))))
 
 (define-test poll-fd-event-test/sexp
   (labels ((true (expression revents)
-	     (assert-true (basic-binary-packet.ipc::poll-fd-event-test expression revents nil)))
+	     (assert-true (basic-binary-ipc::poll-fd-event-test expression revents nil)))
 	   (false (expression revents)
-	     (assert-false (basic-binary-packet.ipc::poll-fd-event-test expression revents nil))))
+	     (assert-false (basic-binary-ipc::poll-fd-event-test expression revents nil))))
     (true 'pollin '(pollin))
     (false 'pollhup '(pollin))
     (true '(or pollin pollhup) '(pollin))
@@ -32,11 +32,11 @@
 
 (define-test poll-fd-event-test/compiled
   (labels ((true (expression revents)
-	     (let ((fn (basic-binary-packet.ipc::compile-poll-fd-event-expression expression)))
-	       (assert-true (basic-binary-packet.ipc::poll-fd-event-test fn revents nil))))
+	     (let ((fn (basic-binary-ipc::compile-poll-fd-event-expression expression)))
+	       (assert-true (basic-binary-ipc::poll-fd-event-test fn revents nil))))
 	   (false (expression revents)
-	     (let ((fn (basic-binary-packet.ipc::compile-poll-fd-event-expression expression)))
-	       (assert-false (basic-binary-packet.ipc::poll-fd-event-test fn revents nil)))))
+	     (let ((fn (basic-binary-ipc::compile-poll-fd-event-expression expression)))
+	       (assert-false (basic-binary-ipc::poll-fd-event-test fn revents nil)))))
     (true 'pollin '(pollin))
     (false 'pollhup '(pollin))
     (true '(or pollin pollhup) '(pollin))

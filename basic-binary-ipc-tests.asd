@@ -1,11 +1,11 @@
 (in-package "ASDF")
 
-(defsystem "basic-binary-packet-ipc-tests"
+(defsystem "basic-binary-ipc-tests"
   :author "Mark Cox"
-  :description "A collection of tests for the BASIC-BINARY-PACKET-IPC system."
-  :depends-on ("basic-binary-packet-ipc" "lisp-unit")
+  :description "A collection of tests for the BASIC-BINARY-IPC system."
+  :depends-on ("basic-binary-ipc" "lisp-unit")
   :serial t
-  :components ((:module "ext/ipc/tests"
+  :components ((:module "tests"
 			:serial t
 			:components ((:file "packages")
 				     (:file "asdf")
