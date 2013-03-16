@@ -1,13 +1,13 @@
-#+TITLE: IPC Extension for Basic Binary Packet
+#+TITLE: Basic Binary Inter Process Communication
 #+AUTHOR: Mark Cox
 
-This library is a supporting library that provides inter process
-communication facilities to the basic binary packet library.
+This system provides an interface for performing inter process
+communication with binary data.
 
 [TABLE-OF-CONTENTS]
 
 * Installation
-This library provides a simple interface for performing inter-process
+This system provides a simple interface for performing inter-process
 communication (IPC) with ~(UNSIGNED-BYTE 8)~ communication channels.
 
 The prerequisite systems for this extension are
@@ -21,21 +21,20 @@ that are supported are:
 - [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7.5)
 - [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1)
 - Linux (Tested with [[http://www.debian.org][Debian]] squeeze)
-- NEED-TO-IMPLEMENT [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with version XP)
+- NEED-TO-IMPLEMENT [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with Windows 8)
 
-The IPC extension can be loaded in to the current Lisp environment via
-ASDF.
+The system can be loaded in to the current Lisp environment via ASDF.
 #+begin_src lisp
-(asdf:load-system "basic-binary-packet-ipc")
+(asdf:load-system "basic-binary-ipc")
 #+end_src
 
-The tests for the IPC extension can be executed via ASDF as well.
+The tests for the system can be executed via ASDF as well.
 #+begin_src lisp
-(asdf:test-system "basic-binary-packet-ipc")
+(asdf:test-system "basic-binary-ipc")
 #+end_src
 
 * Introduction
-The main focus of the IPC extension is to provide an easy method of
+The main focus of the system is to provide an easy method of
 establishing a communication channel known as a stream. A stream is a
 bidirectional, full duplex communication channel with the guarantee
 that the order in which data is read is the same as the order it was
@@ -99,18 +98,19 @@ All objects implementing the stream server protocol inherit from the
 
 ** Stream Sockets
 A stream socket represents a stream that is either established or in
-the process of being established. There are two ways to create a
-stream socket, the first is to use a namespace specific function to
-initiate a connection to a server. The second is using the
-~ACCEPT-CONNECTION~ function on a server object.
+the process of being established.
+
+There are two ways to create a stream socket. The first is to use a
+namespace specific function to initiate a connection to a server. The
+second is using the ~ACCEPT-CONNECTION~ function on a server object.
 
 Once a stream socket has been created, it immediately starts to
-establish the stream by negotiating with the remote end of the
-stream. This negotiation may take a significant amount of time, and in
-some cases may fail to complete e.g. a network failure, an overloaded
-server or an unreachable host. This period of uncertainty is modelled
-by the future connection protocol and is implemented by all instances
-of the ~STREAM-SOCKET~ class.
+establish the stream by negotiating with the remote socket. This
+negotiation may take a significant amount of time, and in some cases
+may fail to complete e.g. a network failure, an overloaded server or
+an unreachable host. This period of uncertainty is modelled by the
+future connection protocol and is implemented by all instances of the
+~STREAM-SOCKET~ class.
 
 The predicate 
 #+begin_src lisp
@@ -195,13 +195,8 @@ The value returned from ~MAKE-IPV4-TCP-SERVER~ is an instance of type
 ~IPV4-TCP-SERVER~ and adheres to the [[*Stream Server][stream server]] protocol. The
 object returned also implements the following functions
 #+begin_src lisp
-  (defgeneric host-address (ipv4/tcp-server)
-    (:documentation "Obtain the host address component of the socket
-    address the server is using."))
-  
-  (defgeneric port (ipv4/tcp-server)
-    (:documentation "Obtain the port component of the socket address the
-    server is using."))
+  (defgeneric host-address (ipv4-tcp-server))
+  (defgeneric port (ipv4-tcp-server))
 #+end_src
 
 The function ~CONNECT-TO-IPV4-TCP-SERVER~ creates a stream socket that
@@ -213,12 +208,11 @@ defined by ~HOST-ADDRESS~ and ~PORT~.
 The arguments ~LOCAL-HOST-ADDRESS~ and ~LOCAL-PORT~ can be used to
 specify which local host address and port number should be used to
 connect to the server. If these are not specified, then a random port
-number is chosen and an appropriate (and valid) host address is
-picked.
+number and an appropriate host address are chosen.
 
 Stream sockets obtained by using ~ACCEPT-CONNECTION~ or
-~CONNECT-TO-IPV4-TCP-SERVER~ are of type ~IPV4-TCP-STREAM~ which
-extends the stream socket protocol with the following functions.
+~CONNECT-TO-IPV4-TCP-SERVER~ are of type ~IPV4-TCP-STREAM~. This class
+extends the stream socket protocol with the following functions
 #+begin_src lisp
   (defgeneric local-host-address (stream))
   (defgeneric local-port (stream))
@@ -241,12 +235,15 @@ The ~PATHNAME~ argument specifies the filesystem pathname where the
 server listens for connections. This pathname must not exist prior to
 calling ~MAKE-LOCAL-SERVER~. A non ~-NIL~ argument for
 ~DELETE-ON-CLOSE~ specifies that ~CLOSE-SOCKET~ should delete
-~PATHNAME~.
+~PATHNAME~ when the server is closed.
 
 The object returned by ~MAKE-LOCAL-SERVER~ is an instance of the class
 ~LOCAL-SERVER~ and implements the stream server protocol. It also
 implements the function ~LOCAL-PATHNAME~ which returns the ~PATHNAME~
 argument to ~MAKE-LOCAL-SERVER~.
+#+begin_src lisp
+(defgeneric local-pathname (local-socket))
+#+end_src
 
 All stream objects returned by ~ACCEPT-CONNECTION~ are instances of
 the class ~LOCAL-STREAM~.
@@ -257,10 +254,9 @@ Connections to local servers can be initiated using the function
 (defun connect-to-local-server (pathname &key))
 #+end_src
 where ~PATHNAME~ is the filesystem pathname of the server. The object
-returned is instance of type ~LOCAL-STREAM~ which implements the
-[[*Stream
-   Socket][stream socket]] protocol and also implements the ~LOCAL-PATHNAME~
-function. If no server exists at ~PATHNAME~, then a
+returned is an instance of type ~LOCAL-STREAM~ which implements the [[*Stream
+ Socket][stream socket]] protocol and the ~LOCAL-PATHNAME~ function mentioned
+above. If no server exists at ~PATHNAME~, then a
 ~NO-LOCAL-SERVER-ERRROR~ is signalled.
 
 * Polling

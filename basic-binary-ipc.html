@@ -3,11 +3,11 @@
                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<title>IPC Extension for Basic Binary Packet</title>
+<title>Basic Binary Inter Process Communication</title>
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
-<meta name="title" content="IPC Extension for Basic Binary Packet"/>
+<meta name="title" content="Basic Binary Inter Process Communication"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-03-05T07:22+1000"/>
+<meta name="generated" content="2013-03-17T08:56+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -115,10 +115,10 @@ for the JavaScript code in this tag.
 </div>
 
 <div id="content">
-<h1 class="title">IPC Extension for Basic Binary Packet</h1>
+<h1 class="title">Basic Binary Inter Process Communication</h1>
 
-<p>This library is a supporting library that provides inter process
-communication facilities to the basic binary packet library.
+<p>This system provides an interface for performing inter process
+communication with binary data.
 </p>
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
@@ -144,7 +144,7 @@ communication facilities to the basic binary packet library.
 <h2 id="sec-1"><span class="section-number-2">1</span> Installation</h2>
 <div class="outline-text-2" id="text-1">
 
-<p>This library provides a simple interface for performing inter-process
+<p>This system provides a simple interface for performing inter-process
 communication (IPC) with <code>(UNSIGNED-BYTE 8)</code> communication channels.
 </p>
 <p>
@@ -169,27 +169,26 @@ that are supported are:
 </li>
 <li>Linux (Tested with <a href="http://www.debian.org">Debian</a> squeeze)
 </li>
-<li>NEED-TO-IMPLEMENT <a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with version XP)
+<li>NEED-TO-IMPLEMENT <a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with Windows 8)
 </li>
 </ul>
 
 
 <p>
-The IPC extension can be loaded in to the current Lisp environment via
-ASDF.
+The system can be loaded in to the current Lisp environment via ASDF.
 </p>
 
 
-<pre class="src src-lisp">(asdf:load-system <span style="color: #2aa198;">"basic-binary-packet-ipc"</span>)
+<pre class="src src-lisp">(asdf:load-system <span style="color: #2aa198;">"basic-binary-ipc"</span>)
 </pre>
 
 
 <p>
-The tests for the IPC extension can be executed via ASDF as well.
+The tests for the system can be executed via ASDF as well.
 </p>
 
 
-<pre class="src src-lisp">(asdf:test-system <span style="color: #2aa198;">"basic-binary-packet-ipc"</span>)
+<pre class="src src-lisp">(asdf:test-system <span style="color: #2aa198;">"basic-binary-ipc"</span>)
 </pre>
 
 
@@ -201,7 +200,7 @@ The tests for the IPC extension can be executed via ASDF as well.
 <h2 id="sec-2"><span class="section-number-2">2</span> Introduction</h2>
 <div class="outline-text-2" id="text-2">
 
-<p>The main focus of the IPC extension is to provide an easy method of
+<p>The main focus of the system is to provide an easy method of
 establishing a communication channel known as a stream. A stream is a
 bidirectional, full duplex communication channel with the guarantee
 that the order in which data is read is the same as the order it was
@@ -251,6 +250,10 @@ be released using the <code>CLOSE-SOCKET</code> function.
 
 
 <p>
+Objects implementing the socket protocol inherit from the <code>SOCKET</code>
+class.
+</p>
+<p>
 This library provides protocols for two different types of sockets,
 the stream server socket and the stream socket. 
 </p>
@@ -291,6 +294,10 @@ has connections available.
 </pre>
 
 
+<p>
+All objects implementing the stream server protocol inherit from the
+<code>STREAM-SERVER</code> class.
+</p>
 </div>
 
 </div>
@@ -300,19 +307,21 @@ has connections available.
 <div class="outline-text-3" id="text-3-2">
 
 <p>A stream socket represents a stream that is either established or in
-the process of being established. There are two ways to create a
-stream socket, the first is to use a namespace specific function to
-initiate a connection to a server. The second is using the
-<code>ACCEPT-CONNECTION</code> function on a server object.
+the process of being established.
+</p>
+<p>
+There are two ways to create a stream socket. The first is to use a
+namespace specific function to initiate a connection to a server. The
+second is using the <code>ACCEPT-CONNECTION</code> function on a server object.
 </p>
 <p>
 Once a stream socket has been created, it immediately starts to
-establish the stream by negotiating with the remote end of the
-stream. This negotiation may take a significant amount of time, and in
-some cases may fail to complete e.g. a network failure, an overloaded
-server or an unreachable host. This period of uncertainty is modelled
-by the future connection protocol and is implemented by all stream
-socket objects.
+establish the stream by negotiating with the remote socket. This
+negotiation may take a significant amount of time, and in some cases
+may fail to complete e.g. a network failure, an overloaded server or
+an unreachable host. This period of uncertainty is modelled by the
+future connection protocol and is implemented by all instances of the
+<code>STREAM-SOCKET</code> class.
 </p>
 <p>
 The predicate 
@@ -440,18 +449,14 @@ of <code>HOST-ADDRESS</code> must be a string in dotted-quad format. e.g
 
 
 <p>
-The value returned from <code>MAKE-IPV4-TCP-SERVER</code> adheres to the <a href="#Stream-Server">stream server</a> protocol. The object returned also implements the following
-functions
+The value returned from <code>MAKE-IPV4-TCP-SERVER</code> is an instance of type
+<code>IPV4-TCP-SERVER</code> and adheres to the <a href="#Stream-Server">stream server</a> protocol. The
+object returned also implements the following functions
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">host-address</span> (ipv4/tcp-server)
-  (<span style="color: #859900;">:documentation</span> <span style="color: #2aa198;">"Obtain the host address component of the socket</span>
-<span style="color: #2aa198;">  address the server is using."</span>))
-
-(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">port</span> (ipv4/tcp-server)
-  (<span style="color: #859900;">:documentation</span> <span style="color: #2aa198;">"Obtain the port component of the socket address the</span>
-<span style="color: #2aa198;">  server is using."</span>))
+<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">host-address</span> (ipv4-tcp-server))
+(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">port</span> (ipv4-tcp-server))
 </pre>
 
 
@@ -469,13 +474,12 @@ defined by <code>HOST-ADDRESS</code> and <code>PORT</code>.
 The arguments <code>LOCAL-HOST-ADDRESS</code> and <code>LOCAL-PORT</code> can be used to
 specify which local host address and port number should be used to
 connect to the server. If these are not specified, then a random port
-number is chosen and an appropriate (and valid) host address is
-picked.
+number and an appropriate host address are chosen.
 </p>
 <p>
 Stream sockets obtained by using <code>ACCEPT-CONNECTION</code> or
-<code>CONNECT-TO-IPV4-TCP-SERVER</code> extend the stream socket protocol with
-the following functions.
+<code>CONNECT-TO-IPV4-TCP-SERVER</code> are of type <code>IPV4-TCP-STREAM</code>. This class
+extends the stream socket protocol with the following functions
 </p>
 
 
@@ -513,12 +517,23 @@ The <code>PATHNAME</code> argument specifies the filesystem pathname where the
 server listens for connections. This pathname must not exist prior to
 calling <code>MAKE-LOCAL-SERVER</code>. A non <code>-NIL</code> argument for
 <code>DELETE-ON-CLOSE</code> specifies that <code>CLOSE-SOCKET</code> should delete
-<code>PATHNAME</code>.
+<code>PATHNAME</code> when the server is closed.
 </p>
 <p>
-The object returned by <code>MAKE-LOCAL-SERVER</code> implements the stream
-server protocol. It also implements the function <code>LOCAL-PATHNAME</code>
-which returns the <code>PATHNAME</code> argument to <code>MAKE-LOCAL-SERVER</code>.
+The object returned by <code>MAKE-LOCAL-SERVER</code> is an instance of the class
+<code>LOCAL-SERVER</code> and implements the stream server protocol. It also
+implements the function <code>LOCAL-PATHNAME</code> which returns the <code>PATHNAME</code>
+argument to <code>MAKE-LOCAL-SERVER</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">local-pathname</span> (local-socket))
+</pre>
+
+
+<p>
+All stream objects returned by <code>ACCEPT-CONNECTION</code> are instances of
+the class <code>LOCAL-STREAM</code>.
 </p>
 <p>
 Connections to local servers can be initiated using the function
@@ -531,8 +546,8 @@ Connections to local servers can be initiated using the function
 
 <p>
 where <code>PATHNAME</code> is the filesystem pathname of the server. The object
-returned implements the <a href="#Stream-Socket">stream socket</a> protocol and also implements the
-<code>LOCAL-PATHNAME</code> function. If no server exists at <code>PATHNAME</code>, then a
+returned is an instance of type <code>LOCAL-STREAM</code> which implements the <a href="#Stream-Socket">stream socket</a> protocol and the <code>LOCAL-PATHNAME</code> function mentioned
+above. If no server exists at <code>PATHNAME</code>, then a
 <code>NO-LOCAL-SERVER-ERRROR</code> is signalled.
 </p>
 </div>
@@ -619,9 +634,9 @@ results of performing <code>POLL-SOCKET</code> on that socket alone. For example
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-03-05T07:22+1000</p>
+<p class="date">Date: 2013-03-17T08:56+1000</p>
 <p class="author">Author: Mark Cox</p>
-<p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3f with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
+<p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.4 with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
 
 </div>
