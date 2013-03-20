@@ -30,7 +30,10 @@
    (file-descriptor
     :initarg :file-descriptor
     :reader file-descriptor
-    :initform (error "File descriptors must be specified."))))
+    :initform (error "File descriptors must be specified."))
+   (closedp
+    :initarg :closedp
+    :initform nil)))
 
 (defun make-posix-socket (namespace communication-style protocol)
   (let ((fd (%ff-socket namespace communication-style protocol)))
@@ -41,7 +44,10 @@
 		   :file-descriptor fd)))
 
 (defmethod close-socket ((socket posix-socket))
-  (%ff-close (file-descriptor socket)))
+  (with-slots (closedp) socket
+    (unless closedp
+      (%ff-close (file-descriptor socket))
+      (setf closedp t))))
 
 (defmethod close-socket ((object t))
   (close-socket (socket object)))
