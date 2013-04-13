@@ -37,10 +37,10 @@
       `(progn
 	 (ensure-socket-option-argument ',name :base-type ,(option-value :base-type))
 	 ,(destructuring-bind ((value pointer) &rest body) (option-values :writer)
-			      `(defmethod soa-translate-to-memory ((,soa-object socket-option-argument) ,value ,pointer)
+			      `(defmethod soa-translate-to-memory ((,soa-object (eql ',name)) ,value ,pointer)
 				 ,@body))
 	 ,(destructuring-bind ((pointer) &rest body) (option-values :reader)
-			      `(defmethod soa-translate-from-memory ((,soa-object socket-option-argument) ,pointer)
+			      `(defmethod soa-translate-from-memory ((,soa-object (eql ',name)) ,pointer)
 				 ,@body))))))
 
 ;; Socket options
@@ -53,13 +53,13 @@
 	   (%ff-getsockopt (file-descriptor object) ,level ,socket-option-name ptr ptr-length)
 	   (assert (= (cffi:mem-ref ptr-length 'socklen-t)
 		      (soa-size soa)))
-	   (soa-translate-from-memory soa ptr))))))
+	   (soa-translate-from-memory ',socket-option-argument ptr))))))
 
 (defun do-define-socket-option/writer (name socket-option-name socket-option-argument &key (level 0))
   `(defmethod (setf ,name) (value (object posix-socket))
      (let ((soa (socket-option-argument ',socket-option-argument)))
        (cffi:with-foreign-object (ptr (soa-base-type soa))
-	 (soa-translate-to-memory soa value ptr)
+	 (soa-translate-to-memory ',socket-option-argument value ptr)
 	 (%ff-setsockopt (file-descriptor object) ,level ,socket-option-name ptr (soa-size soa)))
        value)))
 
