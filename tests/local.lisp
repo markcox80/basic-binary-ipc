@@ -158,3 +158,34 @@
 		  (establish-channel server client)
 	       (close-socket client)))
 	(close-socket server)))))
+
+(define-test local-test/full-write-buffer
+  (labels ((channel-test (client remote-client)
+	     (declare (ignore remote-client))
+	     (let ((buffer (make-array 100000 :element-type '(unsigned-byte 8)))
+		   (error-signalled nil))
+	       (loop
+		  :for attempt :from 0 :below 1000
+		  :until error-signalled
+		  :do
+		  (handler-case (write-to-stream client buffer)
+		    (would-block-error (c)
+		      (assert-equal client (socket c))
+		      (setf error-signalled t))))
+	       (assert-true error-signalled)))
+	   (establish-channel (server client)
+	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
+	     (let ((remote-client (accept-connection server)))
+	       (assert-true (poll-socket client 'connection-succeeded-p 10))
+	       (assert-true (poll-socket remote-client 'connection-succeeded-p 10))	       
+	       (unwind-protect
+		    (channel-test client remote-client)
+		 (close-socket remote-client)))))
+    (let ((server (make-local-server (local-socket-pathname))))
+      (assert-false (poll-socket server 'connection-available-p 0))
+      (unwind-protect
+	   (let ((client (connect-to-local-server (local-socket-pathname))))
+	     (unwind-protect
+		  (establish-channel server client)
+	       (close-socket client)))
+	(close-socket server)))))

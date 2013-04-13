@@ -26,7 +26,9 @@
 	   #:data-available-p
 
 	   #:read-from-stream
-	   #:write-to-stream)
+	   #:write-to-stream
+
+	   #:would-block-error)
 
   ;; Polling
   (:export #:poll-socket

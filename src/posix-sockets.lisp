@@ -155,8 +155,17 @@
   (unless (and (>= end 0) (<= end (length buffer)))
     (error "The value END is not a valid end index for BUFFER."))
 
-  (cffi:with-pointer-to-vector-data (ptr buffer)
-    (%ff-sendto (file-descriptor stream) (cffi:mem-aptr ptr :uint8 start) (- end start) 0 (cffi:null-pointer) 0)))
+  (handler-case (cffi:with-pointer-to-vector-data (ptr buffer)
+		  (%ff-sendto (file-descriptor stream)
+			      (cffi:mem-aptr ptr :uint8 start)
+			      (- end start)
+			      0
+			      (cffi:null-pointer)
+			      0))
+    (posix-error (c)
+      (if (posix-error-would-block-p c)
+	  (error 'would-block-error :socket stream)
+	  (error c)))))
 
 ;; Failed stream
 (defclass failed-posix-stream (stream-socket)
