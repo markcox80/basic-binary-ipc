@@ -40,7 +40,8 @@
   ((:enametoolong "ENAMETOOLONG"))
   ((:enoent "ENOENT"))
   ((:enotdir "ENOTDIR"))
-  ((:epipe "EPIPE")))
+  ((:epipe "EPIPE"))
+  ((:enoprotoopt "ENOPROTOOPT")))
 
 (include "fcntl.h")
 
