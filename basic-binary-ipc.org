@@ -154,9 +154,10 @@ Writing data to the stream is performed using the function
 #+end_src
 This function will queue the data in ~BUFFER~ and schedule it for
 writing once all other data in the queue has been written. This
-function will not block the application. The predicate
-~READY-TO-WRITE-P~ can be used to determine if the data will be
-written immediately or will be queued.
+function will not block the application. If no data can be written
+immediately, ~WRITE-TO-STREAM~ will signal a ~WOULD-BLOCK-ERROR~
+condition.  The predicate ~READY-TO-WRITE-P~ can be used to determine
+if data can be written immediately.
 #+begin_src lisp
 (defgeneric ready-to-write-p (stream))
 #+end_src
