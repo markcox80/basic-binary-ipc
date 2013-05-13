@@ -307,17 +307,21 @@
   (cffi:with-foreign-object (ptr '(:struct sockaddr-in))
     (cffi:with-foreign-object (ptr-size 'socklen-t)
       (setf (cffi:mem-ref ptr-size 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
-      (let ((fd (handler-case (%ff-accept (file-descriptor (socket server)) ptr ptr-size)
-		  (posix-error (c)
-		    (if (posix-error-would-block-p c)
-			(error 'no-connection-available-error :socket server)
-			(error c))))))
+      (let* ((fd (handler-case (%ff-accept (file-descriptor (socket server)) ptr ptr-size)
+		   (posix-error (c)
+		     (if (posix-error-would-block-p c)
+			 (error 'no-connection-available-error :socket server)
+			 (error c)))))
+	     (socket (make-instance 'posix-socket
+				    :namespace (namespace (socket server))
+				    :communication-style (communication-style (socket server))
+				    :protocol (protocol (socket server))
+				    :file-descriptor fd)))
+	;; This shouldn't be necessary but on some systems the socket
+	;; options are not inherited.
+	(setf (operating-modes socket) '(o-nonblock))
 	(make-instance 'ipv4-tcp-stream
-		       :socket (make-instance 'posix-socket
-					      :namespace (namespace (socket server))
-					      :communication-style (communication-style (socket server))
-					      :protocol (protocol (socket server))
-					      :file-descriptor fd)
+		       :socket socket
 		       :local-port (port server)
 		       :local-host-address (host-address server)
 		       :remote-host-address (host-address-from-sockaddr-in ptr)
@@ -460,17 +464,21 @@
   (cffi:with-foreign-object (ptr '(:struct sockaddr-un))
     (cffi:with-foreign-object (ptr-size 'socklen-t)
       (setf (cffi:mem-ref ptr-size 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-un)))
-      (let ((fd (handler-case (%ff-accept (file-descriptor (socket server)) ptr ptr-size)
-		  (posix-error (c)
-		    (if (posix-error-would-block-p c)
-			(error 'no-connection-available-error :socket server)
-			(error c))))))
+      (let* ((fd (handler-case (%ff-accept (file-descriptor (socket server)) ptr ptr-size)
+		   (posix-error (c)
+		     (if (posix-error-would-block-p c)
+			 (error 'no-connection-available-error :socket server)
+			 (error c)))))
+	     (socket (make-instance 'posix-socket
+				    :namespace (namespace (socket server))
+				    :communication-style (communication-style (socket server))
+				    :protocol (protocol (socket server))
+				    :file-descriptor fd)))
+	;; This shouldn't be necessary but on some systems the socket
+	;; options are not inherited.
+	(setf (operating-modes socket) '(o-nonblock))
 	(make-instance 'local-stream
-		       :socket (make-instance 'posix-socket
-					      :namespace (namespace (socket server))
-					      :communication-style (communication-style (socket server))
-					      :protocol (protocol (socket server))
-					      :file-descriptor fd)
+		       :socket socket
 		       :local-pathname (local-pathname server))))))
 
 (define-condition no-local-server-error ()
