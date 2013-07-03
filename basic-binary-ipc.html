@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="Basic Binary Inter Process Communication"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-03-17T08:56+1000"/>
+<meta name="generated" content="2013-07-03T21:26+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -134,7 +134,11 @@ communication with binary data.
 </li>
 <li><a href="#sec-4">4 IPv4</a></li>
 <li><a href="#sec-5">5 Local</a></li>
-<li><a href="#sec-6">6 Polling</a></li>
+<li><a href="#sec-6">6 Polling</a>
+<ul>
+<li><a href="#sec-6-1">6.1 Polling many sockets</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -179,7 +183,7 @@ The system can be loaded in to the current Lisp environment via ASDF.
 </p>
 
 
-<pre class="src src-lisp">(asdf:load-system <span style="color: #2aa198;">"basic-binary-ipc"</span>)
+<pre class="src src-lisp">(asdf:load-system <span style="color: #259185;">"basic-binary-ipc"</span>)
 </pre>
 
 
@@ -188,7 +192,7 @@ The tests for the system can be executed via ASDF as well.
 </p>
 
 
-<pre class="src src-lisp">(asdf:test-system <span style="color: #2aa198;">"basic-binary-ipc"</span>)
+<pre class="src src-lisp">(asdf:test-system <span style="color: #259185;">"basic-binary-ipc"</span>)
 </pre>
 
 
@@ -245,7 +249,7 @@ be released using the <code>CLOSE-SOCKET</code> function.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">close-socket</span> (object))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">close-socket</span> (object))
 </pre>
 
 
@@ -270,7 +274,7 @@ using the <code>ACCEPT-CONNECTION</code> function.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">accept-connection</span> (server))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">accept-connection</span> (server))
 </pre>
 
 <p>
@@ -290,7 +294,7 @@ has connections available.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">connection-available-p</span> (server))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-available-p</span> (server))
 </pre>
 
 
@@ -328,7 +332,7 @@ The predicate
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">determinedp</span> (future-connection))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">determinedp</span> (future-connection))
 </pre>
 
 <p>
@@ -339,8 +343,8 @@ or <code>CONNECTION-SUCCEEDED-P</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">connection-failed-p</span> (future-connection))
-(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">connection-succeeded-p</span> (future-connection))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-failed-p</span> (future-connection))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">connection-succeeded-p</span> (future-connection))
 </pre>
 
 
@@ -355,8 +359,8 @@ data that can be read immediately from the stream using the function
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">data-available-p</span> (stream))
-(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">read-from-stream</span> (stream buffer <span style="color: #b58900;">&amp;key</span> start end peek))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">data-available-p</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">read-from-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end peek))
 </pre>
 
 <p>
@@ -379,19 +383,20 @@ Writing data to the stream is performed using the function
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">write-to-stream</span> (stream buffer <span style="color: #b58900;">&amp;key</span> start end))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">write-to-stream</span> (stream buffer <span style="color: #a57705;">&amp;key</span> start end))
 </pre>
 
 <p>
 This function will queue the data in <code>BUFFER</code> and schedule it for
 writing once all other data in the queue has been written. This
-function will not block the application. The predicate
-<code>READY-TO-WRITE-P</code> can be used to determine if the data will be
-written immediately or will be queued.
+function will not block the application. If no data can be written
+immediately, <code>WRITE-TO-STREAM</code> will signal a <code>WOULD-BLOCK-ERROR</code>
+condition.  The predicate <code>READY-TO-WRITE-P</code> can be used to determine
+if data can be written immediately.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">ready-to-write-p</span> (stream))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">ready-to-write-p</span> (stream))
 </pre>
 
 <p>
@@ -405,7 +410,7 @@ severed.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">remote-disconnected-p</span> (stream))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-disconnected-p</span> (stream))
 </pre>
 
 
@@ -432,7 +437,7 @@ host <code>ADDRESS</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defun</span> <span style="color: #268bd2;">make-ipv4-tcp-server</span> (host-address port <span style="color: #b58900;">&amp;key</span> reuse-socket-address backlog))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">make-ipv4-tcp-server</span> (host-address port <span style="color: #a57705;">&amp;key</span> reuse-socket-address backlog))
 </pre>
 
 <p>
@@ -455,8 +460,8 @@ object returned also implements the following functions
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">host-address</span> (ipv4-tcp-server))
-(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">port</span> (ipv4-tcp-server))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">host-address</span> (ipv4-tcp-server))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">port</span> (ipv4-tcp-server))
 </pre>
 
 
@@ -467,7 +472,7 @@ defined by <code>HOST-ADDRESS</code> and <code>PORT</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defun</span> <span style="color: #268bd2;">connect-to-ipv4-tcp-server</span> (host-address port <span style="color: #b58900;">&amp;key</span> local-host-address local-port))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-ipv4-tcp-server</span> (host-address port <span style="color: #a57705;">&amp;key</span> local-host-address local-port))
 </pre>
 
 <p>
@@ -483,10 +488,10 @@ extends the stream socket protocol with the following functions
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">local-host-address</span> (stream))
-(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">local-port</span> (stream))
-(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">remote-host-address</span> (stream))
-(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">remote-port</span> (stream))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">local-host-address</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">local-port</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-host-address</span> (stream))
+(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-port</span> (stream))
 </pre>
 
 </div>
@@ -509,7 +514,7 @@ accepting incoming connections on the local namespace.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defun</span> <span style="color: #268bd2;">make-local-server</span> (pathname <span style="color: #b58900;">&amp;key</span> (backlog 5) (delete-on-close t)))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">make-local-server</span> (pathname <span style="color: #a57705;">&amp;key</span> (backlog 5) (delete-on-close t)))
 </pre>
 
 <p>
@@ -527,7 +532,7 @@ argument to <code>MAKE-LOCAL-SERVER</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">local-pathname</span> (local-socket))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">local-pathname</span> (local-socket))
 </pre>
 
 
@@ -541,7 +546,7 @@ Connections to local servers can be initiated using the function
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defun</span> <span style="color: #268bd2;">connect-to-local-server</span> (pathname <span style="color: #b58900;">&amp;key</span>))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">connect-to-local-server</span> (pathname <span style="color: #a57705;">&amp;key</span>))
 </pre>
 
 <p>
@@ -565,7 +570,7 @@ remote host has disconnected.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defgeneric</span> <span style="color: #268bd2;">poll-socket</span> (socket socket-events timeout))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">poll-socket</span> (socket socket-events timeout))
 </pre>
 
 <p>
@@ -599,7 +604,7 @@ function.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">defun</span> <span style="color: #268bd2;">poll-sockets</span> (all-sockets all-sockets-events timeout))
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">poll-sockets</span> (all-sockets all-sockets-events timeout))
 </pre>
 
 <p>
@@ -621,20 +626,110 @@ results of performing <code>POLL-SOCKET</code> on that socket alone. For example
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #859900;">destructuring-bind</span> (s1-result s2-result s3-result)
+<pre class="src src-lisp">(<span style="color: #728a05;">destructuring-bind</span> (s1-result s2-result s3-result)
     (poll-sockets (list s1 s2 s3)
                   (list s1-events s2-events s3-events)
                   10)
-  <span style="color: #586e75; font-style: italic;">;; </span><span style="color: #586e75; font-style: italic;">do stuff with results</span>
+  <span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">do stuff with results</span>
   )
 </pre>
 
+
+
+</div>
+
+<div id="outline-container-6-1" class="outline-3">
+<h3 id="sec-6-1"><span class="section-number-3">6.1</span> Polling many sockets</h3>
+<div class="outline-text-3" id="text-6-1">
+
+<p>One draw back of <code>POLL-SOCKETS</code> is that every call to <code>POLL-SOCKETS</code>
+requires traversing <code>N</code> sockets and their corresponding events. For
+server applications this can be problematic as <code>N</code> is typically large,
+<code>N</code> changes frequently and <code>POLL-SOCKETS</code> is called repeatedly until
+the server stops. In order to handle this situation, the <code>POLLER</code>
+protocol is provided.
+</p>
+<p>
+~POLLER~s represent an operating system resource that monitors many
+sockets. Waiting for events to occur on these sockets is performed
+with the function <code>WAIT-FOR-EVENTS</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">wait-for-events</span> (poller timeout))
+</pre>
+
+<p>
+The return value of <code>WAIT-FOR-EVENTS</code> is <code>NIL</code> if no events occurred
+or a list where each item is a list containing two entries, <code>SOCKET</code>
+and <code>SOCKET-EVENTS</code>. The <code>TIMEOUT</code> argument can be a positive value
+representing seconds, or it can be one of <code>:IMMEDIATE</code> or
+<code>:INDEFINITE</code>. Like <code>POLL-SOCKET</code> and <code>POLL-SOCKETS</code>, a return value
+of <code>NIL</code> does not mean that the <code>TIMEOUT</code> seconds has
+expired.
+</p>
+<p>
+Adding a socket to be monitored by a <code>POLLER</code> is performed using the
+<code>ADD-SOCKET</code> function.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">add-socket</span> (poller socket socket-events))
+</pre>
+
+<p>
+where <code>SOCKET</code> is the socket to add and <code>SOCKET-EVENTS</code> contain the
+events to wait for.
+</p>
+<p>
+Changing the set of events to be monitored by the poller is performed
+using the <code>(SETF SOCKET-EVENTS)</code> function.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> (<span style="color: #2075c7;">setf socket-events</span>) (socket-events poller socket))
+</pre>
+
+<p>
+The current set of events being monitored can be accessed using the
+<code>SOCKET-EVENTS</code> function.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">socket-events</span> (poller socket))
+</pre>
+
+
+<p>
+Removing a socket from a <code>POLLER</code> is achieved with the function
+<code>REMOVE-SOCKET</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remove-socket</span> (poller socket))
+</pre>
+
+
+<p>
+When a poller is no longer required, the function <code>CLOSE-POLLER</code> must
+be called in order to release the operating system resource.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">close-poller</span> (poller))
+</pre>
+
+
+<p>
+Finally, all objects implementing the above <code>POLLER</code> protocol inherit
+from the <code>POLLER</code> class.
+</p></div>
 </div>
 </div>
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-03-17T08:56+1000</p>
+<p class="date">Date: 2013-07-03T21:26+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.4 with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>

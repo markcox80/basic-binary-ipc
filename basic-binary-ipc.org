@@ -314,3 +314,59 @@ results of performing ~POLL-SOCKET~ on that socket alone. For example
     ;; do stuff with results
     )
 #+end_src
+
+** Polling many sockets
+One draw back of ~POLL-SOCKETS~ is that every call to ~POLL-SOCKETS~
+requires traversing ~N~ sockets and their corresponding events. For
+server applications this can be problematic as ~N~ is typically large,
+~N~ changes frequently and ~POLL-SOCKETS~ is called repeatedly until
+the server stops. In order to handle this situation, the ~POLLER~
+protocol is provided.
+
+~POLLER~s represent an operating system resource that monitors many
+sockets. Waiting for events to occur on these sockets is performed
+with the function ~WAIT-FOR-EVENTS~.
+#+begin_src lisp
+  (defgeneric wait-for-events (poller timeout))
+#+end_src
+The return value of ~WAIT-FOR-EVENTS~ is ~NIL~ if no events occurred
+or a list where each item is a list containing two entries, ~SOCKET~
+and ~SOCKET-EVENTS~. The ~TIMEOUT~ argument can be a positive value
+representing seconds, or it can be one of ~:IMMEDIATE~ or
+~:INDEFINITE~. Like ~POLL-SOCKET~ and ~POLL-SOCKETS~, a return value
+of ~NIL~ does not mean that the ~TIMEOUT~ seconds has
+expired.
+
+Adding a socket to be monitored by a ~POLLER~ is performed using the
+~ADD-SOCKET~ function.
+#+begin_src lisp
+  (defgeneric add-socket (poller socket socket-events))
+#+end_src
+where ~SOCKET~ is the socket to add and ~SOCKET-EVENTS~ contain the
+events to wait for.
+
+Changing the set of events to be monitored by the poller is performed
+using the ~(SETF SOCKET-EVENTS)~ function.
+#+begin_src lisp
+  (defgeneric (setf socket-events) (socket-events poller socket))
+#+end_src
+The current set of events being monitored can be accessed using the
+~SOCKET-EVENTS~ function.
+#+begin_src lisp
+  (defgeneric socket-events (poller socket))
+#+end_src
+
+Removing a socket from a ~POLLER~ is achieved with the function
+~REMOVE-SOCKET~.
+#+begin_src lisp
+  (defgeneric remove-socket (poller socket))
+#+end_src
+
+When a poller is no longer required, the function ~CLOSE-POLLER~ must
+be called in order to release the operating system resource.
+#+begin_src lisp
+  (defgeneric close-poller (poller))
+#+end_src
+
+Finally, all objects implementing the above ~POLLER~ protocol inherit
+from the ~POLLER~ class.
