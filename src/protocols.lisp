@@ -56,3 +56,15 @@
 (defgeneric local-port (stream))
 (defgeneric remote-host-address (stream))
 (defgeneric remote-port (stream))
+
+;; Poller protocol
+(defclass poller ()
+  ())
+
+(defgeneric wait-for-events (poller timeout))
+(defgeneric monitor-socket (poller socket socket-events))
+(defgeneric unmonitor-socket (poller socket))
+(defgeneric monitored-events (poller socket))
+(defgeneric (setf monitored-events) (value poller socket))
+(defgeneric monitored-sockets (poller socket))
+(defgeneric close-poller (poller))

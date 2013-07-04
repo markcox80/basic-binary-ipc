@@ -34,6 +34,15 @@
   (:export #:poll-socket
 	   #:poll-sockets)
 
+  ;; Pollers
+  (:export #:make-poller
+	   #:wait-for-events
+	   #:monitor-socket
+	   #:unmonitor-socket
+	   #:monitored-events
+	   #:monitored-sockets
+	   #:close-poller)
+
   ;; IPv4
   (:export #:ipv4-tcp-server
 	   #:make-ipv4-tcp-server
