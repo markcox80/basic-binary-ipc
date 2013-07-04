@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="Basic Binary Inter Process Communication"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-07-03T21:26+1000"/>
+<meta name="generated" content="2013-07-04T19:57+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -651,8 +651,18 @@ protocol is provided.
 </p>
 <p>
 ~POLLER~s represent an operating system resource that monitors many
-sockets. Waiting for events to occur on these sockets is performed
-with the function <code>WAIT-FOR-EVENTS</code>.
+sockets. Creating a poller object is performed using the function
+<code>MAKE-POLLER</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">make-poller</span> ())
+</pre>
+
+
+<p>
+Waiting for events to occur with a poller is performed with the
+function <code>WAIT-FOR-EVENTS</code>.
 </p>
 
 
@@ -670,11 +680,11 @@ expired.
 </p>
 <p>
 Adding a socket to be monitored by a <code>POLLER</code> is performed using the
-<code>ADD-SOCKET</code> function.
+<code>MONITOR-SOCKET</code> function.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">add-socket</span> (poller socket socket-events))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">monitor-socket</span> (poller socket socket-events))
 </pre>
 
 <p>
@@ -683,30 +693,40 @@ events to wait for.
 </p>
 <p>
 Changing the set of events to be monitored by the poller is performed
-using the <code>(SETF SOCKET-EVENTS)</code> function.
+using the <code>(SETF MONITORED-EVENTS)</code> function.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> (<span style="color: #2075c7;">setf socket-events</span>) (socket-events poller socket))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> (<span style="color: #2075c7;">setf monitored-events</span>) (socket-events poller socket))
 </pre>
 
 <p>
 The current set of events being monitored can be accessed using the
-<code>SOCKET-EVENTS</code> function.
+<code>MONITORED-EVENTS</code> function.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">socket-events</span> (poller socket))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">monitored-events</span> (poller socket))
 </pre>
 
 
 <p>
 Removing a socket from a <code>POLLER</code> is achieved with the function
-<code>REMOVE-SOCKET</code>.
+<code>UNMONITOR-SOCKET</code>.
 </p>
 
 
-<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remove-socket</span> (poller socket))
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">unmonitor-socket</span> (poller socket))
+</pre>
+
+
+<p>
+The current set of sockets being monitored can be retrieved using the
+function <code>MONITORED-SOCKETS</code>.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">monitored-sockets</span> (poller))
 </pre>
 
 
@@ -723,13 +743,14 @@ be called in order to release the operating system resource.
 <p>
 Finally, all objects implementing the above <code>POLLER</code> protocol inherit
 from the <code>POLLER</code> class.
-</p></div>
+</p>
+</div>
 </div>
 </div>
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-07-03T21:26+1000</p>
+<p class="date">Date: 2013-07-04T19:57+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.4 with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>

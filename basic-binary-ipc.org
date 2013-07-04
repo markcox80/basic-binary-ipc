@@ -324,8 +324,14 @@ the server stops. In order to handle this situation, the ~POLLER~
 protocol is provided.
 
 ~POLLER~s represent an operating system resource that monitors many
-sockets. Waiting for events to occur on these sockets is performed
-with the function ~WAIT-FOR-EVENTS~.
+sockets. Creating a poller object is performed using the function
+~MAKE-POLLER~.
+#+begin_src lisp
+(defun make-poller ())
+#+end_src
+
+Waiting for events to occur with a poller is performed with the
+function ~WAIT-FOR-EVENTS~.
 #+begin_src lisp
   (defgeneric wait-for-events (poller timeout))
 #+end_src
@@ -338,28 +344,34 @@ of ~NIL~ does not mean that the ~TIMEOUT~ seconds has
 expired.
 
 Adding a socket to be monitored by a ~POLLER~ is performed using the
-~ADD-SOCKET~ function.
+~MONITOR-SOCKET~ function.
 #+begin_src lisp
-  (defgeneric add-socket (poller socket socket-events))
+  (defgeneric monitor-socket (poller socket socket-events))
 #+end_src
 where ~SOCKET~ is the socket to add and ~SOCKET-EVENTS~ contain the
 events to wait for.
 
 Changing the set of events to be monitored by the poller is performed
-using the ~(SETF SOCKET-EVENTS)~ function.
+using the ~(SETF MONITORED-EVENTS)~ function.
 #+begin_src lisp
-  (defgeneric (setf socket-events) (socket-events poller socket))
+  (defgeneric (setf monitored-events) (socket-events poller socket))
 #+end_src
 The current set of events being monitored can be accessed using the
-~SOCKET-EVENTS~ function.
+~MONITORED-EVENTS~ function.
 #+begin_src lisp
-  (defgeneric socket-events (poller socket))
+  (defgeneric monitored-events (poller socket))
 #+end_src
 
 Removing a socket from a ~POLLER~ is achieved with the function
-~REMOVE-SOCKET~.
+~UNMONITOR-SOCKET~.
 #+begin_src lisp
-  (defgeneric remove-socket (poller socket))
+  (defgeneric unmonitor-socket (poller socket))
+#+end_src
+
+The current set of sockets being monitored can be retrieved using the
+function ~MONITORED-SOCKETS~.
+#+begin_src lisp
+  (defgeneric monitored-sockets (poller))
 #+end_src
 
 When a poller is no longer required, the function ~CLOSE-POLLER~ must
@@ -370,3 +382,4 @@ be called in order to release the operating system resource.
 
 Finally, all objects implementing the above ~POLLER~ protocol inherit
 from the ~POLLER~ class.
+
