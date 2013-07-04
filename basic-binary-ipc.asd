@@ -17,5 +17,13 @@
 				     (:file "posix-cffi")
 				     (:file "posix-socket-options")
 				     (:file "posix-sockets")
-				     (:file "posix-poll"))))
+				     (:file "posix-poll")))
+	       
+	       #+darwin
+	       (:module "src/kqueue"
+			:serial t
+			:pathname "src"
+			:components ((cffi-grovel:grovel-file "kqueue-grovel")
+				     (:file "kqueue-cffi")
+				     (:file "kqueue-poller"))))
   :in-order-to ((test-op (test-op "basic-binary-ipc-tests"))))
