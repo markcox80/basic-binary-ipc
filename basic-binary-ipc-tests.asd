@@ -12,4 +12,5 @@
 				     (:file "posix")
 				     (:file "ipv4")
 				     (:file "local")
-				     (:file "poll-sockets")))))
+				     (:file "poll-sockets")
+				     (:file "poller")))))

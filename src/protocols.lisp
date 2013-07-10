@@ -62,6 +62,7 @@
   ())
 
 (defgeneric wait-for-events (poller timeout))
+(defgeneric monitoredp (poller socket))
 (defgeneric monitor-socket (poller socket socket-events))
 (defgeneric unmonitor-socket (poller socket))
 (defgeneric monitored-events (poller socket))
