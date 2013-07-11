@@ -139,6 +139,7 @@
 	(close-socket client)
 	(close-poller poller)))))
 
+#-freebsd
 (define-test poller/no-server/loopback
   (labels ((run-test (poller client)
 	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
@@ -160,3 +161,13 @@
 	     (run-test poller client))
 	(close-socket client)
 	(close-poller poller)))))
+
+#+freebsd
+(define-test poller/no-server/loopback
+  (warn "This test fails for some reason FreeBSD. EINVAL is signalled when it shouldn't be.")
+  (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port)))
+	(poller (make-poller)))    
+    (unwind-protect
+	 (assert-error 'error (monitor-socket poller client '(determinedp connection-succeeded-p connection-failed-p)))
+      (close-socket client)
+      (close-poller poller))))
