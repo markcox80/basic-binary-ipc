@@ -154,8 +154,9 @@
 		 (assert-true (connection-failed-p client))))))
     (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port)))
 	  (poller (make-poller)))
-      (monitor-socket poller client '(determinedp connection-succeeded-p connection-failed-p))
       (unwind-protect
-	   (run-test poller client)
+	   (progn
+	     (monitor-socket poller client '(determinedp connection-succeeded-p connection-failed-p))
+	     (run-test poller client))
 	(close-socket client)
 	(close-poller poller)))))
