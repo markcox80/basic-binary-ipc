@@ -2,7 +2,8 @@
 
 (defparameter *kevent-struct* 
   #+darwin '(:struct kevent64-s)
-  #-darwin (error "Unsupported platform for KQUEUE."))
+  #+freebsd '(:struct kevent)
+  #-(or darwin freebsd) (error "Unsupported platform for KQUEUE."))
 
 (defgeneric kqueue-descriptor (kqueue-poller)
   (:documentation "The OS descriptor for the KQUEUE."))
@@ -115,11 +116,9 @@
 	   :do
 	   (prepare-kevent-struct change ptr))
 	
-	(let ((number-of-events (%ff-kevent64 kqueue-descriptor
-					      ptr-change-list (length change-list)
-					      ptr-event-list 0
-					      0
-					      timeout)))
+	(let ((number-of-events (kevent-wrapper kqueue-descriptor
+						ptr-change-list (length change-list)
+						ptr-event-list 0 timeout)))
 	  (assert (zerop number-of-events))))
 
       (setf (gethash socket (monitor-table poller)) value))))
@@ -169,13 +168,12 @@
 		 tv-nsec 0))
 	  ((eql timeout :indefinite) ;; do nothing.
 	   ))
-	(let ((n (%ff-kevent64 (kqueue-descriptor poller)
-			       change-list-ptr 0
-			       event-list-ptr (maximum-number-of-events poller)
-			       0
-			       (if (eql timeout :indefinite)
-				   (cffi:null-pointer)
-				   timespec-ptr))))
+	(let ((n (kevent-wrapper (kqueue-descriptor poller)
+				 change-list-ptr 0
+				 event-list-ptr (maximum-number-of-events poller)
+				 (if (eql timeout :indefinite)
+				     (cffi:null-pointer)
+				     timespec-ptr))))
 	  (process-kqueue-events poller
 				 (loop
 				    :for index :from 0 :below n
@@ -280,29 +278,52 @@
 
 ;; KEVENT STRUCTS
 #+darwin
-(defun parse-kevent-struct (kevent-struct-ptr)
-  (cffi:with-foreign-slots ((ident filter flags fflags data udata ext) kevent-struct-ptr (:struct kevent64-s))
-    (list ident
-	  (cffi:foreign-enum-keyword 'kevent-filters filter)
-	  (remove-if #'(lambda (keyword)
-			 (zerop (logand flags (cffi:foreign-enum-value 'kevent-flags keyword))))
-		     (cffi:foreign-enum-keyword-list 'kevent-flags))
-	  fflags
-	  data 
-	  udata
-	  (list (cffi:mem-aref ext :uint64 0)
-		(cffi:mem-aref ext :uint64 1)))))
+(progn
+  (defun parse-kevent-struct (kevent-struct-ptr)
+    (cffi:with-foreign-slots ((ident filter flags fflags data udata ext) kevent-struct-ptr (:struct kevent64-s))
+      (list ident
+	    (cffi:foreign-enum-keyword 'kevent-filters filter)
+	    (remove-if #'(lambda (keyword)
+			   (zerop (logand flags (cffi:foreign-enum-value 'kevent-flags keyword))))
+		       (cffi:foreign-enum-keyword-list 'kevent-flags))
+	    fflags
+	    data 
+	    udata
+	    (list (cffi:mem-aref ext :uint64 0)
+		  (cffi:mem-aref ext :uint64 1)))))
 
-#+darwin
-(defun prepare-kevent-struct (change kevent-struct-ptr)
-  (cffi:with-foreign-slots ((ident filter flags fflags data udata ext) kevent-struct-ptr (:struct kevent64-s))
-    (destructuring-bind (change-ident change-filter change-flags) change
-      (setf ident change-ident
-	    filter (cffi:foreign-enum-value 'kevent-filters change-filter)
-	    flags (cffi:foreign-enum-value 'kevent-flags change-flags)
-	    fflags 0
-	    data 0
-	    udata 0)
+  (defun prepare-kevent-struct (change kevent-struct-ptr)
+    (cffi:with-foreign-slots ((ident filter flags fflags data udata ext) kevent-struct-ptr (:struct kevent64-s))
+      (destructuring-bind (change-ident change-filter change-flags) change
+	(setf ident change-ident
+	      filter (cffi:foreign-enum-value 'kevent-filters change-filter)
+	      flags (cffi:foreign-enum-value 'kevent-flags change-flags)
+	      fflags 0
+	      data 0
+	      udata 0)
 
-      (setf (cffi:mem-aref ext :uint64 0) 0
-	    (cffi:mem-aref ext :uint64 1) 0))))
+	(setf (cffi:mem-aref ext :uint64 0) 0
+	      (cffi:mem-aref ext :uint64 1) 0)))))
+
+#+freebsd
+(progn
+  (defun parse-kevent-struct (kevent-struct-ptr)
+    (cffi:with-foreign-slots ((ident filter flags fflags data udata) kevent-struct-ptr (:struct kevent))
+      (list ident
+	    (cffi:foreign-enum-keyword 'kevent-filters filter)
+	    (remove-if #'(lambda (keyword)
+			   (zerop (logand flags (cffi:foreign-enum-value 'kevent-flags keyword))))
+		       (cffi:foreign-enum-keyword-list 'kevent-flags))
+	    fflags
+	    data 
+	    udata)))
+
+  (defun prepare-kevent-struct (change kevent-struct-ptr)
+    (cffi:with-foreign-slots ((ident filter flags fflags data udata) kevent-struct-ptr (:struct kevent))
+      (destructuring-bind (change-ident change-filter change-flags) change
+	(setf ident change-ident
+	      filter (cffi:foreign-enum-value 'kevent-filters change-filter)
+	      flags (cffi:foreign-enum-value 'kevent-flags change-flags)
+	      fflags 0
+	      data 0
+	      udata (cffi:null-pointer))))))
