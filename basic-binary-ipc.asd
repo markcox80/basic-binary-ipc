@@ -19,7 +19,7 @@
 				     (:file "posix-sockets")
 				     (:file "posix-poll")))
 	       
-	       #+darwin
+	       #+(or darwin freebsd)
 	       (:module "src/kqueue"
 			:serial t
 			:pathname "src"
