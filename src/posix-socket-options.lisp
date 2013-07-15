@@ -44,7 +44,7 @@
 				 ,@body))))))
 
 ;; Socket options
-(defun do-define-socket-option/reader (name socket-option-name socket-option-argument &key (level 0))
+(defun do-define-socket-option/reader (name socket-option-name socket-option-argument &key (level :sol-socket))
   `(defmethod ,name ((object posix-socket))
      (let ((soa (socket-option-argument ',socket-option-argument)))
        (cffi:with-foreign-object (ptr (soa-base-type soa))
@@ -55,7 +55,7 @@
 		      (soa-size soa)))
 	   (soa-translate-from-memory ',socket-option-argument ptr))))))
 
-(defun do-define-socket-option/writer (name socket-option-name socket-option-argument &key (level 0))
+(defun do-define-socket-option/writer (name socket-option-name socket-option-argument &key (level :sol-socket))
   `(defmethod (setf ,name) (value (object posix-socket))
      (let ((soa (socket-option-argument ',socket-option-argument)))
        (cffi:with-foreign-object (ptr (soa-base-type soa))
@@ -63,7 +63,7 @@
 	 (%ff-setsockopt (file-descriptor object) ,level ,socket-option-name ptr (soa-size soa)))
        value)))
 
-(defmacro define-socket-option ((name socket-option-name socket-option-argument) &rest args &key (level 0))
+(defmacro define-socket-option ((name socket-option-name socket-option-argument) &rest args &key (level :sol-socket))
   (declare (ignore level))
   `(progn
      ,(apply #'do-define-socket-option/reader name socket-option-name socket-option-argument args)

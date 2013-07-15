@@ -57,14 +57,14 @@
 ;; Socket options
 (define-system-call (%ff-getsockopt "getsockopt") :int
   (socket :int)
-  (level :int)
+  (level socket-level)
   (option-name socket-option)
   (option-value :pointer)
   (option-length (:pointer socklen-t)))
 
 (define-system-call (%ff-setsockopt "setsockopt") :int
   (socket :int)
-  (level :int)
+  (level socket-level)
   (option-name socket-option)
   (option-value :pointer)
   (option-length socklen-t))

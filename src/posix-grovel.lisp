@@ -62,6 +62,9 @@
   ((:sock-stream "SOCK_STREAM"))
   ((:sock-dgram  "SOCK_DGRAM")))
 
+(constantenum (socket-level :base-type :int)
+  ((:sol-socket "SOL_SOCKET")))
+
 (constantenum (socket-option :base-type :int)
   ((:so-reuseaddr "SO_REUSEADDR"))
   ((:so-keepalive "SO_KEEPALIVE")))
