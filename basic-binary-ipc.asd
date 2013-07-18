@@ -25,5 +25,10 @@
 			:pathname "src"
 			:components ((cffi-grovel:grovel-file "kqueue-grovel")
 				     (:file "kqueue-cffi")
-				     (:file "kqueue-poller"))))
+				     (:file "kqueue-poller")))
+	       (:module "src/epoll"
+			:serial t
+			:pathname "src"
+			:components ((cffi-grovel:grovel-file "epoll-grovel")
+				     (:file "epoll-cffi"))))
   :in-order-to ((test-op (test-op "basic-binary-ipc-tests"))))
