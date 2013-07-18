@@ -17,6 +17,7 @@
   ((:enfile "ENFILE"))
   ((:enobufs "ENOBUFS"))
   ((:enomem "ENOMEM"))
+  ((:enospc "ENOSPC"))
   ((:eprotonosupport "EPROTONOSUPPORT"))
   ((:eprototype "EPROTOTYPE"))
   ((:eaddrinuse "EADDRINUSE"))
@@ -41,7 +42,8 @@
   ((:enoent "ENOENT"))
   ((:enotdir "ENOTDIR"))
   ((:epipe "EPIPE"))
-  ((:enoprotoopt "ENOPROTOOPT")))
+  ((:enoprotoopt "ENOPROTOOPT"))
+  ((:eperm "EPERM")))
 
 (include "fcntl.h")
 
