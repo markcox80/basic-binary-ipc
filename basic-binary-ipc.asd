@@ -26,6 +26,7 @@
 			:components ((cffi-grovel:grovel-file "kqueue-grovel")
 				     (:file "kqueue-cffi")
 				     (:file "kqueue-poller")))
+	       #+linux
 	       (:module "src/epoll"
 			:serial t
 			:pathname "src"
