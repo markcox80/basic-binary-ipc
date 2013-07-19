@@ -30,5 +30,6 @@
 			:serial t
 			:pathname "src"
 			:components ((cffi-grovel:grovel-file "epoll-grovel")
-				     (:file "epoll-cffi"))))
+				     (:file "epoll-cffi")
+				     (:file "epoll-poller"))))
   :in-order-to ((test-op (test-op "basic-binary-ipc-tests"))))
