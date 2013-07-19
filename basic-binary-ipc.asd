@@ -11,14 +11,17 @@
   :components ((:module "src"
 			:serial t
 			:components ((:file "packages")
-				     (:file "protocols")
-				     (:file "posix-helpers")
+				     (:file "protocols")))	       
+	       #+(or darwin freebsd linux)
+	       (:module "src/posix"
+			:serial t
+			:pathname "src"
+			:components ((:file "posix-helpers")
 				     (cffi-grovel:grovel-file "posix-grovel")
 				     (:file "posix-cffi")
 				     (:file "posix-socket-options")
 				     (:file "posix-sockets")
-				     (:file "posix-poll")))
-	       
+				     (:file "posix-poll")))	       
 	       #+(or darwin freebsd)
 	       (:module "src/kqueue"
 			:serial t
