@@ -35,78 +35,32 @@ ERRNO-ENUM type."
   (:documentation "The name of the foreign function that signalled the
     posix error."))
 
-(define-condition posix-error (error)
-  ((errnum
-    :initarg :errnum
-    :reader errnum)
-   (lisp-function-name
-    :initarg :lisp-function-name
-    :reader lisp-function-name)
-   (c-function-name
-    :initarg :c-function-name
-    :reader c-function-name))
+(define-condition posix-error (system-function-error)
+  ()
   (:documentation
-   "This error class provides a lisp representation of POSIX errors.")
-  (:report
-   (lambda (condition stream)
-     (format stream "The system call ~S (~S) signalled ~A: ~S"
-	     (lisp-function-name condition)
-	     (c-function-name condition)
-	     (errnum-symbol (errnum condition))
-	     (strerror (errnum condition))))))
+   "This error class provides a lisp representation of POSIX errors."))
 
 (defun posix-error-code (condition)
-  (cffi:foreign-enum-keyword 'errno-enum (errnum condition)))
+  (cffi:foreign-enum-keyword 'errno-enum (system-function-error-value condition)))
 
 (defun posix-error-code-p (condition code)
   (declare (type keyword code))
   (eql (posix-error-code condition)
        code))
 
-(defgeneric base-type (object)
-  (:documentation "The CFFI return type of the posix system call."))
+(define-check-system-call check-posix (caller foreign-name return-value)
+  (if (/= -1 return-value)
+      return-value
+      (let ((v (%ff-get-errno)))
+	(error 'posix-error
+	       :name foreign-name
+	       :caller caller
+	       :error-value v
+	       :error-message (strerror v)))))
 
-(cffi:define-foreign-type errno-wrapper ()
-  ((base-type
-    :initarg :base-type
-    :reader base-type
-    :documentation "The CFFI return type of the posix function.")
-   (lisp-function-name
-    :initarg :lisp-function-name
-    :reader lisp-function-name
-    :documentation "The name of the LISP function that wraps the
-    foreign posix function.")
-   (c-function-name
-    :initarg :c-function-name
-    :reader c-function-name
-    :documentation "The name of the foreign function that signalled
-    the posix error."))
-  (:documentation
-   "The ERRONO-WRAPPER CFFI type provides a convenient method of
-   signalling a POSIX-ERROR when posix system call functions fail."))
-
-(cffi:define-parse-method errno-wrapper (&key (base-type :int) lisp-function-name c-function-name)
-  (make-instance 'errno-wrapper
-		 :actual-type base-type
-		 :base-type base-type
-		 :lisp-function-name lisp-function-name
-		 :c-function-name c-function-name))
-
-(defmethod cffi:translate-from-foreign ((value number) (type errno-wrapper))
-  (if (/= -1 value)
-      value
-      (error 'posix-error
-	     :lisp-function-name (lisp-function-name type)
-	     :c-function-name (c-function-name type)
-	     :errnum (%ff-get-errno))))
-
-(defmacro define-system-call (name return-value &body arguments)
-  (destructuring-bind (lisp-function-name c-function-name) name
-    `(cffi:defcfun ,name (errno-wrapper
-			  :base-type ,return-value
-			  :lisp-function-name ,lisp-function-name
-			  :c-function-name ,c-function-name)
-       ,@arguments)))
+(defmacro define-posix-system-call (name return-value &body arguments)
+  `(define-system-call ,name (check-posix ,return-value)
+     ,@arguments))
 
 ;; Memory
 (defun zero-memory (pointer cffi-type)

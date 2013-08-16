@@ -1,9 +1,9 @@
 (in-package "BASIC-BINARY-IPC")
 
-(define-system-call (%ff-kqueue "kqueue") :int)
+(define-posix-system-call (%ff-kqueue "kqueue") :int)
 
 #+freebsd
-(define-system-call (%ff-kevent "kevent") :int
+(define-posix-system-call (%ff-kevent "kevent") :int
   (kq :int)
   (change-list (:pointer (:struct kevent)))
   (number-of-changes :int)
@@ -12,7 +12,7 @@
   (timeout (:pointer (:struct timespec))))
 
 #+darwin
-(define-system-call (%ff-kevent64 "kevent64") :int
+(define-posix-system-call (%ff-kevent64 "kevent64") :int
   (kq :int)
   (change-list (:pointer (:struct kevent64-s)))
   (number-of-changes :int)

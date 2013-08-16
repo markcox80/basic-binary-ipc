@@ -11,7 +11,8 @@
   :components ((:module "src"
 			:serial t
 			:components ((:file "packages")
-				     (:file "protocols")))	       
+				     (:file "protocols")
+				     (:file "system-calls")))
 	       #+(or darwin freebsd linux)
 	       (:module "src/posix"
 			:serial t
