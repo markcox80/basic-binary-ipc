@@ -1,0 +1,162 @@
+#+TITLE: Basic Binary IPC and Overlapped I/O
+#+AUTHOR: Mark Cox
+
+This document contains information about the module used to implement
+the Basic Binary IPC interface on Windows.
+
+[TABLE-OF-CONTENTS]
+
+* Introduction
+It is clear that the programming interface defined by the Basic Binary
+IPC system is heavily inspired by the asynchronous interfaces found on
+Unix systems. The asynchronous I/O interfaces on Unix follow the
+pattern where the buffers used for reading and writing are only
+required to exist whilst ~read(2)~ and ~write(2)~ are on the call
+stack. This implies that the calling application must be notified when
+the I/O device is ready to perform I/O. This style of asynchronous I/O
+would be implemented in pseudo code as follows
+#+begin_src lisp
+(wait-until-data-available file-descriptor)
+(read file-descriptor buffer)
+#+end_src
+
+Unfortunately, this style of asynchronous programming is not used on
+Windows. The pattern employed on Windows is one where the application
+queues a read or write operation and is notified when that operation
+has been performed. Obviously, this style of asynchronous programming
+requires any arguments passed to the request to exist until the
+operation as been performed. The Windows style of asynchronous I/O
+would be implemented in pseudo code as follows
+#+begin_src lisp
+(let ((op (read-file file-descriptor buffer)))
+  (wait-until-ready op :indefinite)
+  (buffer op))
+#+end_src
+
+At the time of writing, the author was unable to determine how to best
+fit the asynchronous I/O model to the model used in the
+~BASIC-BINARY-IPC~ interface. Thus, the
+~BASIC-BINARY-IPC.OVERLAPPED-IO~ system is introduced as a direct
+implementation of the Windows asynchronous I/O interface. With this
+system provided, it can then used to implement the ~BASIC-BINARY-IPC~
+interface.
+
+Lastly, unless specified, all terms defined in this document are
+confined to this document. They are not to be confused with terms
+defined in ~BASIC-BINARY-IPC~ system.
+
+* Overlapped Operations
+Windows uses the term overlapped I/O to define their style of
+asynchronous I/O. Overlapped I/O involves passing an [[http://msdn.microsoft.com/en-us/library/windows/desktop/ms684342(v=vs.85).aspx][~OVERLAPPED~]]
+structure to an I/O function. The list of I/O functions that are
+needed to implement IPV4 and named pipe IPC are as follows
+
+|------------------+--------+--------------------------------------------------|
+| Function Name    | Input  | Output                                           |
+|------------------+--------+--------------------------------------------------|
+| ReadFile         | Buffer | Bytes read and errors.                           |
+| WriteFile        | Buffer | Bytes written and errors.                        |
+| ConnectNamedPipe | N/A    | N/A                                              |
+| AcceptEx         | Buffer | Received data, local address and remote address. |
+| WSASend          | Buffer | Bytes written or errors.                         |
+| WSARecv          | Buffer | Bytes read or errors.                            |
+| ConnectEx        | Buffer | Bytes written.                                   |
+|------------------+--------+--------------------------------------------------|
+
+The input column refers to the data that must persist for the duration
+of the overlapped I/O. The output column represents the data returned
+by the overlapped I/O operation upon completion.
+
+As can be seen, each overlapped I/O operation returns different data,
+making it a challenging abstraction.
+
+* Design
+The pseudo code for overlapped I/O presented earlier was as follows
+#+begin_src lisp
+(let ((op (queue-read file-descriptor buffer)))
+  (wait-until-ready op :indefinite)
+  (buffer op))
+#+end_src
+The problem with this is that the ~QUEUE-READ~ function creates a new
+object every time ~QUEUE-READ~ is called. This situation is wasteful
+as the object could be reused for the next invocation of
+~QUEUE-READ~. This case is particularly important when dealing with
+large numbers of file descriptors or in cases where a single file
+descriptor is required frequently.
+
+To make matters worse, the functions in the table above operate two
+ways according to [[http://msdn.microsoft.com/en-us/library/windows/desktop/aa365683(v=vs.85).aspx][Microsoft documentation]]. They can
+- return ~FALSE~ or failure and the error status is
+  ~ERROR_IO_PENDING~. i.e. the application will be notified when
+  the operation has been performed.
+- return ~TRUE~ to indicate that the operation was
+  successful. i.e. the operation was performed immediately.
+
+To simplify the interface, the Lisp interface presents a consistent
+interface which makes the assumption that the socket is not
+immediately ready in the majority of circumstances.
+
+The Lisp interface to perform overlapped I/O consists of functions
+which queue an operation that is to be performed in the future. Along
+with each of these functions is an overlapped object that is specific
+to the chosen function. The reason for this is that each subclass has
+its own readers for accessing information about the operation when it
+eventually occurs.
+
+Overlapped objects can be in one of the following states
+- invalid :: The invalid state represents an overlapped object that
+             has not been used before.
+- waiting :: The overlapped object is in use.
+- triggered :: The overlapped object has been triggered.
+
+Associated with overlapped objects are the functions 
+#+begin_src lisp
+  (defun triggeredp (overlapped))
+  (defun waitingp (overlapped))
+  (defun invalidp (overlapped))
+  (defun file-descriptor (overlapped))
+#+end_src
+These functions can be called on an overlapped object in any
+state. The ~FILE-DESCRIPTOR~ function returns ~NIL~ when the object is
+in the invalid state.
+
+When the overlapped object is in the triggered state, a number of
+other functions can be used to retrieve information about the
+operation the finished. These functions are operation specific.
+
+When an overlapped object is in the waiting state, the overlapped
+object is associated with a file descriptor (or sometimes referred to
+as a windows handle). 
+
+Lastly, it is important to understand that each overlapped I/O object
+encapsulates an underlying Windows operating system resource. The
+function ~CLOSE-OVERLAPPED~ is used to reclaim the encapsulated
+resources.
+#+begin_src lisp
+(defun close-overlapped (overlapped))
+#+end_src
+
+* Inefficient Polling
+The last section detailed how to queue an overlapped operation. This
+section details how to receive notification when overlapped operations
+have been completed.
+
+The lisp function ~WAIT-FOR-MULTIPLE-OBJECTS~ is used. It shares the
+same name as the [[http://msdn.microsoft.com/en-us/library/windows/desktop/ms687025(v=vs.85).aspx][foreign function]] that actually performs the
+operation.
+#+begin_src lisp
+(defun wait-for-multiple-objects (overlapped-objects milliseconds &key wait-all))
+#+end_src
+If ~WAIT-ALL~ is non ~NIL~ then ~WAIT-FOR-MULTIPLE-OBJECTS~ waits
+until all overlapped objects in ~OVERLAPPED-OBJECTS~ have been
+performed/triggered.
+
+* Efficient Polling
+~WAIT-FOR-MULTIPLE-OBJECTS~ is considered inefficient as the
+application must pass a list of overlapped objects to the operating
+system. The larger the number of objects, the longer it takes.
+
+To overcome this problem, support for [[http://msdn.microsoft.com/en-us/library/aa365198(VS.85).aspx][I/O Completion Ports]] is
+provided. When a file descriptors is created, it is registered with an
+I/O completion port. This port can then be used to retrieve an
+overlapped object which has been completed. 
