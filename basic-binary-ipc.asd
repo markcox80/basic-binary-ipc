@@ -36,5 +36,15 @@
 			:pathname "src"
 			:components ((cffi-grovel:grovel-file "epoll-grovel")
 				     (:file "epoll-cffi")
-				     (:file "epoll-poller"))))
+				     (:file "epoll-poller")))
+
+	       #+windows
+	       (:module "src/overlapped-io"
+			:serial t
+			:pathname "src"
+			:components ((:file "overlapped-io-packages")
+				     (cffi-grovel:grovel-file "overlapped-io-grovel")
+				     (:file "overlapped-io-errors")
+				     (:file "overlapped-io-cffi")
+				     (:file "overlapped-io"))))
   :in-order-to ((test-op (test-op "basic-binary-ipc-tests"))))
