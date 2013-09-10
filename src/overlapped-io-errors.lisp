@@ -52,3 +52,15 @@
   (check-type error-code keyword)
   (%error-message (cffi:foreign-enum-value 'winsock-error-codes error-code)))
 
+;;;; System call checkers
+(define-check-system-call check-handle (caller name return-value)
+  (declare (ignore caller))
+  (if (eql return-value +invalid-handle-value+)
+      (error "Error calling foreign function ~A: ~A" name (error-message (%ff-get-last-error)))
+      return-value))
+
+(define-check-system-call check-true (caller name return-value)
+  (declare (ignore caller))
+  (if (eql return-value +false+)
+      (error "Error calling foreign function ~A: ~A" name (error-message (%ff-get-last-error)))
+      return-value))

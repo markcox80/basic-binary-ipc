@@ -34,3 +34,16 @@ documentation.
      nil)
     (:wait-failed
      (error (error-message (%ff-get-last-error))))))
+
+(basic-binary-ipc::define-system-call (%ff-close-handle "CloseHandle") (check-true bool)
+  (object handle))
+
+(basic-binary-ipc::define-system-call (%ff-create-named-pipe "CreateNamedPipeA") (check-handle handle)
+  (name :string)
+  (open-mode named-pipe-open-mode)
+  (mode named-pipe-mode)
+  (max-instances dword)
+  (output-buffer-size dword)
+  (in-buffer-size dword)
+  (default-timeout dword)
+  (security-attributes :pointer))

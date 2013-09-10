@@ -6,6 +6,12 @@
 ;; Shared CTypes
 (ctype dword "DWORD") ;; Should be an unsigned 32 bit integer.
 (ctype handle "HANDLE")
+(ctype bool "BOOL")
+
+;; Constants
+(constant (+true+ "TRUE"))
+(constant (+false+ "FALSE"))
+(constant (+invalid-handle-value+ "INVALID_HANDLE_VALUE"))
 
 ;; Overlapped
 (cstruct overlapped "struct _OVERLAPPED"
@@ -17,6 +23,17 @@
   ((:wait-object-0 "WAIT_OBJECT_0"))
   ((:wait-timeout "WAIT_TIMEOUT"))
   ((:wait-failed "WAIT_FAILED")))
+
+;;;; Named Pipes
+(constant (+pipe-unlimited-instances+ "PIPE_UNLIMITED_INSTANCES"))
+
+(bitfield (named-pipe-open-mode :base-type :unsigned-int)
+  ((:pipe-access-duplex "PIPE_ACCESS_DUPLEX"))
+  ((:file-flag-overlapped "FILE_FLAG_OVERLAPPED")))
+
+(bitfield (named-pipe-mode :base-type :unsigned-int)
+  ((:pipe-type-byte "PIPE_TYPE_BYTE"))
+  ((:pipe-readmode-byte "PIPE_READMODE_BYTE")))
 
 ;;;; ERRORS
 ;; Winsock Errors
