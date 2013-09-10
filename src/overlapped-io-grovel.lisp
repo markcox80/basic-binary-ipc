@@ -20,6 +20,9 @@
 
 ;;;; ERRORS
 ;; Winsock Errors
+;; These constants are found in 
+;; - ( x86_64 ) mingw64/x86_64-w64-mingw32/include/winsock2.h
+;; - ( x86 )    MinGW/include/winsock2.h
 (constantenum (winsock-error-codes :base-type :unsigned-int)
   ((:error-success "ERROR_SUCCESS"))
   ((:no-error "NO_ERROR"))
@@ -92,7 +95,10 @@
   ((:wsano-recovery "WSANO_RECOVERY"))
   ((:wsano-data "WSANO_DATA")))
 
-;; Errors
+;;;; Errors
+;; Have a look in the following files to find these constants:
+;; - ( x86_64 ) mingw64/x86_64-w64-mingw32/include/winerror.h
+;; - ( x86 )    MinGW/include/winerror.h
 (constantenum (error-codes :base-type :unsigned-int)
   ((:error-success "ERROR_SUCCESS"))
   ((:no-error "NO_ERROR"))
