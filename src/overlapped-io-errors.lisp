@@ -53,14 +53,30 @@
   (%error-message (cffi:foreign-enum-value 'winsock-error-codes error-code)))
 
 ;;;; System call checkers
-(define-check-system-call check-handle (caller name return-value)
+(defun signal-foreign-function-error (caller name)
   (declare (ignore caller))
+  (error "Error calling foreign function ~A: ~A" name (error-message (%ff-get-last-error))))
+
+(define-check-system-call check-valid-handle (caller name return-value)
   (if (eql return-value +invalid-handle-value+)
-      (error "Error calling foreign function ~A: ~A" name (error-message (%ff-get-last-error)))
+      (signal-foreign-function-error caller name)
       return-value))
 
 (define-check-system-call check-true (caller name return-value)
-  (declare (ignore caller))
   (if (eql return-value +false+)
-      (error "Error calling foreign function ~A: ~A" name (error-message (%ff-get-last-error)))
+      (signal-foreign-function-error caller name)
       return-value))
+
+(define-check-system-call check-non-null (caller name return-value)
+  (if (= +null+ return-value)
+      (signal-foreign-function-error caller name)
+      return-value))
+
+(define-check-system-call check-true/overlapped (caller name return-value)
+  (cond
+    ((= +false+ return-value)
+     (if (eql :error-io-pending (%ff-get-last-error))
+	 +true+
+	 (signal-foreign-function-error caller name)))
+    (t
+     +true+)))

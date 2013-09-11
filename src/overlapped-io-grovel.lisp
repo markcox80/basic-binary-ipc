@@ -12,10 +12,11 @@
 (constant (+true+ "TRUE"))
 (constant (+false+ "FALSE"))
 (constant (+invalid-handle-value+ "INVALID_HANDLE_VALUE"))
+(constant (+null+ "NULL"))
 
 ;; Overlapped
 (cstruct overlapped "struct _OVERLAPPED"
-  )
+  (h-event "hEvent" :type handle))
 
 ;; WaitForSingleObject
 (constantenum (wait :base-type :unsigned-int)

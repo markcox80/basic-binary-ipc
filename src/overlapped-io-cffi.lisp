@@ -9,36 +9,17 @@
 
 ;; %FF-WAIT-FOR-SINGLE-OBJECT
 
-(cffi:defcfun (%%ff-wait-for-single-object "WaitForSingleObject") wait
+(cffi:defcfun (%ff-wait-for-single-object "WaitForSingleObject") wait
   (handle handle)
   (milliseconds dword))
 
-(defun %ff-wait-for-single-object (handle milliseconds)
-  (ecase (%%ff-wait-for-single-object handle milliseconds)
-    (:wait-abandoned
-     (error "The specified object is a mutex object that was not
-     released by the thread that owned the mutex object before the
-     owning thread terminated. Ownership of the mutex object is
-     granted to the calling thread and the mutex state is set to
-     nonsignaled.
-
-If the mutex was protecting persistent state information, you should
-check it for consistency.
-
-This error message is copied verbatim from the Microsoft
-documentation.
-"))
-    (:wait-object-0
-     t)
-    (:wait-timeout
-     nil)
-    (:wait-failed
-     (error (error-message (%ff-get-last-error))))))
-
-(basic-binary-ipc::define-system-call (%ff-close-handle "CloseHandle") (check-true bool)
+(define-system-call (%ff-close-handle "CloseHandle") (check-true bool)
   (object handle))
 
-(basic-binary-ipc::define-system-call (%ff-create-named-pipe "CreateNamedPipeA") (check-handle handle)
+(define-system-call (%ff-cancel-io "CancelIo") (check-true bool)
+  (object handle))
+
+(define-system-call (%ff-create-named-pipe "CreateNamedPipeA") (check-valid-handle handle)
   (name :string)
   (open-mode named-pipe-open-mode)
   (mode named-pipe-mode)
@@ -47,3 +28,17 @@ documentation.
   (in-buffer-size dword)
   (default-timeout dword)
   (security-attributes :pointer))
+
+(define-system-call (%ff-connect-named-pipe "ConnectNamedPipe") (check-true/overlapped bool)
+  (server-handle handle)
+  (overlapped (:pointer (:struct overlapped))))
+
+;;;; Events
+(define-system-call (%ff-create-event "CreateEventA") (check-non-null handle)
+  (security-attributes :pointer)
+  (manual-reset bool)
+  (initial-state bool)
+  (name :string))
+
+(define-system-call (%ff-reset-event "ResetEvent") (check-true bool)
+  (h-event handle))
