@@ -36,6 +36,25 @@
   ((:pipe-type-byte "PIPE_TYPE_BYTE"))
   ((:pipe-readmode-byte "PIPE_READMODE_BYTE")))
 
+(bitfield (file-desired-access :base-type :unsigned-int)
+  ((:generic-read "GENERIC_READ"))
+  ((:generic-write "GENERIC_WRITE")))
+
+(bitfield (file-share-mode :base-type :unsigned-int)
+  ((:file-share-delete "FILE_SHARE_DELETE"))
+  ((:file-share-read "FILE_SHARE_READ"))
+  ((:file-share-write "FILE_SHARE_WRITE")))
+
+(constantenum (file-creation-disposition :base-type :unsigned-int)
+  ((:create-always "CREATE_ALWAYS"))
+  ((:create-new "CREATE_NEW"))
+  ((:open-always "OPEN_ALWAYS"))
+  ((:open-existing "OPEN_EXISTING"))
+  ((:truncate-existing "TRUNCATE_EXISTING")))
+
+(bitfield (file-attribute :base-type :unsigned-int)
+  ((:file-flag-overlapped "FILE_FLAG_OVERLAPPED")))
+
 ;;;; ERRORS
 ;; Winsock Errors
 ;; These constants are found in 
@@ -129,7 +148,12 @@
   ((:error-io-pending "ERROR_IO_PENDING"))
   ((:error-handle-eof "ERROR_HANDLE_EOF"))
   ((:error-broken-pipe "ERROR_BROKEN_PIPE"))
-  ((:error-more-data "ERROR_MORE_DATA")))
+  ((:error-more-data "ERROR_MORE_DATA"))
+  ((:error-file-not-found "ERROR_FILE_NOT_FOUND"))
+  ((:error-pipe-connected "ERROR_PIPE_CONNECTED"))
+  ((:error-pipe-listening "ERROR_PIPE_LISTENING"))
+  ((:error-pipe-busy "ERROR_PIPE_BUSY"))
+  ((:error-pipe-not-connected "ERROR_PIPE_NOT_CONNECTED")))
 
 ;;;; Bloody FormatMessage crap. What a joke.
 (ctype lpcvoid "LPCVOID")
