@@ -29,6 +29,15 @@
   (default-timeout dword)
   (security-attributes :pointer))
 
+(define-system-call (%ff-create-file "CreateFileA") (check-valid-handle handle)
+  (name :string)
+  (desired-access file-desired-access)
+  (share-mode file-share-mode)
+  (security-attributes :pointer)
+  (creation-disposition file-creation-disposition)
+  (flags-and-attributes file-attribute)
+  (template-file handle))
+
 (define-system-call (%ff-connect-named-pipe "ConnectNamedPipe") (check-true/overlapped bool)
   (server-handle handle)
   (overlapped (:pointer (:struct overlapped))))
