@@ -110,6 +110,9 @@ CreateNamedPipe or CreateFile."
       (concatenate 'string "\\\\.\\pipe\\" (subseq name 10))
       name))
 
+(deftype named-pipe-handle ()
+  `(satisfies valid-named-pipe-handle-p))
+
 (defun make-named-pipe-server (name &key (max-instances +pipe-unlimited-instances+) (output-buffer-size 1000) (input-buffer-size 1000))
   (let* ((name (canonical-windows-pipe-name name))
 	 (handle (%ff-create-named-pipe name
@@ -120,12 +123,26 @@ CreateNamedPipe or CreateFile."
 					input-buffer-size
 					0
 					(cffi:null-pointer))))
+    (check-type handle named-pipe-handle)
+    handle))
+
+(defun connect-to-named-pipe (name)
+  (let* ((name (canonical-windows-pipe-name name))
+	 (handle (%ff-create-file name 
+				  '(:generic-read :generic-write)
+				  '(:file-share-delete :file-share-read :file-share-write)
+				  (cffi:null-pointer)
+				  :open-existing
+				  :file-flag-overlapped
+				  +null+)))
+    (check-type handle named-pipe-handle)
     handle))
 
 (defclass connect-named-pipe-request (request)
   ())
 
 (defun connect-named-pipe (server-handle &optional (request (make-instance 'connect-named-pipe-request)))
+  (check-type server-handle named-pipe-handle)
   (assert (null (wait-for-single-object request 0)))
   (%ff-connect-named-pipe server-handle (overlapped-structure request))
   (setf (descriptor request) server-handle)
@@ -137,3 +154,7 @@ CreateNamedPipe or CreateFile."
     (dotimes (index (cffi:foreign-type-size '(:struct overlapped)))
       (setf (cffi:mem-ref ptr :uint8 index) 0))
     ptr))
+
+(defun valid-named-pipe-handle-p (handle)
+  (and (/= handle +invalid-handle-value+)
+       (plusp handle)))
