@@ -122,7 +122,7 @@
 ;;   (buffer (:pointer :uint8))
 ;;   (length :unsigned-int))
 
-(defmacro define-check-system-call (name (caller foreign-name return-value &rest args &key) &body body)
+(defmacro define-check-system-call (name (caller foreign-name return-value &rest args) &body body)
   `(defun ,name (,caller ,foreign-name ,return-value ,@args)
      ,@body))
 
@@ -130,7 +130,7 @@
   (destructuring-bind (lisp-name ff-name) (if (stringp (first name-and-options))
 					      (reverse name-and-options)
 					      name-and-options)
-    (destructuring-bind (checker-name return-type &rest checker-args &key) return-type-info
+    (destructuring-bind (checker-name return-type &rest checker-args) return-type-info
       (let ((act-ff-name (gensym (symbol-name lisp-name)))
 	    (argument-names (mapcar #'first args)))
 	`(progn
