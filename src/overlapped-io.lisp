@@ -51,6 +51,16 @@
     ;; Do not close the descriptor.
     (setf descriptor nil)))
 
+(defun do-with-request (request function)
+  (unwind-protect
+       (funcall function request)
+    (free-request request)))
+
+(defmacro with-request ((var request) &body body)
+  `(do-with-request ,request
+     #'(lambda (,var)
+	 ,@body)))
+
 (defun invalidp (request)
   (check-type request request)
   (null (descriptor request)))
@@ -89,6 +99,24 @@ documentation.
      nil)
     (:wait-failed
      (error (error-message (%ff-get-last-error))))))
+
+;; Closing things
+(defun close-handle (handle)
+  (%ff-close-handle handle))
+
+(defun do-with-handle (handle function)
+  (unwind-protect
+       (funcall function handle)
+    (close-handle handle)))
+
+(defmacro with-handle ((var handle) &body body)
+  `(do-with-handle ,handle
+     #'(lambda (,var)
+	 ,@body)))
+
+;; Cancelling IO
+(defun cancel-all-io (handle)
+  (%ff-cancel-io handle))
 
 ;;;; Named Pipes
 (defun valid-pipe-name-p (name)
@@ -143,8 +171,14 @@ CreateNamedPipe or CreateFile."
 
 (defun connect-named-pipe (server-handle &optional (request (make-instance 'connect-named-pipe-request)))
   (check-type server-handle named-pipe-handle)
-  (assert (null (wait-for-single-object request 0)))
-  (%ff-connect-named-pipe server-handle (overlapped-structure request))
+  (%ff-reset-event (event-handle request))
+  (multiple-value-bind (rv error) (%ff-connect-named-pipe server-handle (overlapped-structure request))
+    (declare (ignore rv))
+    (ecase error
+      (:error-pipe-connected
+       (%ff-set-event (event-handle request)))
+      ((:no-error :error-io-pending)
+       )))
   (setf (descriptor request) server-handle)
   request)
 
