@@ -13,4 +13,10 @@
 				     (:file "ipv4")
 				     (:file "local")
 				     (:file "poll-sockets")
-				     (:file "poller")))))
+				     (:file "poller")))
+	       
+	       #+windows
+	       (:module "tests/windows"
+			:serial t
+			:pathname "tests/"
+			:components ((:file "overlapped-io")))))
