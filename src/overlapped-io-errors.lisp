@@ -72,11 +72,12 @@
       (signal-foreign-function-error caller name)
       return-value))
 
-(define-check-system-call check-true/overlapped (caller name return-value)
+(define-check-system-call check-overlapped (caller name return-value &key (pass-errors '(:error-io-pending)))
   (cond
     ((= +false+ return-value)
-     (if (eql :error-io-pending (%ff-get-last-error))
-	 +true+
-	 (signal-foreign-function-error caller name)))
+     (let ((v (%ff-get-last-error)))
+       (if (find v pass-errors)
+	   (values +true+ v)
+	   (signal-foreign-function-error caller name))))
     (t
-     +true+)))
+     (values +true+ :no-error))))
