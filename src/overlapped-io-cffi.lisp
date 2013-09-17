@@ -38,7 +38,8 @@
   (flags-and-attributes file-attribute)
   (template-file handle))
 
-(define-system-call (%ff-connect-named-pipe "ConnectNamedPipe") (check-true/overlapped bool)
+(define-system-call (%ff-connect-named-pipe "ConnectNamedPipe") (check-overlapped bool
+										  :pass-errors '(:error-io-pending :error-pipe-connected))
   (server-handle handle)
   (overlapped (:pointer (:struct overlapped))))
 
@@ -50,4 +51,7 @@
   (name :string))
 
 (define-system-call (%ff-reset-event "ResetEvent") (check-true bool)
+  (h-event handle))
+
+(define-system-call (%ff-set-event "SetEvent") (check-true bool)
   (h-event handle))
