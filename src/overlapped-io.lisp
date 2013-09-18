@@ -14,6 +14,10 @@
 (defgeneric free-request (request)
   (:documentation "Free all operating system resources owned by REQUEST."))
 
+(defgeneric obtain-results (request)
+  (:documentation "Obtain all results from the operating system
+  associated with REQUEST."))
+
 (defclass request ()
   ((overlapped-structure
     :initarg :overlapped-structure
@@ -180,6 +184,97 @@ CreateNamedPipe or CreateFile."
       ((:no-error :error-io-pending)
        )))
   (setf (descriptor request) server-handle)
+  request)
+
+;;;; Reading
+(deftype binary-buffer ()
+  `(simple-array (unsigned-byte 8) (*)))
+
+(defvar *default-buffer-length* 2048)
+
+(defclass read-file-request (request)
+  ((buffer
+    :initarg :buffer
+    :accessor buffer
+    :documentation "A pointer to a location to store the read binary data.")
+   (buffer-length
+    :initarg :buffer-length
+    :accessor buffer-length
+    :documentation "The length of the memory pointed to by BUFFER.")
+   (bytes-read
+    :initarg :bytes-read
+    :accessor bytes-read)))
+
+(defmethod obtain-results ((request read-file-request))
+  (assert (completedp request))
+  (cffi:with-foreign-object (ptr-bytes-read 'dword)
+    (%ff-get-overlapped-result (descriptor request)
+			       (overlapped-structure request)
+			       ptr-bytes-read
+			       +false+)
+    (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword))))
+
+(defun read-file (handle buffer buffer-length &optional (request (make-instance 'read-file-request)))
+  (check-type handle named-pipe-handle)
+  (check-type buffer (satisfies cffi:pointerp))
+  (check-type buffer-length (integer 0))
+  (check-type request read-file-request)
+  (setf (buffer request) buffer
+	(buffer-length request) buffer-length)
+  (%ff-reset-event (event-handle request))
+  (cffi:with-foreign-object (ptr-bytes-read 'dword)
+    (multiple-value-bind (rv error) (%ff-read-file handle buffer buffer-length
+						   ptr-bytes-read (overlapped-structure request))
+      (declare (ignore rv))
+      (ecase error
+	(:no-error
+	 (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword))
+	 (%ff-set-event (event-handle request)))
+	(:error-io-pending
+	 (setf (bytes-read request) nil)))))
+  (setf (descriptor request) handle)
+  request)
+
+(defclass write-file-request (request)
+  ((buffer
+    :initarg :buffer
+    :accessor buffer
+    :documentation "A pointer to a location which contains the binary data to write.")
+   (buffer-length
+    :initarg :buffer-length
+    :accessor buffer-length)
+   (bytes-written
+    :initarg :bytes-written
+    :accessor bytes-written)))
+
+(defmethod obtain-results ((request write-file-request))
+  (assert (completedp request))
+  (cffi:with-foreign-object (ptr-bytes-written 'dword)
+    (%ff-get-overlapped-result (descriptor request)
+			       (overlapped-structure request)
+			       ptr-bytes-written
+			       +false+)
+    (setf (bytes-written request) (cffi:mem-ref ptr-bytes-written 'dword))))
+
+(defun write-file (handle buffer buffer-length &optional (request (make-instance 'write-file-request)))
+  (check-type handle named-pipe-handle)
+  (check-type buffer (satisfies cffi:pointerp))
+  (check-type buffer-length (integer 0))
+  (check-type request write-file-request)
+  (setf (buffer request) buffer
+	(buffer-length request) buffer-length)
+  (%ff-reset-event (event-handle request))
+  (cffi:with-foreign-object (ptr-bytes-written 'dword)
+    (multiple-value-bind (rv error) (%ff-write-file handle buffer buffer-length
+						    ptr-bytes-written (overlapped-structure request))
+      (declare (ignore rv))
+      (ecase error
+	(:no-error
+	 (setf (bytes-written request) (cffi:mem-ref ptr-bytes-written 'dword))
+	 (%ff-set-event (event-handle request)))
+	(:error-io-pending
+	 (setf (bytes-written request) nil)))))
+  (setf (descriptor request) handle)
   request)
 
 ;;;; Helper functions

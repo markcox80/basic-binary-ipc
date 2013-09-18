@@ -9,6 +9,7 @@
 	   #:invalidp
 	   #:waitingp
 	   #:completedp
+	   #:obtain-results
 
 	   #:with-request
 	   #:do-with-request)
@@ -27,4 +28,15 @@
 
 	   ;; Servers
 	   #:make-named-pipe-server
-	   #:connect-named-pipe))
+	   #:connect-named-pipe
+
+	   #:buffer
+	   #:buffer-length
+
+	   #:read-file
+	   #:read-file-request
+	   #:bytes-read
+
+	   #:write-file
+	   #:write-file-request
+	   #:bytes-written))

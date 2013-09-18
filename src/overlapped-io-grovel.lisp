@@ -13,6 +13,7 @@
 (constant (+false+ "FALSE"))
 (constant (+invalid-handle-value+ "INVALID_HANDLE_VALUE"))
 (constant (+null+ "NULL"))
+(constant (+infinite+ "INFINITE"))
 
 ;; Overlapped
 (cstruct overlapped "struct _OVERLAPPED"
