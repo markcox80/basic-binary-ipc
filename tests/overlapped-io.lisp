@@ -71,7 +71,7 @@
 	(assert-false (completedp read-request))
 	(cancel-all-io server)))))
 
-(define-test named-pipe/read
+(define-test named-pipe/read/immediate
   (with-connected-pipe (server client)
     (cffi:with-foreign-objects ((buffer-to-write :uint8 100)
 				(buffer-to-read :uint8 100))
@@ -86,6 +86,33 @@
 	(assert-equal 100 (bytes-written write-request)))
 
       (with-request (read-request (read-file server buffer-to-read 100))
+	(wait-for-single-object read-request 1000)
+	(assert-true (completedp read-request))
+	(obtain-results read-request)
+	(assert-equal 100 (bytes-read read-request))
+
+	(dotimes (index 100)
+	  (assert-equal index (cffi:mem-aref buffer-to-read :uint8 index))
+	  (assert-equal index (cffi:mem-aref (buffer read-request) :uint8 index)))))))
+
+(define-test named-pipe/read/wait
+  (with-connected-pipe (server client)
+    (cffi:with-foreign-objects ((buffer-to-write :uint8 100)
+				(buffer-to-read :uint8 100))
+      (dotimes (index 100)
+	(setf (cffi:mem-aref buffer-to-write :uint8 index) index
+	      (cffi:mem-aref buffer-to-read :uint8 index) 0))
+      
+      (with-request (read-request (read-file server buffer-to-read 100))
+	(assert-false (completedp read-request))
+	(assert-equal nil (bytes-read read-request))
+
+	(with-request (write-request (write-file client buffer-to-write 100))
+	  (wait-for-single-object write-request 1000)
+	  (assert-true (completedp write-request))
+	  (obtain-results write-request)
+	  (assert-equal 100 (bytes-written write-request)))
+
 	(wait-for-single-object read-request 1000)
 	(assert-true (completedp read-request))
 	(obtain-results read-request)
