@@ -139,6 +139,16 @@ overlapped objects in ~REQUESTS~ have been performed/triggered.
 Any subclass of ~REQUEST~ can be used in the sequence of ~REQUESTS~
 argument passed to ~WAIT-FOR-REQUESTS~.
 
+The return value of ~WAIT-FOR-REQUESTS~ is a list of requests which
+are have now been performed. The results for the request can now be
+retrieved from the ~REQUEST~ object.
+
+The function ~WAIT-FOR-REQUEST~ can be used when only a single request
+is to be waited on.
+#+begin_src lisp
+(defun wait-for-request (request seconds &key wait))
+#+end_src
+
 * Efficient Polling
 ~WAIT-FOR-REQUESTS~ is considered inefficient as the application must
 pass a list of overlapped objects to the operating system. The larger
