@@ -51,17 +51,18 @@
 	  (assert-true (completedp connect-request)))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun do-with-connected-pipe (function)
+  (defun do-with-connected-pipe (function &key ignore-close-errors)
     (let ((pipe-name (random-pipe-name)))
-      (with-handle (server (make-named-pipe-server pipe-name))
-	(with-handle (client (connect-to-named-pipe pipe-name))
+      (with-handle (server (make-named-pipe-server pipe-name) :ignore-close-errors ignore-close-errors)
+	(with-handle (client (connect-to-named-pipe pipe-name) :ignore-close-errors ignore-close-errors)
 	  (with-request (connect-request (connect-named-pipe server))
-	    (assert-true (completedp connect-request))
+	    (assert (completedp connect-request))
 	    (funcall function server client))))))
   
-  (defmacro with-connected-pipe ((server client) &body body)
+  (defmacro with-connected-pipe ((server client &rest args) &body body)
     `(do-with-connected-pipe #'(lambda (,server ,client)
-				 ,@body))))
+				 ,@body)
+       ,@args)))
 
 (define-test named-pipe/read/no-data
   (with-connected-pipe (server client)
@@ -121,3 +122,23 @@
 	(dotimes (index 100)
 	  (assert-equal index (cffi:mem-aref buffer-to-read :uint8 index))
 	  (assert-equal index (cffi:mem-aref (buffer read-request) :uint8 index)))))))
+
+(define-test named-pipe/disconnect/close-client
+  (with-connected-pipe (server client :ignore-close-errors t)
+    (cffi:with-foreign-objects ((buffer-to-read :uint8 100))
+      (with-request (read-request (read-file server buffer-to-read 100))
+	(assert-false (completedp read-request))	
+	(close-handle client)
+	(assert-true (completedp read-request))
+	(obtain-results read-request)
+	(assert-equal 0 (bytes-read read-request))))))
+
+(define-test named-pipe/disconnect/close-server
+  (with-connected-pipe (server client :ignore-close-errors t)
+    (cffi:with-foreign-objects ((buffer-to-read :uint8 100))
+      (with-request (read-request (read-file client buffer-to-read 100))
+	(assert-false (completedp read-request))	
+	(close-handle server)
+	(assert-true (completedp read-request))
+	(obtain-results read-request)
+	(assert-equal 0 (bytes-read read-request))))))

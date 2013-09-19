@@ -108,15 +108,18 @@ documentation.
 (defun close-handle (handle)
   (%ff-close-handle handle))
 
-(defun do-with-handle (handle function)
+(defun do-with-handle (handle function &key ignore-close-errors)
   (unwind-protect
        (funcall function handle)
-    (close-handle handle)))
+    (if ignore-close-errors
+	(ignore-errors (close-handle handle))
+	(close-handle handle))))
 
-(defmacro with-handle ((var handle) &body body)
+(defmacro with-handle ((var handle &rest args) &body body)
   `(do-with-handle ,handle
      #'(lambda (,var)
-	 ,@body)))
+	 ,@body)
+     ,@args))
 
 ;; Cancelling IO
 (defun cancel-all-io (handle)
@@ -208,11 +211,16 @@ CreateNamedPipe or CreateFile."
 (defmethod obtain-results ((request read-file-request))
   (assert (completedp request))
   (cffi:with-foreign-object (ptr-bytes-read 'dword)
-    (%ff-get-overlapped-result (descriptor request)
-			       (overlapped-structure request)
-			       ptr-bytes-read
-			       +false+)
-    (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword))))
+    (multiple-value-bind (rv error) (%ff-get-overlapped-result (descriptor request)
+							       (overlapped-structure request)
+							       ptr-bytes-read
+							       +false+)
+      (declare (ignore rv))
+      (ecase error
+	(:no-error
+	 (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword)))
+	(:error-broken-pipe
+	 (setf (bytes-read request) 0))))))
 
 (defun read-file (handle buffer buffer-length &optional (request (make-instance 'read-file-request)))
   (check-type handle named-pipe-handle)
