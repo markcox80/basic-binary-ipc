@@ -53,8 +53,12 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun do-with-connected-pipe (function &key ignore-close-errors)
     (let ((pipe-name (random-pipe-name)))
-      (with-handle (server (make-named-pipe-server pipe-name) :ignore-close-errors ignore-close-errors)
-	(with-handle (client (connect-to-named-pipe pipe-name) :ignore-close-errors ignore-close-errors)
+      (with-handle (server (make-named-pipe-server pipe-name) :ignore-close-errors (if (eql ignore-close-errors :client-only)
+										       nil
+										       t))
+	(with-handle (client (connect-to-named-pipe pipe-name) :ignore-close-errors (if (eql ignore-close-errors :server-only)
+											nil
+											t))
 	  (with-request (connect-request (connect-named-pipe server))
 	    (assert (completedp connect-request))
 	    (funcall function server client))))))
@@ -124,7 +128,7 @@
 	  (assert-equal index (cffi:mem-aref (buffer read-request) :uint8 index)))))))
 
 (define-test named-pipe/disconnect/close-client
-  (with-connected-pipe (server client :ignore-close-errors t)
+  (with-connected-pipe (server client :ignore-close-errors :client-only)
     (cffi:with-foreign-objects ((buffer-to-read :uint8 100))
       (with-request (read-request (read-file server buffer-to-read 100))
 	(assert-false (completedp read-request))	
@@ -134,7 +138,7 @@
 	(assert-equal 0 (bytes-read read-request))))))
 
 (define-test named-pipe/disconnect/close-server
-  (with-connected-pipe (server client :ignore-close-errors t)
+  (with-connected-pipe (server client :ignore-close-errors :server-only)
     (cffi:with-foreign-objects ((buffer-to-read :uint8 100))
       (with-request (read-request (read-file client buffer-to-read 100))
 	(assert-false (completedp read-request))	
