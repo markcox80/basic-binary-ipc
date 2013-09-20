@@ -146,7 +146,7 @@ retrieved from the ~REQUEST~ object.
 The function ~WAIT-FOR-REQUEST~ can be used when only a single request
 is to be waited on.
 #+begin_src lisp
-(defun wait-for-request (request seconds &key wait))
+(defun wait-for-request (request seconds))
 #+end_src
 
 * Efficient Polling
