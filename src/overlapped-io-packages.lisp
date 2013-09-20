@@ -9,13 +9,13 @@
 	   #:invalidp
 	   #:waitingp
 	   #:completedp
-	   #:obtain-results
 
 	   #:with-request
 	   #:do-with-request)
 
   ;; Synchronising
-  (:export #:wait-for-single-object)
+  (:export #:wait-for-request
+	   #:wait-for-requests)
 
   ;; Generic handle stuff
   (:export #:close-handle

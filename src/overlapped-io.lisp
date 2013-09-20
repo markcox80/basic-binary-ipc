@@ -16,7 +16,18 @@
 
 (defgeneric obtain-results (request)
   (:documentation "Obtain all results from the operating system
-  associated with REQUEST."))
+  associated with REQUEST. Returns nothing."))
+
+(defvar *obtaining-results* nil)
+
+;; This around method for OBTAIN-RESULTS is needed so that the
+;; functions INVALIDP, WAITINGP and COMPLETEDP can be called within
+;; OBTAIN-REQUESTS methods.
+(defmethod obtain-results :around ((request t))
+  (unless *obtaining-results*
+    (let ((*obtaining-results* t))
+      (call-next-method)))
+  (values))
 
 (defclass request ()
   ((overlapped-structure
@@ -67,17 +78,21 @@
 
 (defun invalidp (request)
   (check-type request request)
-  (null (descriptor request)))
+  (or (null (descriptor request))
+      (and (waitingp request)
+	   nil)))
 
 (defun waitingp (request)
   (check-type request request)
   (and (descriptor request)
-       (null (wait-for-single-object request 0))))
+       (not (completedp request))))
 
 (defun completedp (request)
   (check-type request request)
   (and (descriptor request)
-       (wait-for-single-object request 0)))
+       (when (wait-for-single-object request 0)
+	 (obtain-results request)
+	 t)))
 
 ;;;; Synchronising Requests
 (defun wait-for-single-object (request milliseconds)
@@ -103,6 +118,20 @@ documentation.
      nil)
     (:wait-failed
      (error (error-message (%ff-get-last-error))))))
+
+(defun wait-for-request (request seconds)
+  (check-type request request)
+  (check-type seconds (or (real 0) (member :indefinite :immediate)))
+  (let ((milliseconds (case seconds
+			(:indefinite
+			 +infinite+)
+			(:immediate
+			 0)
+			(t
+			 (coerce (round (* 1000 seconds)) 'integer)))))
+    (when (wait-for-single-object request milliseconds)
+      (obtain-results request)
+      request)))
 
 ;; Closing things
 (defun close-handle (handle)
@@ -175,6 +204,9 @@ CreateNamedPipe or CreateFile."
 
 (defclass connect-named-pipe-request (request)
   ())
+
+(defmethod obtain-results ((request connect-named-pipe-request))
+  (values))
 
 (defun connect-named-pipe (server-handle &optional (request (make-instance 'connect-named-pipe-request)))
   (check-type server-handle named-pipe-handle)
