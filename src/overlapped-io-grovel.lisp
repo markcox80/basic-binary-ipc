@@ -14,6 +14,7 @@
 (constant (+invalid-handle-value+ "INVALID_HANDLE_VALUE"))
 (constant (+null+ "NULL"))
 (constant (+infinite+ "INFINITE"))
+(constant (+maximum-wait-objects+ "MAXIMUM_WAIT_OBJECTS"))
 
 ;; Overlapped
 (cstruct overlapped "struct _OVERLAPPED"
@@ -146,6 +147,7 @@
   ((:error-operation-aborted "ERROR_OPERATION_ABORTED"))
   ((:error-not-enough-quota "ERROR_NOT_ENOUGH_QUOTA"))
   ((:error-insufficient-buffer "ERROR_INSUFFICIENT_BUFFER"))
+  ((:error-io-incomplete "ERROR_IO_INCOMPLETE"))
   ((:error-io-pending "ERROR_IO_PENDING"))
   ((:error-handle-eof "ERROR_HANDLE_EOF"))
   ((:error-broken-pipe "ERROR_BROKEN_PIPE"))
