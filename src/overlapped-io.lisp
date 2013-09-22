@@ -44,7 +44,7 @@
     state. Note this descriptor is not closed by FREE-REQUEST."))
   (:default-initargs
    :overlapped-structure (make-empty-overlapped-structure)
-   :event-handle (%ff-create-event (cffi:null-pointer) +true+ +false+ "request")
+   :event-handle (%ff-create-event (cffi:null-pointer) +true+ +false+ (cffi:null-pointer))
    :descriptor nil))
 
 (defmethod initialize-instance :after ((object request) &key)
@@ -76,10 +76,13 @@
      #'(lambda (,var)
 	 ,@body)))
 
+;; The functions INVALIDP, WAITINGP and COMPLETEDP are all capable of
+;; updating the state of the REQUEST instance via OBTAIN-RESULTS. This
+;; is why they are all interconnected.
 (defun invalidp (request)
   (check-type request request)
   (or (null (descriptor request))
-      (and (waitingp request)
+      (and (completedp request)
 	   nil)))
 
 (defun waitingp (request)
@@ -132,6 +135,45 @@ documentation.
     (when (wait-for-single-object request milliseconds)
       (obtain-results request)
       request)))
+
+(defun wait-for-requests (requests seconds &key wait-all)
+  (check-type requests sequence)
+  (check-type seconds (or (real 0) (member :indefinite :immediate)))
+  (let ((length (length requests))
+	(pos 0))
+    (assert (< length +maximum-wait-objects+))
+    (cffi:with-foreign-object (ptr-handles 'handle length)
+      (map nil #'(lambda (request)
+		   (assert (< pos length))
+		   (setf (cffi:mem-aref ptr-handles 'handle pos) (event-handle request))
+		   (incf pos))
+	   requests)
+      (let* ((milliseconds (case seconds
+			     (:indefinite
+			      +infinite+)
+			     (:immediate
+			      0)
+			     (t
+			      (coerce (round (* 1000 seconds)) 'integer))))
+	     (value (%ff-wait-for-multiple-objects length
+						   ptr-handles
+						   (if wait-all
+						       +true+
+						       +false+)
+						   milliseconds))
+	     (offset (cffi:foreign-enum-value 'wait :wait-object-0)))
+	(cond
+	  ((= value (cffi:foreign-enum-value 'wait :wait-failed))
+	   (error (error-message (%ff-get-last-error))))
+	  ((= value (cffi:foreign-enum-value 'wait :wait-timeout))
+	   nil)
+	  (wait-all
+	   (map nil #'obtain-results requests)
+	   requests)
+	  (t	   
+	   (let ((rv (elt requests (- value offset))))
+	     (obtain-results rv)
+	     rv)))))))
 
 ;; Closing things
 (defun close-handle (handle)

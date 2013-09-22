@@ -16,6 +16,12 @@
   (handle handle)
   (milliseconds dword))
 
+(cffi:defcfun (%ff-wait-for-multiple-objects "WaitForMultipleObjects") dword
+  (number-of-handles dword)
+  (handles (:pointer handle))
+  (wait-for-all bool)
+  (milliseconds dword))
+
 (define-system-call (%ff-cancel-io "CancelIo") (check-true bool)
   (object handle))
 
