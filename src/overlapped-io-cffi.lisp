@@ -25,7 +25,8 @@
 (define-system-call (%ff-cancel-io "CancelIo") (check-true bool)
   (object handle))
 
-(define-system-call (%ff-get-overlapped-result "GetOverlappedResult") (check-overlapped bool :pass-errors '(:error-broken-pipe))
+(define-system-call (%ff-get-overlapped-result "GetOverlappedResult")
+    (check-overlapped bool :pass-errors '(:error-broken-pipe))
   (handle handle)
   (overlapped (:pointer (:struct overlapped)))
   (ptr-bytes-transferred (:pointer dword))
@@ -51,8 +52,8 @@
   (flags-and-attributes file-attribute)
   (template-file handle))
 
-(define-system-call (%ff-connect-named-pipe "ConnectNamedPipe") (check-overlapped bool
-										  :pass-errors '(:error-io-pending :error-pipe-connected))
+(define-system-call (%ff-connect-named-pipe "ConnectNamedPipe")
+    (check-overlapped bool :pass-errors '(:error-io-pending :error-pipe-connected))
   (server-handle handle)
   (overlapped (:pointer (:struct overlapped))))
 
