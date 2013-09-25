@@ -187,3 +187,33 @@
 	    
 	    (assert-equal 10 (bytes-read read-1))
 	    (assert-equal 10 (bytes-read read-2))))))))
+
+(define-test monitor
+  (with-connected-pipe (server-1 client-1)
+    (with-connected-pipe (server-2 client-2)
+      (cffi:with-foreign-objects ((buffer-1 :uint8 10)
+				  (buffer-2 :uint8 10)
+				  (write-buffer :uint8 10))
+	(dotimes (index 10)
+	  (setf (cffi:mem-aref write-buffer :uint8) index))
+	
+	(with-monitor (monitor)
+	  (with-request (read-1 (read-file server-1 buffer-1 10))
+	    (with-request (read-2 (read-file server-2 buffer-2 10))
+	      (monitor monitor read-1)
+	      (monitor monitor read-2)
+	      
+	      (with-request (write-1 (make-instance 'write-file-request :descriptor client-1))
+		(with-request (write-2 (make-instance 'write-file-request :descriptor client-2))
+		  (monitor monitor write-1)
+		  (monitor monitor write-2)
+
+		  (write-file client-1 write-buffer 10 write-1)
+		  (write-file client-2 write-buffer 10 write-2)
+
+		  (let ((requests (list read-1 read-2 write-1 write-2)))
+		    (dotimes (attempt 4)
+		      (let ((v (pop-notification monitor 0)))
+			(assert-true (find v requests))
+			(setf requests (remove v requests))))
+		    (assert-false (pop-notification monitor 0))))))))))))

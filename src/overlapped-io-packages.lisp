@@ -17,6 +17,14 @@
   (:export #:wait-for-request
 	   #:wait-for-requests)
 
+  ;; Monitor Synchronising
+  (:export #:monitor
+	   #:unmonitor
+	   #:pop-notification
+	   #:free-monitor
+	   #:do-with-monitor
+	   #:with-monitor)
+
   ;; Generic handle stuff
   (:export #:close-handle
 	   #:with-handle

@@ -156,7 +156,8 @@
   ((:error-pipe-connected "ERROR_PIPE_CONNECTED"))
   ((:error-pipe-listening "ERROR_PIPE_LISTENING"))
   ((:error-pipe-busy "ERROR_PIPE_BUSY"))
-  ((:error-pipe-not-connected "ERROR_PIPE_NOT_CONNECTED")))
+  ((:error-pipe-not-connected "ERROR_PIPE_NOT_CONNECTED"))
+  ((:wait-timeout "WAIT_TIMEOUT")))
 
 ;;;; Bloody FormatMessage crap. What a joke.
 (ctype lpcvoid "LPCVOID")

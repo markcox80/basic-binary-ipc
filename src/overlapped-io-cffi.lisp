@@ -83,3 +83,19 @@
 
 (define-system-call (%ff-set-event "SetEvent") (check-true bool)
   (h-event handle))
+
+;;;; I/O Completion ports
+(define-system-call (%ff-create-io-completion-port "CreateIoCompletionPort")
+    (check-valid-handle handle)
+  (file-handle handle)
+  (existing-completion-port handle)
+  (completion-key (:pointer :unsigned-long))
+  (number-of-concurrent-threads dword))
+
+(define-system-call (%ff-get-queued-completion-status "GetQueuedCompletionStatus")
+    (check-overlapped bool :pass-errors '(:wait-timeout))
+  (completion-port handle)
+  (ptr-number-of-bytes (:pointer dword))
+  (ptr-completion-key (:pointer (:pointer :unsigned-long)))
+  (overlapped (:pointer (:struct overlapped)))
+  (milliseconds dword))

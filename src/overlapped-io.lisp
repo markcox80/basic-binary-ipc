@@ -97,6 +97,16 @@
 	 (obtain-results request)
 	 t)))
 
+(defun event-handle-low-bit (request)
+  (check-type request request)
+  (ldb (byte 1 0) (event-handle request)))
+
+(defun (setf event-handle-low-bit) (value request)
+  (check-type request request)
+  (check-type value bit)
+  (with-slots (event-handle) request
+    (setf (ldb (byte 1 0) event-handle) value)))
+
 ;;;; Synchronising Requests
 (defun wait-for-single-object (request milliseconds)
   (check-type request request)
@@ -348,7 +358,8 @@ CreateNamedPipe or CreateFile."
   (%ff-reset-event (event-handle request))
   (cffi:with-foreign-object (ptr-bytes-written 'dword)
     (multiple-value-bind (rv error) (%ff-write-file handle buffer buffer-length
-						    ptr-bytes-written (overlapped-structure request))
+						    ptr-bytes-written
+						    (overlapped-structure request))
       (declare (ignore rv))
       (ecase error
 	(:no-error
@@ -358,6 +369,103 @@ CreateNamedPipe or CreateFile."
 	 (setf (bytes-written request) nil)))))
   (setf (descriptor request) handle)
   request)
+
+;;;; Monitoring (I/O Completion Ports)
+(defclass monitor ()
+  ((port-handle
+    :initarg :port-handle
+    :reader port-handle
+    :documentation "The handle to the underlying I/O Completion port.")
+   (key-request-table
+    :initarg :key-request-table
+    :accessor key-request-table
+    :documentation "A hash table of REQUESTS that are being
+    monitored. Keys are unsigned longs and the values are the requests.")
+   (request-key-table
+    :initarg :request-key-table
+    :reader request-key-table))  
+  (:default-initargs
+   :port-handle (%ff-create-io-completion-port +invalid-handle-value+
+					       +null+
+					       (cffi:null-pointer)
+					       0)
+   :key-request-table (make-hash-table)
+   :request-key-table (make-hash-table)))
+
+(defun monitor (monitor request)
+  (check-type monitor monitor)
+  (check-type request request)
+  (with-accessors ((key-request-table key-request-table)
+		   (request-key-table request-key-table)
+		   (port-handle port-handle))
+      monitor
+    (let* ((key-ptr (overlapped-structure request))
+	   (key (cffi:pointer-address key-ptr)))
+      (assert (null (gethash key key-request-table)))
+      (assert (null (gethash request request-key-table)))
+      
+      (setf (event-handle-low-bit request) 0
+	    (gethash key key-request-table) request
+	    (gethash request request-key-table) key)
+      (%ff-create-io-completion-port (descriptor request)
+				     port-handle
+				     key-ptr
+				     0))))
+
+(defun unmonitor (monitor request)
+  (check-type monitor monitor)
+  (check-type request request)
+  (with-accessors ((key-request-table key-request-table)
+		   (request-key-table request-key-table)
+		   (port-handle port-handle))
+      monitor
+    (let ((key (gethash request request-key-table)))
+      (assert key)
+      (remhash key key-request-table)
+      (remhash request request-key-table))
+    (setf (event-handle-low-bit request) 1)))
+
+(defun pop-notification (monitor wait-seconds)
+  (check-type monitor monitor)
+  (check-type wait-seconds (real 0))
+  (cffi:with-foreign-objects ((number-of-bytes 'dword)
+			      (ptr-completion-key '(:pointer :unsigned-long))
+			      (overlapped '(:struct overlapped)))
+    (multiple-value-bind (rv error) (%ff-get-queued-completion-status
+				     (port-handle monitor)
+				     number-of-bytes
+				     ptr-completion-key
+				     overlapped
+				     (coerce (round (* 1000 wait-seconds)) 'integer))
+      (declare (ignore rv))
+      (ecase error
+	(:no-error
+	 (let* ((key-ptr (cffi:mem-ref ptr-completion-key :pointer))
+		(key (cffi:pointer-address key-ptr))
+		(rv (gethash key (key-request-table monitor))))
+	   (assert rv)
+	   rv))
+	(:wait-timeout
+	 nil)))))
+
+(defun free-monitor (monitor)
+  (check-type monitor monitor)
+  (with-slots (port-handle key-request-table request-key-table) monitor
+    (unless (= +invalid-handle-value+ port-handle)
+      (clrhash key-request-table)
+      (clrhash request-key-table)
+      (%ff-close-handle port-handle)
+      (setf port-handle +invalid-handle-value+))))
+
+(defun do-with-monitor (function)
+  (let ((monitor (make-instance 'monitor)))
+    (unwind-protect
+	 (funcall function monitor)
+      (free-monitor monitor))))
+
+(defmacro with-monitor ((var) &body body)
+  `(do-with-monitor #'(lambda (,var)
+			,@body)))
 
 ;;;; Helper functions
 (defun make-empty-overlapped-structure ()
