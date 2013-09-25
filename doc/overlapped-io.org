@@ -151,11 +151,34 @@ is to be waited on.
 
 * Efficient Polling
 ~WAIT-FOR-REQUESTS~ is considered inefficient as the application must
-pass a list of overlapped objects to the operating system. The larger
+pass a list of ~REQUEST~ objects to the operating system. The larger
 the number of objects, the longer it takes the operating system to
-prepare to wait.
+prepare to wait. To overcome this problem, support for [[http://msdn.microsoft.com/en-us/library/aa365198(VS.85).aspx][I/O Completion
+Ports]] is provided.
 
-To overcome this problem, support for [[http://msdn.microsoft.com/en-us/library/aa365198(VS.85).aspx][I/O Completion Ports]] is
-provided. When a file descriptors is created, it is registered with an
-I/O completion port. This port can then be used to retrieve an
-overlapped object which has been completed. 
+The interface requires creating an instance of type ~MONITOR~. To
+monitor a request using ~MONITOR~ you use the function
+~MONITOR~.
+#+begin_src lisp
+(defun monitor (monitor request))
+#+end_src
+Unmonitoring a request is performed using the function
+~UNMONITOR~.
+#+begin_src lisp
+(defun unmonitor (monitor request))
+#+end_src
+
+Notifications are retrieved one at a time using the function
+~POP-NOTIFICATION~.
+#+begin_src lisp
+(defun pop-notification (monitor wait-seconds))
+#+end_src
+The value returned by ~POP-NOTIFICATION~ is the ~REQUEST~ that was
+completed. All completed requests are automatically unmonitored.
+
+When a monitor object is no longer required, the function
+~FREE-MONITOR~ must be used to release all operating system resources
+associated with the ~MONITOR~ instance.
+#+begin_src lisp
+(defun free-monitor (monitor))
+#+end_src
