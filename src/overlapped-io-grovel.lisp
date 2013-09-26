@@ -15,6 +15,7 @@
 (constant (+null+ "NULL"))
 (constant (+infinite+ "INFINITE"))
 (constant (+maximum-wait-objects+ "MAXIMUM_WAIT_OBJECTS"))
+(constant (+invalid-socket+ "INVALID_SOCKET"))
 
 ;; Overlapped
 (cstruct overlapped "struct _OVERLAPPED"
@@ -56,6 +57,22 @@
 
 (bitfield (file-attribute :base-type :unsigned-int)
   ((:file-flag-overlapped "FILE_FLAG_OVERLAPPED")))
+
+;;;; Sockets
+(ctype socket "SOCKET")
+(ctype socket-group "GROUP")
+
+(constantenum (socket-address-family :base-type :int)
+  ((:af-inet "AF_INET")))
+
+(constantenum (socket-type :base-type :int)
+  ((:sock-stream "SOCK_STREAM")))
+
+(constantenum (socket-protocol :base-type :int)
+  ((:ipproto-tcp "IPPROTO_TCP")))
+
+(constantenum (socket-flags :base-type :unsigned-int)
+  ((:wsa-flag-overlapped "WSA_FLAG_OVERLAPPED")))
 
 ;;;; ERRORS
 ;; Winsock Errors

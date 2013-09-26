@@ -57,6 +57,11 @@
   (declare (ignore caller))
   (error "Error calling foreign function ~A: ~A" name (error-message (%ff-get-last-error))))
 
+(defun signal-socket-foreign-function-error (caller name)
+  (declare (ignore caller))
+  (error "Error calling socket foreign function ~A: ~A" name (error-message (%ff-wsa-get-last-error))))
+
+;; File system call checkers
 (define-check-system-call check-valid-handle (caller name return-value)
   (if (eql return-value +invalid-handle-value+)
       (signal-foreign-function-error caller name)

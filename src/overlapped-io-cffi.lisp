@@ -99,3 +99,28 @@
   (ptr-completion-key (:pointer (:pointer :unsigned-long)))
   (overlapped (:pointer (:struct overlapped)))
   (milliseconds dword))
+
+;;;; Sockets
+(cffi:defcfun (%%ff-wsa-socket "WSASocketA") socket
+  (address-family socket-address-family)
+  (type socket-type)
+  (protocol socket-protocol)
+  (protocol-info :pointer)
+  (group socket-group)
+  (flags socket-flags))
+
+(defun %ff-socket (address-family type protocol)
+  (let ((rv (%%ff-wsa-socket address-family type protocol
+			     (cffi:null-pointer) 0 :wsa-flag-overlapped)))
+    (when (= rv +invalid-socket+)
+      (signal-socket-foreign-function-error '%ff-socket "WSASocket"))
+    rv))
+
+(cffi:defcfun (%%ff-close-socket "closesocket") :int
+  (socket socket))
+
+(defun %ff-close-socket (socket)
+  (let ((rv (%%ff-close-socket socket)))
+    (unless (zerop rv)
+      (signal-socket-foreign-function-error '%ff-close-socket "closesocket"))
+    rv))
