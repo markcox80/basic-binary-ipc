@@ -113,7 +113,7 @@
   (let ((rv (%%ff-wsa-socket address-family type protocol
 			     (cffi:null-pointer) 0 :wsa-flag-overlapped)))
     (when (= rv +invalid-socket+)
-      (signal-socket-foreign-function-error '%ff-socket "WSASocket"))
+      (signal-socket-foreign-function-error '%ff-socket "WSASocketA"))
     rv))
 
 (cffi:defcfun (%%ff-close-socket "closesocket") :int
@@ -124,3 +124,38 @@
     (unless (zerop rv)
       (signal-socket-foreign-function-error '%ff-close-socket "closesocket"))
     rv))
+
+(define-system-call (%ff-bind "bind") (check-socket-zero :int)
+  (socket socket)
+  (socket-address :pointer)
+  (address-length :int))
+
+(define-system-call (%ff-listen "listen") (check-socket-zero :int)
+  (socket socket)
+  (backlog :int))
+
+;; Socket formatting stuff
+(cffi:defcfun (%ff-htons "htons") :unsigned-short
+  (host-short :unsigned-short))
+
+(cffi:defcfun (%ff-ntohs "ntohs") :unsigned-short
+  (network-short :unsigned-short))
+
+(cffi:defcfun (%ff-htonl "htonl") :unsigned-long
+  (host-long :unsigned-long))
+
+(cffi:defcfun (%ff-ntohl "ntohl") :unsigned-long
+  (network-long :unsigned-long))
+
+(cffi:defcfun (%%ff-inet-addr "inet_addr") :unsigned-long
+  (dotted-decimal :string))
+
+(defun %ff-inet-addr (dotted-decimal &optional (error t) error-value)
+  (let ((rv (%%ff-inet-addr dotted-decimal)))
+    (cond
+      ((and error (= rv +inaddr-none+))
+       (error "Cannot convert value ~A to a network long using \"inet_addr\"." dotted-decimal))
+      ((= rv +inaddr-none+)
+       error-value)
+      (t
+       rv))))

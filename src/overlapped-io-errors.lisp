@@ -59,7 +59,7 @@
 
 (defun signal-socket-foreign-function-error (caller name)
   (declare (ignore caller))
-  (error "Error calling socket foreign function ~A: ~A" name (error-message (%ff-wsa-get-last-error))))
+  (error "Error calling socket foreign function ~A: ~A" name (winsock-error-message (%ff-wsa-get-last-error))))
 
 ;; File system call checkers
 (define-check-system-call check-valid-handle (caller name return-value)
@@ -86,3 +86,8 @@
 	   (signal-foreign-function-error caller name))))
     (t
      (values +true+ :no-error))))
+
+(define-check-system-call check-socket-zero (caller name return-value)
+  (if (/= 0 return-value)
+      (signal-socket-foreign-function-error caller name)
+      return-value))

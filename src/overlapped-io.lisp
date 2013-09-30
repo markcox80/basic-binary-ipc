@@ -467,6 +467,36 @@ CreateNamedPipe or CreateFile."
   `(do-with-monitor #'(lambda (,var)
 			,@body)))
 
+;;;; Sockets
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun do-with-sockaddr-in (function &optional address port)
+    (cffi:with-foreign-object (ptr '(:struct sockaddr-in))
+      (dotimes (index (cffi:foreign-type-size '(:struct sockaddr-in)))
+	(setf (cffi:mem-aref ptr :uint8 index) 0))
+      
+      (when address
+	(let ((in-addr-ptr (cffi:foreign-slot-pointer ptr '(:struct sockaddr-in) 'in-addr)))
+	  (setf (cffi:foreign-slot-value in-addr-ptr '(:struct in-addr) 's-addr) (%ff-inet-addr address))))
+      
+      (when port
+	(cffi:with-foreign-slots ((sin-family sin-port) ptr (:struct sockaddr-in))
+	  (setf sin-family (cffi:foreign-enum-value 'socket-address-family :af-inet)
+		sin-port (%ff-htons port))))
+
+      (funcall function ptr)))
+
+  (defmacro with-sockaddr-in ((var &optional address port) &body body)
+    `(do-with-sockaddr-in #'(lambda (,var)
+			      ,@body)
+       ,address ,port)))
+
+(defun make-ipv4-server (address port &key (backlog 5))
+  (let ((socket (%ff-socket :af-inet :sock-stream :ipproto-tcp)))
+    (with-sockaddr-in (socket-address address port)
+      (%ff-bind socket socket-address (cffi:foreign-type-size '(:struct sockaddr-in))))
+    (%ff-listen socket backlog)
+    socket))
+
 ;;;; Helper functions
 (defun make-empty-overlapped-structure ()
   (let ((ptr (cffi:foreign-alloc '(:struct overlapped))))

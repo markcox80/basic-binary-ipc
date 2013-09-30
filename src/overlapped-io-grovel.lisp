@@ -1,7 +1,7 @@
 (in-package "BASIC-BINARY-IPC.OVERLAPPED-IO")
 
-(include "Windows.h")
 (include "Winsock2.h")
+(include "Windows.h")
 
 ;; Shared CTypes
 (ctype dword "DWORD") ;; Should be an unsigned 32 bit integer.
@@ -62,6 +62,8 @@
 (ctype socket "SOCKET")
 (ctype socket-group "GROUP")
 
+(constant (+inaddr-none+ "INADDR_NONE"))
+
 (constantenum (socket-address-family :base-type :int)
   ((:af-inet "AF_INET")))
 
@@ -73,6 +75,14 @@
 
 (constantenum (socket-flags :base-type :unsigned-int)
   ((:wsa-flag-overlapped "WSA_FLAG_OVERLAPPED")))
+
+(cstruct in-addr "struct in_addr"
+  (s-addr "S_un.S_addr" :type :unsigned-long))
+
+(cstruct sockaddr-in "struct sockaddr_in"
+  (sin-family "sin_family" :type :unsigned-short)
+  (sin-port "sin_port" :type :unsigned-short)
+  (in-addr "sin_addr" :type (:struct in-addr)))
 
 ;;;; ERRORS
 ;; Winsock Errors
