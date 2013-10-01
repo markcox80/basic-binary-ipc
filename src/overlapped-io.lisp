@@ -274,11 +274,6 @@ CreateNamedPipe or CreateFile."
   request)
 
 ;;;; Reading
-(deftype binary-buffer ()
-  `(simple-array (unsigned-byte 8) (*)))
-
-(defvar *default-buffer-length* 2048)
-
 (defclass read-file-request (request)
   ((buffer
     :initarg :buffer
