@@ -1,12 +1,21 @@
 (in-package "BASIC-BINARY-IPC.OVERLAPPED-IO")
 
 (include "Winsock2.h")
+(include "mswsock.h")
 (include "Windows.h")
 
 ;; Shared CTypes
+(ctype word "WORD")
 (ctype dword "DWORD") ;; Should be an unsigned 32 bit integer.
 (ctype handle "HANDLE")
 (ctype bool "BOOL")
+
+#- (and)
+(cstruct guid "GUID"
+  (data1 "Data1" :type dword)
+  (data2 "Data2" :type word)
+  (data3 "Data3" :type word)
+  (data4 "Data4" :type :uint8 :count 8))
 
 ;; Constants
 (constant (+true+ "TRUE"))
@@ -16,6 +25,11 @@
 (constant (+infinite+ "INFINITE"))
 (constant (+maximum-wait-objects+ "MAXIMUM_WAIT_OBJECTS"))
 (constant (+invalid-socket+ "INVALID_SOCKET"))
+
+;; The constant WSA_GETACCEPTSOCKADDRS is a macro which represents a
+;; GUID. Unfortunately grovelling for it is a waste of time.
+;; The constant is defined inline.
+;;(constant (+wsaid-getacceptxsockaddrs+ "WSA_GETACCEPTSOCKADDRS") :type guid)
 
 ;; Overlapped
 (cstruct overlapped "struct _OVERLAPPED"
@@ -83,6 +97,15 @@
   (sin-family "sin_family" :type :unsigned-short)
   (sin-port "sin_port" :type :unsigned-short)
   (in-addr "sin_addr" :type (:struct in-addr)))
+
+(constantenum (io-control-code :base-type :unsigned-int)
+  ((:sio-get-extension-function-pointer "SIO_GET_EXTENSION_FUNCTION_POINTER")))
+
+(constantenum (socket-level :base-type :int)
+  ((:sol-socket "SOL_SOCKET")))
+
+(constantenum (socket-option :base-type :int)
+  ((:so-update-accept-context "SO_UPDATE_ACCEPT_CONTEXT")))
 
 ;;;; ERRORS
 ;; Winsock Errors

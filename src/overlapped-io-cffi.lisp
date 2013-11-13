@@ -134,7 +134,70 @@
   (socket socket)
   (backlog :int))
 
-;; Socket formatting stuff
+;; AcceptEx and GetAcceptExSockaddrs
+;; http://msdn.microsoft.com/en-us/library/windows/desktop/ms738516(v=vs.85).aspx
+;; http://msdn.microsoft.com/en-us/library/windows/desktop/ms737524(v=vs.85).aspx
+;;
+;; See the NOTE paragraphs in the above links.
+;;
+;; Microsoft! OMFG!!! YTF is it this hard?!!  This is the last library
+;; I am writing for your platform in my spare time. FormatMessage was
+;; bad enough, now this BS! 
+
+;; I would like to be able to use this, but you can't. I'll leave it
+;; here as a reminder of what things should have been like.
+#- (and)
+(define-system-call (%ff-accept-ex "AcceptEx") (check-socket-overlapped bool)
+  (listen-socket socket)
+  (accept-socket socket)
+  (output-buffer (:pointer :uint8))
+  (received-data-length dword)
+  (local-address-length dword)
+  (remote-address-length dword)
+  (ptr-bytes-received (:pointer dword))
+  (overlapped (:pointer (:struct overlapped))))
+
+#- (and)
+(cffi:defcfun (%ff-get-accept-ex-sockaddrs "GetAcceptExSockaddrs") :void
+  (buffer (:pointer :uint8))
+  (receive-data-length dword)
+  (local-address-length dword)
+  (remote-address-length dword)
+  (local-sockaddr :pointer)
+  (local-sockaddr-length dword)
+  (remote-sockaddr :pointer)
+  (remote-sockaddr-length dword))
+
+(define-system-call (%ff-wsaioctl "WSAIoctl") (check-socket-zero :int)
+  (socket socket)
+  (io-control-code io-control-code)
+  (in-buffer :pointer)
+  (in-buffer-size dword)
+  (out-buffer :pointer)
+  (out-buffer-size dword)
+  (bytes-returned-pointer (:pointer dword))
+  (overlapped (:pointer (:struct overlapped)))
+  (completion-routine :pointer))
+
+(define-system-call (%ff-setsockopt "setsockopt") (check-socket-zero :int)
+  (socket socket)
+  (level socket-level)
+  (option-name socket-option)
+  (value :pointer)
+  (option-length :int))
+
+(define-system-call (%ff-getpeername "getpeername") (check-socket-zero :int)
+  (socket socket)
+  (name :pointer)
+  (name-length :pointer))
+
+(define-system-call (%ff-getsockname "getsockname") (check-socket-zero :int)
+  (socket socket)
+  (name :pointer)
+  (name-length :pointer))
+
+;; Socket number format stuff. I have never understood why the
+;; application writer has to care about this crap. Even posix does it.
 (cffi:defcfun (%ff-htons "htons") :unsigned-short
   (host-short :unsigned-short))
 
@@ -159,3 +222,9 @@
        error-value)
       (t
        rv))))
+
+(assert (= (cffi:foreign-type-size :unsigned-long)
+	   (cffi:foreign-type-size '(:struct in-addr))))
+(cffi:defcfun (%ff-inet-ntoa "inet_ntoa") :string
+  (in-addr :unsigned-long))
+

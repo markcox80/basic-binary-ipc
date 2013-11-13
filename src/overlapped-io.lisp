@@ -1,4 +1,5 @@
 (in-package "BASIC-BINARY-IPC.OVERLAPPED-IO")
+(declaim (optimize (debug 3)))
 
 ;;;; REQUEST
 (defgeneric overlapped-structure (request)
@@ -491,6 +492,159 @@ CreateNamedPipe or CreateFile."
       (%ff-bind socket socket-address (cffi:foreign-type-size '(:struct sockaddr-in))))
     (%ff-listen socket backlog)
     socket))
+
+(defclass accept-ipv4-request (request)
+  ((client-descriptor
+    :initarg :client-descriptor
+    :accessor client-descriptor)
+   (buffer
+    :initarg :buffer
+    :accessor buffer)
+   (buffer-length
+    :initarg :buffer-length
+    :accessor buffer-length)
+   (bytes-read
+    :initarg :bytes-read
+    :accessor bytes-read)
+   (local-address
+    :initarg :local-address
+    :accessor local-address)
+   (local-port
+    :initarg :local-port
+    :accessor local-port)
+   (remote-address
+    :initarg :remote-address
+    :accessor remote-address)
+   (remove-port
+    :initarg :remote-port
+    :accessor remote-port)))
+
+(defparameter +wsaid-getacceptexsockaddrs+ #(242 125 54 181 172 203 207 17 149 202 0 128 95 72 161 146))
+(defparameter +wsaid-acceptex+ #(241 125 54 181 172 203 207 17 149 202 0 128 95 72 161 146))
+
+(defun compute-socket-guid-function-pointer (socket guid)
+  (cffi:with-foreign-objects ((in-buffer :uint8 (length guid))
+			      (out-buffer :pointer)
+			      (bytes-returned 'dword))
+    (dotimes (index (length guid))
+      (setf (cffi:mem-aref in-buffer :uint8 index) (aref guid index)))
+
+    (dotimes (index (cffi:foreign-type-size :pointer))
+      (setf (cffi:mem-aref out-buffer :uint8 index) 0))
+    
+    (%ff-wsaioctl socket :sio-get-extension-function-pointer
+		  in-buffer (length +wsaid-getacceptexsockaddrs+)
+		  out-buffer (cffi:foreign-type-size :pointer)
+		  bytes-returned
+		  (cffi:null-pointer)
+		  (cffi:null-pointer))
+    (assert (= (cffi:mem-ref bytes-returned 'dword) (cffi:foreign-type-size :pointer)))
+    (cffi:mem-ref out-buffer :pointer)))
+
+(defun make-getacceptexsockaddrs-function (socket)
+  (let ((ptr (compute-socket-guid-function-pointer socket +wsaid-getacceptexsockaddrs+)))
+    (lambda (buffer receive-data-length local-address-length remote-address-length
+	     local-sockaddr local-sockaddr-length
+	     remote-sockaddr remote-sockaddr-length)
+      (cffi:foreign-funcall-pointer ptr nil
+				    :pointer buffer
+				    dword receive-data-length
+				    dword local-address-length
+				    dword remote-address-length
+				    :pointer local-sockaddr
+				    :pointer local-sockaddr-length
+				    :pointer remote-sockaddr
+				    :pointer remote-sockaddr-length
+				    :void))))
+
+(defun make-acceptex-function (socket)
+  (let ((ptr (compute-socket-guid-function-pointer socket +wsaid-acceptex+)))
+    (lambda (listen-socket accept-socket output-buffer
+	     receive-data-length local-address-length remote-address-length
+	     bytes-received overlapped)
+      (let ((rv (cffi:foreign-funcall-pointer ptr (:convention :stdcall)
+					      socket listen-socket
+					      socket accept-socket
+					      :pointer output-buffer
+					      dword receive-data-length
+					      dword local-address-length
+					      dword remote-address-length
+					      :pointer bytes-received
+					      :pointer overlapped
+					      bool)))
+	(values rv (%ff-wsa-get-last-error))))))
+
+(defun accept-ipv4-socket-addresses (request)
+  (check-type request accept-ipv4-request)
+  (cffi:with-foreign-objects ((ptr-socket 'socket))
+    (setf (cffi:mem-ref ptr-socket 'socket) (descriptor request))
+    (%ff-setsockopt (client-descriptor request) :sol-socket
+		    :so-update-accept-context
+		    ptr-socket (cffi:foreign-type-size 'socket)))
+  (cffi:with-foreign-objects ((ptr-name '(:struct sockaddr-in))
+			      (ptr-name-length :int))
+    (setf (cffi:mem-ref ptr-name-length :int) (cffi:foreign-type-size '(:struct sockaddr-in)))
+    (dotimes (index (cffi:foreign-type-size '(:struct sockaddr-in)))
+      (setf (cffi:mem-aref ptr-name :uint8 index) 0))
+    
+    (labels ((sockaddr-in/address (ptr)
+	       (let ((ptr (cffi:foreign-slot-pointer ptr '(:struct sockaddr-in) 'in-addr)))
+		 (%ff-inet-ntoa (cffi:foreign-slot-value ptr '(:struct in-addr) 'S-addr))))
+	     (sockaddr-in/port (ptr)
+	       (%ff-ntohs (cffi:foreign-slot-value ptr '(:struct sockaddr-in) 'sin-port))))
+      (%ff-getpeername (client-descriptor request) ptr-name ptr-name-length)
+      (setf (remote-address request) (sockaddr-in/address ptr-name)
+	    (remote-port request) (sockaddr-in/port ptr-name))
+      
+      (%ff-getsockname (client-descriptor request) ptr-name ptr-name-length)
+      (setf (local-address request) (sockaddr-in/address ptr-name)
+	    (local-port request) (sockaddr-in/port ptr-name)))))
+
+(defmethod obtain-results ((request accept-ipv4-request))
+  (assert (completedp request))
+  (cffi:with-foreign-object (ptr-bytes-read 'dword)
+    (%ff-get-overlapped-result (descriptor request)
+			       (overlapped-structure request)
+			       ptr-bytes-read
+			       +false+)
+    (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword)))
+  (accept-ipv4-socket-addresses request))
+
+(defun minimum-accept-ipv4-buffer-size ()
+  (* 2 (+ 16 (cffi:foreign-type-size '(:struct sockaddr-in)))))
+
+(defun accept-ipv4 (listen-socket accept-socket buffer buffer-length &optional (request (make-instance 'accept-ipv4-request)))
+  (setf (buffer request) buffer
+	(buffer-length request) buffer-length
+	(client-descriptor request) accept-socket)
+  (%ff-reset-event (event-handle request))
+  (let* ((local-address-length (+ 16 (cffi:foreign-type-size '(:struct sockaddr-in))))
+	 (remote-address-length local-address-length)
+	 (received-data-length (- buffer-length local-address-length remote-address-length))
+	 (fn (make-acceptex-function listen-socket)))
+    (unless (>= received-data-length 0)
+      (error "Buffer is not big enough. Please increase the size of the buffer and/or read the documentation on the function AcceptEx."))
+    (unless (zerop received-data-length)
+      (warn "RECEIVED-DATA-LENGTH is not 0."))
+    (cffi:with-foreign-object (ptr-bytes-read 'dword)
+      (multiple-value-bind (rv error) (funcall fn
+					       listen-socket accept-socket buffer
+					       received-data-length local-address-length remote-address-length
+					       ptr-bytes-read (overlapped-structure request))
+	(declare (ignore rv))
+	(ecase error
+	  (:no-error
+	   (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword))
+	   (%ff-set-event (event-handle request))
+	   (accept-ipv4-socket-addresses request))
+	  (:wsa-io-pending
+	   (setf (bytes-read request) nil
+		 (local-address request) nil
+		 (local-port request) nil
+		 (remote-address request) nil
+		 (remote-port request) nil))))))
+  (setf (descriptor request) listen-socket)
+  request)
 
 ;;;; Helper functions
 (defun make-empty-overlapped-structure ()
