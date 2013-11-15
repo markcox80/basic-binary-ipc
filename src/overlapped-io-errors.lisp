@@ -94,7 +94,7 @@
       return-value))
 
 (define-check-system-call check-socket-overlapped (caller name return-value &key (pass-errors '(:wsa-io-pending)))
-  (print return-value)
+
   (cond
     ((= +false+ return-value)
      (let ((v (%ff-wsa-get-last-error)))
