@@ -216,9 +216,9 @@
 (defun %ff-inet-addr (dotted-decimal &optional (error t) error-value)
   (let ((rv (%%ff-inet-addr dotted-decimal)))
     (cond
-      ((and error (= rv +inaddr-none+))
+      ((and error (= rv %+inaddr-none+))
        (error "Cannot convert value ~A to a network long using \"inet_addr\"." dotted-decimal))
-      ((= rv +inaddr-none+)
+      ((= rv %+inaddr-none+)
        error-value)
       (t
        rv))))

@@ -1,6 +1,9 @@
 (in-package "BASIC-BINARY-IPC.OVERLAPPED-IO")
 (declaim (optimize (debug 3)))
 
+(defparameter +inaddr-none+ (%ff-inet-ntoa %+inaddr-none+))
+(defparameter +inaddr-any+ (%ff-inet-ntoa %+inaddr-any+))
+
 ;;;; REQUEST
 (defgeneric overlapped-structure (request)
   (:documentation "Return the overlapped structure owned by the REQUEST."))
@@ -521,6 +524,7 @@ CreateNamedPipe or CreateFile."
 
 (defparameter +wsaid-getacceptexsockaddrs+ #(242 125 54 181 172 203 207 17 149 202 0 128 95 72 161 146))
 (defparameter +wsaid-acceptex+ #(241 125 54 181 172 203 207 17 149 202 0 128 95 72 161 146))
+(defparameter +wsaid-connectex+ #(185 7 162 37 243 221 96 70 142 233 118 229 140 116 6 62))
 
 (defun compute-socket-guid-function-pointer (socket guid)
   (cffi:with-foreign-objects ((in-buffer :uint8 (length guid))
@@ -562,7 +566,7 @@ CreateNamedPipe or CreateFile."
     (lambda (listen-socket accept-socket output-buffer
 	     receive-data-length local-address-length remote-address-length
 	     bytes-received overlapped)
-      (let ((rv (cffi:foreign-funcall-pointer ptr (:convention :stdcall)
+      (let ((rv (cffi:foreign-funcall-pointer ptr nil
 					      socket listen-socket
 					      socket accept-socket
 					      :pointer output-buffer
@@ -572,6 +576,21 @@ CreateNamedPipe or CreateFile."
 					      :pointer bytes-received
 					      :pointer overlapped
 					      bool)))
+	(values rv (%ff-wsa-get-last-error))))))
+
+(defun make-connectex-function (socket)
+  (let ((ptr (compute-socket-guid-function-pointer socket +wsaid-connectex+)))
+    (lambda (socket name name-length send-buffer send-data-length bytes-sent overlapped)
+      (let ((rv (cffi:foreign-funcall-pointer ptr nil
+					      socket socket
+					      :pointer name
+					      :int name-length
+					      :pointer send-buffer
+					      dword send-data-length
+					      (:pointer dword) bytes-sent
+					      (:pointer (:struct overlapped)) overlapped
+					      bool)))
+	(check-socket-overlapped #'make-connectex-function "ConnectEx" rv)
 	(values rv (%ff-wsa-get-last-error))))))
 
 (defun accept-ipv4-socket-addresses (request)
@@ -645,6 +664,58 @@ CreateNamedPipe or CreateFile."
 		 (remote-port request) nil))))))
   (setf (descriptor request) listen-socket)
   request)
+
+(defclass connect-ipv4-request (request)
+  ((local-address
+    :initarg :local-address
+    :accessor local-address)
+   (local-port
+    :initarg :local-port
+    :accessor local-port)
+   (remote-address
+    :initarg :remote-address
+    :accessor remote-address)
+   (remote-port
+    :initarg :remote-port
+    :accessor remote-port)))
+
+(defmethod obtain-results ((request request))
+  (%ff-setsockopt (descriptor request) :sol-socket :so-update-connect-context (cffi:null-pointer) 0)
+  (labels ((sockaddr-in/address (ptr)
+	     (let ((ptr (cffi:foreign-slot-pointer ptr '(:struct sockaddr-in) 'in-addr)))
+	       (%ff-inet-ntoa (cffi:foreign-slot-value ptr '(:struct in-addr) 'S-addr))))
+	   (sockaddr-in/port (ptr)
+	     (%ff-ntohs (cffi:foreign-slot-value ptr '(:struct sockaddr-in) 'sin-port))))
+    (cffi:with-foreign-objects ((ptr-name '(:struct sockaddr-in))
+				(ptr-name-length :int))
+      (setf (cffi:mem-ref ptr-name-length :int) (cffi:foreign-type-size '(:struct sockaddr-in)))
+      
+      (%ff-getpeername (descriptor request) ptr-name ptr-name-length)
+      (setf (remote-address request) (sockaddr-in/address ptr-name)
+	    (remote-port request) (sockaddr-in/port ptr-name))
+      
+      (%ff-getsockname (descriptor request) ptr-name ptr-name-length)
+      (setf (local-address request) (sockaddr-in/address ptr-name)
+	    (local-port request) (sockaddr-in/port ptr-name)))))
+
+(defun connect-ipv4 (socket name &optional (request (make-instance 'connect-ipv4-request)))
+  (check-type request connect-ipv4-request)
+  (setf (local-address request) nil
+	(local-port request) nil
+	(remote-address request) nil
+	(remote-port request) nil)
+  (%ff-reset-event (event-handle request))
+  (let ((fn (make-connectex-function socket)))
+    (multiple-value-bind (rv error) (funcall fn socket name (cffi:foreign-type-size '(:struct sockaddr-in))
+					     (cffi:null-pointer) 0 (cffi:null-pointer)
+					     (overlapped-structure request))
+      (declare (ignore rv))
+      (ecase error
+	(:no-error
+	 (%ff-set-event request))
+	(:wsa-io-pending)))
+    (setf (descriptor request) socket)
+    request))
 
 ;;;; Helper functions
 (defun make-empty-overlapped-structure ()

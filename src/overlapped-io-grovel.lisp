@@ -76,7 +76,8 @@
 (ctype socket "SOCKET")
 (ctype socket-group "GROUP")
 
-(constant (+inaddr-none+ "INADDR_NONE"))
+(constant (%+inaddr-none+ "INADDR_NONE"))
+(constant (%+inaddr-any+ "INADDR_ANY"))
 
 (constantenum (socket-address-family :base-type :int)
   ((:af-inet "AF_INET")))
@@ -105,7 +106,8 @@
   ((:sol-socket "SOL_SOCKET")))
 
 (constantenum (socket-option :base-type :int)
-  ((:so-update-accept-context "SO_UPDATE_ACCEPT_CONTEXT")))
+  ((:so-update-accept-context "SO_UPDATE_ACCEPT_CONTEXT"))
+  ((:so-update-connect-context "SO_UPDATE_CONNECT_CONTEXT")))
 
 ;;;; ERRORS
 ;; Winsock Errors
