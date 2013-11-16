@@ -229,3 +229,62 @@
 	  (dotimes (index number-of-bytes)
 	    (assert-equal index (cffi:mem-aref buffer-1 :uint8 index))
 	    (assert-equal index (cffi:mem-aref buffer-2 :uint8 index))))))))
+
+;;;; Sockets
+(defvar *ports* nil)
+(defun random-port ()
+  (loop
+     :for port := (+ 41000 (random 1000))
+     :while (find port *ports* :test #'=)
+     :finally (progn
+		(push port *ports*)
+		(return port))))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun do-with-socket (socket function)
+    (unwind-protect
+	 (funcall function socket)
+      (close-socket socket)))
+
+  (defmacro with-socket ((var form) &body body)
+    `(do-with-socket ,form
+       #'(lambda (,var)
+	   ,@body))))
+
+(define-test ipv4-connection
+  (let ((port (random-port))
+	(address "127.0.0.1")
+	(buffer-length (minimum-accept-ipv4-buffer-size)))
+    (with-socket (server (make-ipv4-server address port))
+      (with-socket (remote-client (make-socket :af-inet :sock-stream :ipproto-tcp))
+	(cffi:with-foreign-objects ((buffer :uint8 buffer-length))
+	  (with-request (accept (accept-ipv4 server remote-client buffer buffer-length))
+	    (multiple-value-bind (client connection-request) (connect-ipv4 address port)
+	      (with-request (connection-request connection-request)
+		(with-socket (client client)
+		  (declare (ignore client))
+		  (wait-for-request accept 10)
+		  (assert-true (completedp accept))
+		  (assert-true (completedp connection-request)))))))))))
+
+(define-test ipv4-connection/no-server/remote
+  (let ((address "169.254.1.1")
+	(port (random-port)))
+    (multiple-value-bind (client connection-request) (connect-ipv4 address port)
+      (with-request (connection-request connection-request)
+	(with-socket (client client)
+	  (declare (ignore client))
+	  (wait-for-request connection-request 60)
+	  (assert-true (completedp connection-request))
+	  (assert-equal nil (remote-address connection-request)))))))
+
+(define-test ipv4-connection/no-server/local
+  (let ((address "127.0.0.1")
+	(port (random-port)))
+    (multiple-value-bind (client connection-request) (connect-ipv4 address port)
+      (with-request (connection-request connection-request)
+	(with-socket (client client)
+	  (declare (ignore client))
+	  (wait-for-request connection-request 60)
+	  (assert-true (completedp connection-request))
+	  (assert-equal nil (remote-address connection-request)))))))
