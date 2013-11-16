@@ -47,4 +47,33 @@
 
 	   #:write-file
 	   #:write-file-request
-	   #:bytes-written))
+	   #:bytes-written)
+
+  ;; Sockets
+  (:export #:make-socket
+	   #:close-socket)
+
+  ;; IPv4 Sockets
+  (:export #:+inaddr-none+
+	   #:+inaddr-any+
+	   
+	   #:with-sockaddr-in
+	   #:do-with-sockaddr-in
+	   
+	   #:make-ipv4-server
+	   
+	   #:accept-ipv4-request
+	   #:local-address
+	   #:local-port
+	   #:remote-address
+	   #:remote-port
+	   #:client-descriptor
+	   #:buffer
+	   #:buffer-length
+	   #:bytes-read
+
+	   #:minimum-accept-ipv4-buffer-size
+	   #:accept-ipv4
+	   
+	   #:connect-ipv4-request
+	   #:connect-ipv4))
