@@ -83,7 +83,7 @@
     ((= +false+ return-value)
      (let ((v (%ff-get-last-error)))
        (if (find v pass-errors)
-	   (values +true+ v)
+	   (values +false+ v)
 	   (signal-foreign-function-error caller name))))
     (t
      (values +true+ :no-error))))
@@ -99,7 +99,7 @@
     ((= +false+ return-value)
      (let ((v (%ff-wsa-get-last-error)))
        (if (find v pass-errors)
-	   (values +true+ v)
+	   (values +false+ v)
 	   (signal-socket-foreign-function-error caller name))))
     (t
      (values +true+ :no-error))))
