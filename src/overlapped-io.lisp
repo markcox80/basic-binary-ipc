@@ -18,6 +18,25 @@
   (:documentation "Obtain all results from the operating system
   associated with REQUEST. Returns nothing."))
 
+(defgeneric succeededp (request)
+  (:documentation "Predicate to determine if the REQUEST completed successfully."))
+
+(defgeneric failedp (request)
+  (:documentation "Predicate to determine if the REQUEST failed to complete successfully."))
+
+(defun get-overlapped-result (request &optional wait)
+  (check-type request request)
+  (check-type wait (or null (integer 0)))
+  (cffi:with-foreign-object (bytes-transferred 'dword)
+    (let ((rv (%ff-get-overlapped-result (descriptor request)
+					 (overlapped-structure request)
+					 bytes-transferred
+					 (if wait wait +false+))))
+      (values (if (= rv +false+)
+		  (%ff-get-last-error)
+		  :no-error)
+	      (cffi:mem-ref bytes-transferred 'dword)))))
+
 (defvar *obtaining-results* nil)
 
 ;; This around method for OBTAIN-RESULTS is needed so that the
@@ -41,11 +60,16 @@
     :accessor descriptor
     :documentation "The DESCRIPTOR slot contains the descriptor
     assigned when the request object is in the WAITING or COMPLETEDP
-    state. Note this descriptor is not closed by FREE-REQUEST."))
+    state. Note this descriptor is not closed by FREE-REQUEST.")
+   (succeededp
+    :initarg :succeededp
+    :accessor succeededp
+    :documentation "Whether the operation succeeded or not."))
   (:default-initargs
    :overlapped-structure (make-empty-overlapped-structure)
    :event-handle (%ff-create-event (cffi:null-pointer) +true+ +false+ (cffi:null-pointer))
-   :descriptor nil))
+   :descriptor nil
+   :succeededp nil))
 
 (defmethod initialize-instance :after ((object request) &key)
   (let ((ptr (overlapped-structure object))
@@ -65,6 +89,9 @@
 
     ;; Do not close the descriptor.
     (setf descriptor nil)))
+
+(defmethod failedp ((request request))
+  (not (succeededp request)))
 
 (defun do-with-request (request function)
   (unwind-protect
@@ -258,17 +285,22 @@ CreateNamedPipe or CreateFile."
   ())
 
 (defmethod obtain-results ((request connect-named-pipe-request))
-  (values))
+  (unless (succeededp request)
+    (ecase (get-overlapped-result request)
+      (:no-error
+       (setf (succeededp request) t)))))
 
 (defun connect-named-pipe (server-handle &optional (request (make-instance 'connect-named-pipe-request)))
   (check-type server-handle named-pipe-handle)
+  (setf (succeededp request) nil)
   (%ff-reset-event (event-handle request))
   (multiple-value-bind (rv error) (%ff-connect-named-pipe server-handle (overlapped-structure request))
     (declare (ignore rv))
     (ecase error
       (:error-pipe-connected
-       (%ff-set-event (event-handle request)))
-      ((:no-error :error-io-pending)
+       (%ff-set-event (event-handle request))
+       (setf (succeededp request) t))
+      (:error-io-pending
        )))
   (setf (descriptor request) server-handle)
   request)
@@ -289,17 +321,14 @@ CreateNamedPipe or CreateFile."
 
 (defmethod obtain-results ((request read-file-request))
   (assert (completedp request))
-  (cffi:with-foreign-object (ptr-bytes-read 'dword)
-    (multiple-value-bind (rv error) (%ff-get-overlapped-result (descriptor request)
-							       (overlapped-structure request)
-							       ptr-bytes-read
-							       +false+)
-      (declare (ignore rv))
-      (ecase error
-	(:no-error
-	 (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword)))
-	(:error-broken-pipe
-	 (setf (bytes-read request) 0))))))
+  (multiple-value-bind (error bytes-read) (get-overlapped-result request)    
+    (ecase error
+      (:no-error
+       (setf (bytes-read request) bytes-read
+	     (succeededp request) t))
+      (:error-broken-pipe
+       (setf (bytes-read request) 0
+	     (succeededp request) nil)))))
 
 (defun read-file (handle buffer buffer-length &optional (request (make-instance 'read-file-request)))
   (check-type handle named-pipe-handle)
@@ -307,7 +336,8 @@ CreateNamedPipe or CreateFile."
   (check-type buffer-length (integer 0))
   (check-type request read-file-request)
   (setf (buffer request) buffer
-	(buffer-length request) buffer-length)
+	(buffer-length request) buffer-length
+	(succeededp request) nil)
   (%ff-reset-event (event-handle request))
   (cffi:with-foreign-object (ptr-bytes-read 'dword)
     (multiple-value-bind (rv error) (%ff-read-file handle buffer buffer-length
@@ -336,12 +366,11 @@ CreateNamedPipe or CreateFile."
 
 (defmethod obtain-results ((request write-file-request))
   (assert (completedp request))
-  (cffi:with-foreign-object (ptr-bytes-written 'dword)
-    (%ff-get-overlapped-result (descriptor request)
-			       (overlapped-structure request)
-			       ptr-bytes-written
-			       +false+)
-    (setf (bytes-written request) (cffi:mem-ref ptr-bytes-written 'dword))))
+  (multiple-value-bind (error bytes-written) (get-overlapped-result request)
+    (ecase error
+      (:no-error
+       (setf (bytes-written request) bytes-written
+	     (succeededp request) t)))))
 
 (defun write-file (handle buffer buffer-length &optional (request (make-instance 'write-file-request)))
   (check-type handle named-pipe-handle)
@@ -349,7 +378,8 @@ CreateNamedPipe or CreateFile."
   (check-type buffer-length (integer 0))
   (check-type request write-file-request)
   (setf (buffer request) buffer
-	(buffer-length request) buffer-length)
+	(buffer-length request) buffer-length
+	(succeededp request) nil)
   (%ff-reset-event (event-handle request))
   (cffi:with-foreign-object (ptr-bytes-written 'dword)
     (multiple-value-bind (rv error) (%ff-write-file handle buffer buffer-length
@@ -639,13 +669,12 @@ CreateNamedPipe or CreateFile."
 
 (defmethod obtain-results ((request accept-ipv4-request))
   (assert (completedp request))
-  (cffi:with-foreign-object (ptr-bytes-read 'dword)
-    (%ff-get-overlapped-result (descriptor request)
-			       (overlapped-structure request)
-			       ptr-bytes-read
-			       +false+)
-    (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword)))
-  (accept-ipv4-socket-addresses request))
+  (multiple-value-bind (error bytes-read) (get-overlapped-result request)
+    (ecase error
+      (:no-error
+       (setf (bytes-read request) bytes-read
+	     (succeededp request) t)
+       (accept-ipv4-socket-addresses request)))))
 
 (defun minimum-accept-ipv4-buffer-size ()
   (* 2 (+ 16 (cffi:foreign-type-size '(:struct sockaddr-in)))))
@@ -653,7 +682,8 @@ CreateNamedPipe or CreateFile."
 (defun accept-ipv4 (listen-socket accept-socket buffer buffer-length &optional (request (make-instance 'accept-ipv4-request)))
   (setf (buffer request) buffer
 	(buffer-length request) buffer-length
-	(client-descriptor request) accept-socket)
+	(client-descriptor request) accept-socket
+	(succeededp request) nil)
   (%ff-reset-event (event-handle request))
   (let* ((local-address-length (+ 16 (cffi:foreign-type-size '(:struct sockaddr-in))))
 	 (remote-address-length local-address-length)
@@ -697,7 +727,7 @@ CreateNamedPipe or CreateFile."
     :initarg :remote-port
     :accessor remote-port)))
 
-(defmethod obtain-results ((request request))
+(defmethod obtain-results ((request connect-ipv4-request))
   (labels ((sockaddr-in/address (ptr)
 	     (let ((ptr (cffi:foreign-slot-pointer ptr '(:struct sockaddr-in) 'in-addr)))
 	       (%ff-inet-ntoa (cffi:foreign-slot-value ptr '(:struct in-addr) 'S-addr))))
@@ -719,23 +749,20 @@ CreateNamedPipe or CreateFile."
 	       (%ff-getsockname (descriptor request) ptr-name ptr-name-length)
 	       (setf (local-address request) (sockaddr-in/address ptr-name)
 		     (local-port request) (sockaddr-in/port ptr-name)))))
-    (cffi:with-foreign-objects ((bytes-transferred 'dword))
-      (multiple-value-bind (rv error) (%ff-get-overlapped-result (descriptor request)
-								 (overlapped-structure request)
-								 bytes-transferred
-								 +false+)
-	(declare (ignore rv))
-	(ecase error
-	  (:no-error
-	   (fill-request))
-	  ((:error-connection-refused :error-sem-timeout)))))))
+    (ecase (get-overlapped-result request)
+      (:no-error
+       (setf (succeededp request) t)
+       (fill-request))
+      ((:error-connection-refused :error-sem-timeout)
+       (setf (succeededp request) nil)))))
 
 (defun connect-ipv4 (address port &optional (request (make-instance 'connect-ipv4-request)))
   (check-type request connect-ipv4-request)
   (setf (local-address request) nil
 	(local-port request) nil
 	(remote-address request) nil
-	(remote-port request) nil)
+	(remote-port request) nil
+	(succeededp request) nil)
   (%ff-reset-event (event-handle request))
   (initialising-socket-progn (socket (%ff-socket :af-inet :sock-stream :ipproto-tcp))
     (let* ((fn (make-connectex-function socket)))

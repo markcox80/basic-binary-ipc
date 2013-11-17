@@ -9,6 +9,8 @@
 	   #:invalidp
 	   #:waitingp
 	   #:completedp
+	   #:succeededp
+	   #:failedp
 
 	   #:with-request
 	   #:do-with-request)

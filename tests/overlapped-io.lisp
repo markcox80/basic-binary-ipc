@@ -38,7 +38,8 @@
 	(with-handle (client (connect-to-named-pipe pipe-name))
 	  (declare (ignore client))
 	  (assert-false (waitingp connect-request))
-	  (assert-true (completedp connect-request)))))))
+	  (assert-true (completedp connect-request))
+	  (assert-true (succeededp connect-request)))))))
 
 (define-test named-pipe/connection/no-wait
   (let ((pipe-name (random-pipe-name)))
@@ -48,7 +49,8 @@
 	(with-request (connect-request (connect-named-pipe server))
 	  (assert-false (invalidp connect-request))
 	  (assert-false (waitingp connect-request))
-	  (assert-true (completedp connect-request)))))))
+	  (assert-true (completedp connect-request))
+	  (assert-true (succeededp connect-request)))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun do-with-connected-pipe (function &key ignore-close-errors)
@@ -87,11 +89,13 @@
       (with-request (write-request (write-file client buffer-to-write 100))
 	(wait-for-request write-request 1)
 	(assert-true (completedp write-request))
+	(assert-true (succeededp write-request))
 	(assert-equal 100 (bytes-written write-request)))
 
       (with-request (read-request (read-file server buffer-to-read 100))
 	(wait-for-request read-request 1)
 	(assert-true (completedp read-request))
+	(assert-true (succeededp read-request))
 	(assert-equal 100 (bytes-read read-request))
 
 	(dotimes (index 100)
@@ -113,10 +117,12 @@
 	(with-request (write-request (write-file client buffer-to-write 100))
 	  (wait-for-request write-request 1)
 	  (assert-true (completedp write-request))
+	  (assert-true (succeededp write-request))
 	  (assert-equal 100 (bytes-written write-request)))
 
 	(wait-for-request read-request 1)
 	(assert-true (completedp read-request))
+	(assert-true (succeededp read-request))
 	(assert-equal 100 (bytes-read read-request))
 
 	(dotimes (index 100)
@@ -130,6 +136,7 @@
 	(assert-false (completedp read-request))	
 	(close-handle client)
 	(assert-true (completedp read-request))
+	(assert-false (succeededp read-request))
 	(assert-equal 0 (bytes-read read-request))))))
 
 (define-test named-pipe/disconnect/close-server
@@ -139,6 +146,7 @@
 	(assert-false (completedp read-request))	
 	(close-handle server)
 	(assert-true (completedp read-request))
+	(assert-false (succeededp read-request))
 	(assert-equal 0 (bytes-read read-request))))))
 
 (define-test wait-for-requests/one
@@ -265,7 +273,9 @@
 		  (declare (ignore client))
 		  (wait-for-request accept 10)
 		  (assert-true (completedp accept))
-		  (assert-true (completedp connection-request)))))))))))
+		  (assert-true (succeededp accept))
+		  (assert-true (completedp connection-request))
+		  (assert-true (succeededp connection-request)))))))))))
 
 (define-test ipv4-connection/no-server/remote
   (let ((address "169.254.1.1")
@@ -276,6 +286,7 @@
 	  (declare (ignore client))
 	  (wait-for-request connection-request 60)
 	  (assert-true (completedp connection-request))
+	  (assert-false (succeededp connection-request))
 	  (assert-equal nil (remote-address connection-request)))))))
 
 (define-test ipv4-connection/no-server/local
@@ -287,4 +298,5 @@
 	  (declare (ignore client))
 	  (wait-for-request connection-request 60)
 	  (assert-true (completedp connection-request))
+	  (assert-false (succeededp connection-request))
 	  (assert-equal nil (remote-address connection-request)))))))

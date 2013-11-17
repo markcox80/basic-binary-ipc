@@ -25,10 +25,7 @@
 (define-system-call (%ff-cancel-io "CancelIo") (check-true bool)
   (object handle))
 
-(define-system-call (%ff-get-overlapped-result "GetOverlappedResult")
-    (check-overlapped bool :pass-errors '(:error-broken-pipe
-					  :error-connection-refused
-					  :error-sem-timeout))
+(cffi:defcfun (%ff-get-overlapped-result "GetOverlappedResult") bool
   (handle handle)
   (overlapped (:pointer (:struct overlapped)))
   (ptr-bytes-transferred (:pointer dword))
