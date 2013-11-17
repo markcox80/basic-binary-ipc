@@ -252,7 +252,7 @@
   (defun do-with-socket (socket function)
     (unwind-protect
 	 (funcall function socket)
-      (close-socket socket)))
+      (ignore-errors (close-socket socket))))
 
   (defmacro with-socket ((var form) &body body)
     `(do-with-socket ,form
@@ -304,3 +304,79 @@
 	  (assert-true (completedp connection-request))
 	  (assert-false (succeededp connection-request))
 	  (assert-equal nil (remote-address connection-request)))))))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)  
+  (defun do-with-ipv4 (function address port)
+    (let ((buffer-length (minimum-accept-ipv4-buffer-size)))
+      (with-socket (server (make-ipv4-server address port))
+	(with-socket (remote-client (make-socket :af-inet :sock-stream :ipproto-tcp))
+	  (cffi:with-foreign-object (buffer :uint8 buffer-length)
+	    (with-request (accept (accept-ipv4 server remote-client buffer buffer-length))
+	      (multiple-value-bind (client connection-request) (connect-ipv4 address port)
+		(wait-for-request connection-request 10)
+		(assert (and (completedp connection-request)
+			     (succeededp connection-request)))
+		(assert (completedp accept))
+		(with-socket (client client)
+		  (funcall function client remote-client)))))))))
+
+  (defmacro with-ipv4 ((client remote-client &optional (address "127.0.0.1") (port '(random-port))) &body body)
+    `(do-with-ipv4 #'(lambda (,client ,remote-client)
+		       ,@body)
+       ,address ,port)))
+
+(define-test ipv4-connection/communication/nowait
+  (let ((buffer-length 10))
+    (with-ipv4 (client remote-client)
+      (cffi:with-foreign-objects ((read-buffer :uint8 buffer-length)
+				  (write-buffer :uint8 buffer-length))
+	(dotimes (index buffer-length)
+	  (setf (cffi:mem-aref write-buffer :uint8 index) index
+		(cffi:mem-aref read-buffer :uint8 index) 0))
+	(with-request (writing (write-file client write-buffer buffer-length))
+	  (wait-for-request writing 10)
+	  (assert-true (completedp writing)))
+
+	(with-request (reading (read-file remote-client read-buffer buffer-length))
+	  (assert-true (completedp reading))
+	  (dotimes (index buffer-length)
+	    (assert-equal (cffi:mem-aref write-buffer :uint8 index)
+			  (cffi:mem-aref read-buffer :uint8 index))))))))
+
+(define-test ipv4-connection/communication/wait
+  (let ((buffer-length 10))
+    (with-ipv4 (client remote-client)
+      (cffi:with-foreign-objects ((read-buffer :uint8 buffer-length)
+				  (write-buffer :uint8 buffer-length))
+	(dotimes (index buffer-length)
+	  (setf (cffi:mem-aref write-buffer :uint8 index) index
+		(cffi:mem-aref read-buffer :uint8 index) 0))
+	(with-request (reading (read-file remote-client read-buffer buffer-length))
+	  (assert-false (completedp reading))
+
+	  (with-request (writing (write-file client write-buffer buffer-length))
+	    (wait-for-request writing 10)
+	    (assert-true (and (completedp writing)
+			      (succeededp writing)))
+	    
+	    (assert-true (and (completedp reading)
+			      (succeededp reading)))
+	    (dotimes (index buffer-length)
+	      (assert-equal (cffi:mem-aref write-buffer :uint8 index)
+			    (cffi:mem-aref read-buffer :uint8 index)))))))))
+
+(define-test ipv4-connection/communication/disconnect
+  (let ((buffer-length 10))
+    (with-ipv4 (client remote-client)
+      (cffi:with-foreign-objects ((write-buffer :uint8 buffer-length)
+				  (read-buffer :uint8 buffer-length))
+	(dotimes (index buffer-length)
+	  (setf (cffi:mem-aref write-buffer :uint8 index) index
+		(cffi:mem-aref read-buffer :uint8 index) 0))
+
+	(close-socket remote-client)
+
+	(with-request (writing (write-file client write-buffer buffer-length))
+	  (wait-for-request writing 10)
+	  (assert-true (and (completedp writing)
+			    (succeededp writing))))))))
