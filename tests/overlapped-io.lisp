@@ -275,7 +275,11 @@
 		  (assert-true (completedp accept))
 		  (assert-true (succeededp accept))
 		  (assert-true (completedp connection-request))
-		  (assert-true (succeededp connection-request)))))))))))
+		  (assert-true (succeededp connection-request))
+		  (assert-equal address (remote-address connection-request))
+		  (assert-equal port (remote-port connection-request))
+		  (assert-equal address (local-address accept))
+		  (assert-equal port (local-port accept)))))))))))
 
 (define-test ipv4-connection/no-server/remote
   (let ((address "169.254.1.1")
