@@ -623,8 +623,7 @@ CreateNamedPipe or CreateFile."
 					      :pointer bytes-received
 					      :pointer overlapped
 					      bool)))
-	(check-socket-overlapped #'make-acceptex-function "AcceptEx" rv)
-	(values rv (%ff-wsa-get-last-error))))))
+	(check-socket-overlapped #'make-acceptex-function "AcceptEx" rv)))))
 
 (defun make-connectex-function (socket)
   (let ((ptr (compute-socket-guid-function-pointer socket +wsaid-connectex+)))
@@ -638,8 +637,7 @@ CreateNamedPipe or CreateFile."
 					      (:pointer dword) bytes-sent
 					      (:pointer (:struct overlapped)) overlapped
 					      bool)))
-	(check-socket-overlapped #'make-connectex-function "ConnectEx" rv)
-	(values rv (%ff-wsa-get-last-error))))))
+	(check-socket-overlapped #'make-connectex-function "ConnectEx" rv)))))
 
 (defun accept-ipv4-socket-addresses (request)
   (check-type request accept-ipv4-request)
@@ -683,6 +681,7 @@ CreateNamedPipe or CreateFile."
   (setf (buffer request) buffer
 	(buffer-length request) buffer-length
 	(client-descriptor request) accept-socket
+	(descriptor request) listen-socket
 	(succeededp request) nil)
   (%ff-reset-event (event-handle request))
   (let* ((local-address-length (+ 16 (cffi:foreign-type-size '(:struct sockaddr-in))))
@@ -698,19 +697,19 @@ CreateNamedPipe or CreateFile."
 					       listen-socket accept-socket buffer
 					       received-data-length local-address-length remote-address-length
 					       ptr-bytes-read (overlapped-structure request))
-	(declare (ignore rv))
-	(ecase error
-	  (:no-error
+	(cond
+	  ((= rv +true+)
 	   (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword))
 	   (%ff-set-event (event-handle request))
 	   (accept-ipv4-socket-addresses request))
-	  (:wsa-io-pending
+	  ((eql error :wsa-io-pending)
 	   (setf (bytes-read request) nil
 		 (local-address request) nil
 		 (local-port request) nil
 		 (remote-address request) nil
-		 (remote-port request) nil))))))
-  (setf (descriptor request) listen-socket)
+		 (remote-port request) nil))
+	  (t
+	   (error "Unsupported error encountered in ACCEPT-IPV4: ~A" error))))))
   request)
 
 (defclass connect-ipv4-request (request)
@@ -773,11 +772,12 @@ CreateNamedPipe or CreateFile."
 	(multiple-value-bind (rv error) (funcall fn socket name (cffi:foreign-type-size '(:struct sockaddr-in))
 						 (cffi:null-pointer) 0 (cffi:null-pointer)
 						 (overlapped-structure request))
-	  (declare (ignore rv))
-	  (ecase error
-	    (:no-error
+	  (cond
+	    ((= rv +true+)
 	     (%ff-set-event request))
-	    (:wsa-io-pending))))
+	    ((eql error :wsa-io-pending))
+	    (t
+	     (error "Unsupported error encountered in CONNECT-IPV4: ~A" error)))))
       (setf (descriptor request) socket)
       (values socket request))))
 
