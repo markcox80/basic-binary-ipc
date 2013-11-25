@@ -47,6 +47,7 @@
 
 (bitfield (named-pipe-open-mode :base-type :unsigned-int)
   ((:pipe-access-duplex "PIPE_ACCESS_DUPLEX"))
+  ((:file-flag-first-pipe-instance "FILE_FLAG_FIRST_PIPE_INSTANCE"))
   ((:file-flag-overlapped "FILE_FLAG_OVERLAPPED")))
 
 (bitfield (named-pipe-mode :base-type :unsigned-int)
@@ -194,6 +195,7 @@
   ((:error-success "ERROR_SUCCESS"))
   ((:no-error "NO_ERROR"))
   ((:error-invalid-handle "ERROR_INVALID_HANDLE"))
+  ((:error-access-denied "ERROR_ACCESS_DENIED"))
   ((:error-invalid-user-buffer "ERROR_INVALID_USER_BUFFER"))
   ((:error-not-enough-memory "ERROR_NOT_ENOUGH_MEMORY"))
   ((:error-operation-aborted "ERROR_OPERATION_ABORTED"))
