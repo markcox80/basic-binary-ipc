@@ -3,6 +3,14 @@
   (:import-from "BASIC-BINARY-IPC"
 		#:define-check-system-call
 		#:define-system-call)
+  
+  ;; Errors
+  (:export #:foreign-function-error-function-name
+	   #:foreign-function-error-code
+	   #:foreign-function-error-message
+	   #:foreign-function-error
+	   #:socket-foreign-function-error)
+  
   ;; Requests
   (:export #:request
 	   #:free-request

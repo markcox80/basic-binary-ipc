@@ -53,14 +53,46 @@
   (%error-message (cffi:foreign-enum-value 'winsock-error-codes error-code)))
 
 ;;;; System call checkers
+(defgeneric foreign-function-error-function-name (object))
+(defgeneric foreign-function-error-code (object))
+(defgeneric foreign-function-error-message (object))
+(define-condition foreign-function-error (error)
+  ((function-name
+    :initarg :function-name
+    :reader foreign-function-error-function-name)
+   (error-code
+    :initarg :error-code
+    :reader foreign-function-error-code))
+  (:report (lambda (condition stream)
+	     (format stream "Error calling foreign function ~A: ~A (~A)"
+		     (foreign-function-error-function-name condition)
+		     (foreign-function-error-message condition)
+		     (foreign-function-error-code condition)))))
+
+(defmethod foreign-function-error-message ((object foreign-function-error))
+  (error-message (foreign-function-error-code object)))
+
 (defun signal-foreign-function-error (caller name)
   (declare (ignore caller))
-  (error "Error calling foreign function ~A: ~A" name (error-message (%ff-get-last-error))))
+  (error 'foreign-function-error :name name :error-code (%ff-get-last-error))
+
+(define-condition socket-foreign-function-error (error)
+  ((function-name
+    :initarg :function
+    :reader foreign-function-error-function-name)
+   (code
+    :initarg :error-code
+    :reader foreign-function-error-code))
+  (:report (lambda (condition stream)
+	     (format stream "Error calling socket foreign function ~A: ~A (~A)"
+		     (foreign-function-error-function-name condition)
+		     (foreign-function-error-message condition)
+		     (foreign-function-error-code condition))))))
 
 (defun signal-socket-foreign-function-error (caller name)
   (declare (ignore caller))
   (let ((error-code (%ff-wsa-get-last-error)))
-    (error "Error calling socket foreign function ~A: ~A (~A)" name (winsock-error-message error-code) error-code)))
+    (error 'socket-foreign-function-error :function name :error-code error-code)))
 
 ;; File system call checkers
 (define-check-system-call check-valid-handle (caller name return-value)
