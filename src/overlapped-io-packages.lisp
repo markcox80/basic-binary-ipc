@@ -1,15 +1,9 @@
 (defpackage "BASIC-BINARY-IPC.OVERLAPPED-IO"
   (:use "COMMON-LISP")
   (:import-from "BASIC-BINARY-IPC"
+		#:system-function-error
 		#:define-check-system-call
 		#:define-system-call)
-  
-  ;; Errors
-  (:export #:foreign-function-error-function-name
-	   #:foreign-function-error-code
-	   #:foreign-function-error-message
-	   #:foreign-function-error
-	   #:socket-foreign-function-error)
   
   ;; Requests
   (:export #:request
