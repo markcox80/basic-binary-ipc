@@ -44,6 +44,11 @@
   ;; Named Pipes
   (:export #:connect-to-named-pipe
 
+	   #:valid-pipe-name-p
+	   #:canonical-windows-pipe-name
+	   
+	   #:valid-named-pipe-handle-p
+
 	   ;; Servers
 	   #:make-named-pipe-server
 	   #:connect-named-pipe
