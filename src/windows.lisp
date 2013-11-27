@@ -216,27 +216,34 @@
   (let* ((all-socket-requests (mapcar #'(lambda (socket socket-events)
 					  (mapcar #'(lambda (socket-event)
 						      (poll-socket-request socket socket-event))
-						  socket-events))
+						  (if (listp socket-events)
+						      socket-events
+						      (list socket-events))))
 				      all-sockets all-socket-events))
 	 (all-requests (reduce #'append all-socket-requests))
 	 (request (basic-binary-ipc.overlapped-io:wait-for-requests all-requests timeout)))
     (mapcar #'(lambda (socket socket-events socket-requests)
-		(loop
-		   :for socket-event :in socket-events
-		   :for socket-request :in socket-requests
-		   :when (and (eql request socket-request)
-			      (ecase socket-event
-				(connection-available-p
-				 (connection-available-p socket))
-				(ready-to-write-p
-				 (ready-to-write-p socket))
-				(data-available-p
-				 (data-available-p socket))
-				(determinedp
-				 (determinedp socket))
-				(connection-failed-p
-				 (connection-failed-p socket))
-				(connection-succeeded-p
-				 (connection-succeeded-p socket))))
-		   :collect socket-event))
+		(let ((matches (loop
+				  :for socket-event :in (if (listp socket-events)
+							    socket-events
+							    (list socket-events))
+				  :for socket-request :in socket-requests
+				  :when (and (eql request socket-request)
+					     (ecase socket-event
+					       (connection-available-p
+						(connection-available-p socket))
+					       (ready-to-write-p
+						(ready-to-write-p socket))
+					       (data-available-p
+						(data-available-p socket))
+					       (determinedp
+						(determinedp socket))
+					       (connection-failed-p
+						(connection-failed-p socket))
+					       (connection-succeeded-p
+						(connection-succeeded-p socket))))
+				  :collect socket-event)))
+		  (if (listp socket-events)
+		      matches
+		      (first matches))))
 	    all-sockets all-socket-events all-socket-requests)))
