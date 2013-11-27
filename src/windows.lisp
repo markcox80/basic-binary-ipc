@@ -171,6 +171,9 @@
       (:abort
        (basic-binary-ipc.overlapped-io:close-handle handle)))))
 
+(defmethod connection-available-p ((server local-server))
+  (basic-binary-ipc.overlapped-io:completedp (connect-request server)))
+
 (defmethod accept-connection ((server local-server))
   (cond
     ((basic-binary-ipc.overlapped-io:completedp (connect-request server))
