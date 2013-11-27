@@ -1,6 +1,9 @@
 (defpackage "BASIC-BINARY-IPC"
   (:use "COMMON-LISP")
    
+  ;; Errors
+  (:export #:posix-error)
+
   ;; Sockets
   (:export #:socket
 	   #:close-socket)

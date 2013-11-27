@@ -46,5 +46,6 @@
 				     (cffi-grovel:grovel-file "overlapped-io-grovel")
 				     (:file "overlapped-io-errors")
 				     (:file "overlapped-io-cffi")
-				     (:file "overlapped-io"))))
+				     (:file "overlapped-io")
+				     (:file "windows"))))
   :in-order-to ((test-op (test-op "basic-binary-ipc-tests"))))

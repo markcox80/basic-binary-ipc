@@ -1,10 +1,14 @@
 (in-package "BASIC-BINARY-IPC.TESTS")
 
-(defun local-socket-pathname ()
-  "/tmp/test.socket")
+(defun local-socket-pathname ()  
+  #-windows
+  "/tmp/test.socket"
+  #+windows
+  "//./pipe/test.socket")
 
 (define-test make-local-server
   (let ((server (make-local-server (local-socket-pathname))))
+    #-windows
     (assert-true (probe-file (local-socket-pathname)))
     (unwind-protect
 	 (progn
@@ -12,6 +16,7 @@
 	   (assert-error 'no-connection-available-error (accept-connection server))
 	   (assert-error 'posix-error (make-local-server (local-socket-pathname))))
       (close-socket server)
+      #-windows
       (assert-false (probe-file (local-socket-pathname))))))
 
 (define-test local-test/sockets
