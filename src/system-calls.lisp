@@ -77,9 +77,9 @@
     :reader system-function-error-value)
    (error-message
     :initarg :error-message
-    :reader error-message))
+    :reader system-function-error-message))
   (:report (lambda (condition stream)
-	     (format stream "The system function ~S failed with the following error (~d): ~S"
+	     (format stream "The system function ~S failed. (~S ~A)"
 		     (system-function-name condition)
 		     (system-function-error-value condition)
 		     (system-function-error-message condition)))))
