@@ -161,7 +161,8 @@
 
 (defun make-local-server (pathname &key &allow-other-keys)
   (let ((handle (wrap-system-function-error-progn
-		  (basic-binary-ipc.overlapped-io:make-named-pipe-server pathname))))
+		  (basic-binary-ipc.overlapped-io:make-named-pipe-server pathname
+									 :first-instance t))))
     (alexandria:unwind-protect-case ()
       (make-instance 'local-server
 		     :local-pathname pathname

@@ -256,10 +256,12 @@ CreateNamedPipe or CreateFile."
 (deftype named-pipe-handle ()
   `(satisfies valid-named-pipe-handle-p))
 
-(defun make-named-pipe-server (name &key (max-instances +pipe-unlimited-instances+) (output-buffer-size 1000) (input-buffer-size 1000))
+(defun make-named-pipe-server (name &key (max-instances +pipe-unlimited-instances+) (output-buffer-size 1000) (input-buffer-size 1000) first-instance)
   (let* ((name (canonical-windows-pipe-name name))
 	 (handle (%ff-create-named-pipe name
-					'(:pipe-access-duplex :file-flag-overlapped :file-flag-first-pipe-instance)
+					(if first-instance
+					    '(:pipe-access-duplex :file-flag-overlapped :file-flag-first-pipe-instance)
+					    '(:pipe-access-duplex :file-flag-overlapped))
 					'(:pipe-type-byte :pipe-readmode-byte)
 					max-instances
 					output-buffer-size
