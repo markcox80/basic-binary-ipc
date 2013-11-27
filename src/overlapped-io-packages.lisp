@@ -13,6 +13,8 @@
 	   #:completedp
 	   #:succeededp
 	   #:failedp
+	   #:reset-event
+	   #:set-event
 
 	   #:with-request
 	   #:do-with-request)

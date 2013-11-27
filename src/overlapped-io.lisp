@@ -71,10 +71,18 @@
    :descriptor nil
    :succeededp nil))
 
+(defun reset-event (request)
+  (check-type request request)
+  (%ff-reset-event (event-handle request)))
+
+(defun set-event (request)
+  (check-type request request)
+  (%ff-set-event (event-handle request)))
+
 (defmethod initialize-instance :after ((object request) &key)
   (let ((ptr (overlapped-structure object))
 	(handle (event-handle object)))
-    (%ff-reset-event handle)
+    (reset-event object)
     (setf (cffi:foreign-slot-value ptr '(:struct overlapped) 'h-event) handle))
   nil)
 
@@ -294,13 +302,13 @@ CreateNamedPipe or CreateFile."
 
 (defun connect-named-pipe (server-handle &optional (request (make-instance 'connect-named-pipe-request)))
   (check-type server-handle named-pipe-handle)
-  (setf (succeededp request) nil)
-  (%ff-reset-event (event-handle request))
+  (setf (succeededp request) nil)  
+  (reset-event request)
   (multiple-value-bind (rv error) (%ff-connect-named-pipe server-handle (overlapped-structure request))
     (declare (ignore rv))
     (ecase error
       (:error-pipe-connected
-       (%ff-set-event (event-handle request))
+       (set-event request)       
        (setf (succeededp request) t))
       (:error-io-pending
        )))
@@ -340,7 +348,7 @@ CreateNamedPipe or CreateFile."
   (setf (buffer request) buffer
 	(buffer-length request) buffer-length
 	(succeededp request) nil)
-  (%ff-reset-event (event-handle request))
+  (reset-event request)
   (cffi:with-foreign-object (ptr-bytes-read 'dword)
     (multiple-value-bind (rv error) (%ff-read-file handle buffer buffer-length
 						   ptr-bytes-read (overlapped-structure request))
@@ -348,7 +356,7 @@ CreateNamedPipe or CreateFile."
       (ecase error
 	(:no-error
 	 (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword))
-	 (%ff-set-event (event-handle request)))
+	 (set-event request))
 	(:error-io-pending
 	 (setf (bytes-read request) nil)))))
   (setf (descriptor request) handle)
@@ -382,7 +390,7 @@ CreateNamedPipe or CreateFile."
   (setf (buffer request) buffer
 	(buffer-length request) buffer-length
 	(succeededp request) nil)
-  (%ff-reset-event (event-handle request))
+  (reset-event request)
   (cffi:with-foreign-object (ptr-bytes-written 'dword)
     (multiple-value-bind (rv error) (%ff-write-file handle buffer buffer-length
 						    ptr-bytes-written
@@ -391,7 +399,7 @@ CreateNamedPipe or CreateFile."
       (ecase error
 	(:no-error
 	 (setf (bytes-written request) (cffi:mem-ref ptr-bytes-written 'dword))
-	 (%ff-set-event (event-handle request)))
+	 (set-event request))
 	(:error-io-pending
 	 (setf (bytes-written request) nil)))))
   (setf (descriptor request) handle)
@@ -685,7 +693,7 @@ CreateNamedPipe or CreateFile."
 	(client-descriptor request) accept-socket
 	(descriptor request) listen-socket
 	(succeededp request) nil)
-  (%ff-reset-event (event-handle request))
+  (reset-event request)
   (let* ((local-address-length (+ 16 (cffi:foreign-type-size '(:struct sockaddr-in))))
 	 (remote-address-length local-address-length)
 	 (received-data-length (- buffer-length local-address-length remote-address-length))
@@ -702,7 +710,7 @@ CreateNamedPipe or CreateFile."
 	(cond
 	  ((= rv +true+)
 	   (setf (bytes-read request) (cffi:mem-ref ptr-bytes-read 'dword))
-	   (%ff-set-event (event-handle request))
+	   (set-event request)
 	   (accept-ipv4-socket-addresses request))
 	  ((eql error :wsa-io-pending)
 	   (setf (bytes-read request) nil
@@ -764,7 +772,7 @@ CreateNamedPipe or CreateFile."
 	(remote-address request) nil
 	(remote-port request) nil
 	(succeededp request) nil)
-  (%ff-reset-event (event-handle request))
+  (reset-event request)
   (initialising-socket-progn (socket (%ff-socket :af-inet :sock-stream :ipproto-tcp))
     (let* ((fn (make-connectex-function socket)))
       (with-sockaddr-in (name +inaddr-any+ 0)
@@ -776,7 +784,7 @@ CreateNamedPipe or CreateFile."
 						 (overlapped-structure request))
 	  (cond
 	    ((= rv +true+)
-	     (%ff-set-event request))
+	     (set-event request))
 	    ((eql error :wsa-io-pending))
 	    (t
 	     (error "Unsupported error encountered in CONNECT-IPV4: ~A" error)))))
