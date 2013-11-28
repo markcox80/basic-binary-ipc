@@ -124,15 +124,18 @@
   (assert-error 'no-local-server-error (connect-to-local-server (local-socket-pathname))))
 
 (define-test local-test/pathname
-  (labels ((establish-channel (server client)
+  (labels ((perform-test (server client remote-client)
+	     (assert-true (poll-socket client 'connection-succeeded-p 10))	     
+	     (assert-true (pathname-match-p (local-pathname server)
+					    (local-pathname client)))
+	     (assert-true (pathname-match-p (local-pathname server)
+					    (local-pathname remote-client))))
+	   (establish-channel (server client)
 	     (assert-true (poll-socket server 'connection-available-p 10))
 	     (let ((remote-client (accept-connection server)))
-	       (assert-true (poll-socket client 'connection-succeeded-p 10))
-
-	       (assert-true (pathname-match-p (local-pathname server)
-					      (local-pathname client)))
-	       (assert-true (pathname-match-p (local-pathname server)
-					      (local-pathname remote-client))))))
+	       (unwind-protect
+		    (perform-test server client remote-client)
+		 (close-socket remote-client)))))
     (let ((server (make-local-server (local-socket-pathname))))
       (unwind-protect
 	   (progn
