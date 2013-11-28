@@ -251,14 +251,20 @@
     (t
      (error 'no-connection-available-error :socket server))))
 
-(defclass failed-local-stream ()
-  ())
+(define-condition no-local-server-error (error)
+  ((local-pathname
+    :initarg :local-pathname
+    :reader local-pathname))
+  (:report (lambda (condition stream)
+	     (format stream "No named pipe server exists at pathname ~S." (local-pathname condition)))))
 
 (defun connect-to-local-server (pathname &key &allow-other-keys)
-  (let ((handle (basic-binary-ipc.overlapped-io:connect-to-named-pipe pathname)))
-    (if (basic-binary-ipc.overlapped-io:valid-named-pipe-handle-p handle)
-	(make-instance 'local-stream :descriptor handle)
-	(make-instance 'failed-local-stream))))
+  (handler-case (let ((handle (basic-binary-ipc.overlapped-io:connect-to-named-pipe pathname)))
+		  (make-instance 'local-stream :descriptor handle))
+    (system-function-error (c)
+      (if (eql :error-file-not-found (system-function-error-value c))
+	  (error 'no-local-server-error :local-pathname pathname)
+	  (error c)))))
 
 ;;;; Polling
 (defgeneric poll-socket-request (socket socket-event))
