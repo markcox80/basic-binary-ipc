@@ -197,7 +197,10 @@
 (defclass local-stream (file-handle-stream)
   ((determinedp-request
     :initarg :determinedp-request
-    :reader determinedp-request))
+    :reader determinedp-request)
+   (local-pathname
+    :initarg :local-pathname
+    :reader local-pathname))
   (:default-initargs
    :determinedp-request (let ((rv (make-instance 'basic-binary-ipc.overlapped-io:request)))
 			  (basic-binary-ipc.overlapped-io:set-event rv)
@@ -240,7 +243,9 @@
   (cond
     ((basic-binary-ipc.overlapped-io:completedp (connect-request server))
      (assert (basic-binary-ipc.overlapped-io:succeededp (connect-request server)))
-     (prog1 (make-instance 'local-stream :descriptor (descriptor server))
+     (prog1 (make-instance 'local-stream
+			   :descriptor (descriptor server)
+			   :local-pathname (local-pathname server))
        (let ((handle (basic-binary-ipc.overlapped-io:make-named-pipe-server (local-pathname server))))
 	 (alexandria:unwind-protect-case ()	    
 	     (progn
@@ -260,7 +265,9 @@
 
 (defun connect-to-local-server (pathname &key &allow-other-keys)
   (handler-case (let ((handle (basic-binary-ipc.overlapped-io:connect-to-named-pipe pathname)))
-		  (make-instance 'local-stream :descriptor handle))
+		  (make-instance 'local-stream
+				 :descriptor handle
+				 :local-pathname pathname))
     (system-function-error (c)
       (if (eql :error-file-not-found (system-function-error-value c))
 	  (error 'no-local-server-error :local-pathname pathname)
