@@ -7,6 +7,7 @@
   
   ;; Requests
   (:export #:request
+	   #:descriptor
 	   #:free-request
 	   #:invalidp
 	   #:waitingp
