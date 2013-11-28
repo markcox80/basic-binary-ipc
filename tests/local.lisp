@@ -168,6 +168,7 @@
 	       (close-socket client)))
 	(close-socket server)))))
 
+#-windows
 (define-test local-test/full-write-buffer
   (labels ((channel-test (client remote-client)
 	     (declare (ignore remote-client))
