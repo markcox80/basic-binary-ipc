@@ -99,7 +99,6 @@
 	     (assert-false (poll-socket remote-client 'data-available-p 0))
 
 	     (close-socket remote-client)
-	     (assert-error 'error (poll-socket remote-client 'ready-to-write-p 10))
 
 	     (assert-false (poll-socket client 'connection-succeeded-p 10))
 	     (assert-true (poll-socket client 'remote-disconnected-p 10))
