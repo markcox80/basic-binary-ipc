@@ -134,12 +134,13 @@
 	       (assert-true (pathname-match-p (local-pathname server)
 					      (local-pathname remote-client))))))
     (let ((server (make-local-server (local-socket-pathname))))
-      (assert-false (poll-socket server 'connection-available-p 0))
       (unwind-protect
-	   (let ((client (connect-to-local-server (local-socket-pathname))))
-	     (unwind-protect
-		  (establish-channel server client)
-	       (close-socket client)))
+	   (progn
+	     (assert-false (poll-socket server 'connection-available-p 0))
+	     (let ((client (connect-to-local-server (local-socket-pathname))))
+	       (unwind-protect
+		    (establish-channel server client)
+		 (close-socket client))))
 	(close-socket server)))))
 
 (define-test local-test/no-data
