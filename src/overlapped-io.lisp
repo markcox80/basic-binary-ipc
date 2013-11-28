@@ -377,6 +377,10 @@ CreateNamedPipe or CreateFile."
     :initarg :bytes-written
     :accessor bytes-written)))
 
+(defmethod initialize-instance :after ((object write-file-request) &key)
+  (set-event object)
+  (setf (succeededp object) t))
+
 (defmethod obtain-results ((request write-file-request))
   (assert (completedp request))
   (multiple-value-bind (error bytes-written) (get-overlapped-result request)
