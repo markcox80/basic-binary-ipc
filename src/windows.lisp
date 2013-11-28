@@ -75,7 +75,8 @@
       (setf read-buffer (cffi:null-pointer)))))
 
 (defmethod ready-to-write-p ((socket file-handle-stream))
-  (and (basic-binary-ipc.overlapped-io:completedp (write-request socket))
+  (and (connection-succeeded-p socket)
+       (basic-binary-ipc.overlapped-io:completedp (write-request socket))
        (basic-binary-ipc.overlapped-io:succeededp (write-request socket))))
 
 (defmethod data-available-p ((socket file-handle-stream))
@@ -189,7 +190,7 @@
     :initarg :connect-request
     :reader connect-request)))
 
-(defmethod close-socket ((socket local-server))
+(defmethod close-socket ((socket local-server))  
   (basic-binary-ipc.overlapped-io:close-handle (descriptor socket))
   (basic-binary-ipc.overlapped-io:free-request (connect-request socket)))
 
@@ -202,6 +203,10 @@
 			  (basic-binary-ipc.overlapped-io:set-event rv)
 			  rv)))
 
+(defmethod close-socket ((socket local-stream))
+  (call-next-method)
+  (basic-binary-ipc.overlapped-io:free-request (determinedp-request socket)))
+
 (defmethod determinedp ((socket local-stream))
   t)
 
@@ -211,6 +216,9 @@
 	      (basic-binary-ipc.overlapped-io:failedp request)))))
 
 (defmethod connection-failed-p ((socket local-stream))
+  (not (connection-succeeded-p socket)))
+
+(defmethod remote-disconnected-p ((socket local-stream))
   (not (connection-succeeded-p socket)))
 
 (defun make-local-server (pathname &key &allow-other-keys)
@@ -272,6 +280,9 @@
 (defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'connection-failed-p)))
   (read-request socket))
 
+(defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'remote-disconnected-p)))
+  (read-request socket))
+
 (defun poll-socket (socket socket-events timeout)
   (first (poll-sockets (list socket) (list socket-events) timeout)))
 
@@ -295,6 +306,8 @@
 					     (ecase socket-event
 					       (connection-available-p
 						(connection-available-p socket))
+					       (remote-disconnected-p
+						(remote-disconnected-p socket))
 					       (ready-to-write-p
 						(ready-to-write-p socket))
 					       (data-available-p
