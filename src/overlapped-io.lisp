@@ -101,6 +101,9 @@
 (defmethod failedp ((request request))
   (not (succeededp request)))
 
+(defmethod obtain-results ((request request))
+  (setf (succeededp request) t))
+
 (defun do-with-request (request function)
   (unwind-protect
        (funcall function request)
