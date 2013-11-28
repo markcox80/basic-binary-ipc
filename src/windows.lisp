@@ -50,6 +50,21 @@
    :read-request (make-instance 'basic-binary-ipc.overlapped-io:read-file-request)
    :write-request (make-instance 'basic-binary-ipc.overlapped-io:write-file-request)))
 
+(defmethod initialize-instance :after ((object file-handle-stream) &key)
+  (with-accessors ((descriptor descriptor)
+		   (read-buffer read-buffer)
+		   (read-buffer-size read-buffer-size)
+		   (read-request read-request)
+		   (write-request write-request))
+      object
+    (setf (basic-binary-ipc.overlapped-io:descriptor read-request) descriptor
+	  (basic-binary-ipc.overlapped-io:descriptor write-request) descriptor)
+
+    (basic-binary-ipc.overlapped-io:read-file descriptor
+					      read-buffer 
+					      read-buffer-size
+					      read-request)))
+
 (defmethod close-socket ((socket file-handle-stream))
   (with-slots (read-buffer descriptor) socket
     (unless (cffi:null-pointer-p read-buffer)
@@ -60,28 +75,40 @@
       (setf read-buffer (cffi:null-pointer)))))
 
 (defmethod ready-to-write-p ((socket file-handle-stream))
-  (basic-binary-ipc.overlapped-io:succeededp (write-request socket)))
+  (and (basic-binary-ipc.overlapped-io:completedp (write-request socket))
+       (basic-binary-ipc.overlapped-io:succeededp (write-request socket))))
 
 (defmethod data-available-p ((socket file-handle-stream))
   (or (plusp (length (interface-buffer socket)))
-      (basic-binary-ipc.overlapped-io:succeededp (read-request socket))))
+      (and (basic-binary-ipc.overlapped-io:completedp (read-request socket))
+	   (basic-binary-ipc.overlapped-io:succeededp (read-request socket)))))
 
 (defmethod write-to-stream ((socket file-handle-stream) buffer &key start end)
   (check-type buffer (simple-array (unsigned-byte 8) (*)))
   (check-type start (or null (integer 0)))
   (check-type end (or null (integer 0)))
-  (assert (ready-to-write-p socket))
-  (let* ((start (or start 0))
-	 (end (or end (length buffer)))
-	 (length (- end start)))
-    (check-type length (integer 0))
-    (with-accessors ((descriptor descriptor)
-		     (write-request write-request))
-	socket
-      (cffi:with-pointer-to-vector-data (buffer-ptr buffer)
-	(let ((start-ptr (cffi:inc-pointer buffer-ptr start)))
-	  (basic-binary-ipc.overlapped-io:write-file descriptor start-ptr length write-request)
-	  length)))))
+  (cond
+    ((ready-to-write-p socket)
+     (let* ((start (or start 0))
+	    (end (or end (length buffer)))
+	    (length (- end start)))
+       (check-type length (integer 0))
+
+       (when (or (minusp start) (> start (length buffer)))
+	 (error "START argument is invalid. ~d" start))
+
+       (when (> end (length buffer))
+	 (error "END argument is invalid. ~d" end))
+
+       (with-accessors ((descriptor descriptor)
+			(write-request write-request))
+	   socket
+	 (cffi:with-pointer-to-vector-data (buffer-ptr buffer)
+	   (let ((start-ptr (cffi:inc-pointer buffer-ptr start)))
+	     (basic-binary-ipc.overlapped-io:write-file descriptor start-ptr length write-request)
+	     length)))))
+    (t
+     0)))
 
 (defun transfer-read-buffer-data (socket)
   "Copy the data from READ-BUFFER to the INTERFACE-BUFFER."
@@ -94,7 +121,7 @@
     (assert (basic-binary-ipc.overlapped-io:succeededp read-request))
     (let ((bytes-read (basic-binary-ipc.overlapped-io:bytes-read read-request)))      
       (adjust-array interface-buffer (+ (length interface-buffer) bytes-read))
-      (dotimes (index read-buffer-size)
+      (dotimes (index bytes-read)
 	(vector-push (cffi:mem-aref read-buffer :uint8 index) interface-buffer))
       bytes-read)))
 
@@ -112,9 +139,17 @@
 	   (end (or end (length buffer)))
 	   (maximum-bytes-to-read (- end start)))
       (check-type maximum-bytes-to-read (integer 0))
+
+      (when (or (minusp start) (> start (length buffer)))
+	(error "START argument is invalid: ~d" start))
+
+      (when (> end (length buffer))
+	(error "END ARGUMENT is invalid: ~d" end))
+
       ;; Fill the interface buffer
       (loop
 	 :while (and (> maximum-bytes-to-read (length interface-buffer))
+		     (basic-binary-ipc.overlapped-io:completedp read-request)
 		     (basic-binary-ipc.overlapped-io:succeededp read-request))
 	 :do
 	 (transfer-read-buffer-data socket)
@@ -131,14 +166,14 @@
 	   :for index :from 0 :below bytes-read
 	   :for position :from start
 	   :do
-	   (setf (aref buffer position) (aref interface-buffer position)))
+	   (setf (aref buffer position) (aref interface-buffer index)))
 	;; Reorganise the interface buffer.
 	(unless peek
 	  (loop
-	     :for index :from 0 :below bytes-left
-	     :for position :from bytes-read
+	     :for position :from 0 :below bytes-left
+	     :for index :from bytes-read
 	     :do
-	     (setf (aref interface-buffer index) (aref interface-buffer position)))
+	     (setf (aref interface-buffer position) (aref interface-buffer index)))
 	  (setf (fill-pointer interface-buffer) bytes-left))
 	bytes-read))))
 
