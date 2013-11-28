@@ -46,7 +46,9 @@
   (:default-initargs
    :read-buffer-size *default-read-buffer-size*
    :read-buffer (cffi:foreign-alloc :uint8 :count *default-read-buffer-size*)
-   :interface-buffer (make-array *default-read-buffer-size* :element-type '(unsigned-byte 8) :adjustable t :fill-pointer 0)))
+   :interface-buffer (make-array *default-read-buffer-size* :element-type '(unsigned-byte 8) :adjustable t :fill-pointer 0)
+   :read-request (make-instance 'basic-binary-ipc.overlapped-io:read-file-request)
+   :write-request (make-instance 'basic-binary-ipc.overlapped-io:write-file-request)))
 
 (defmethod close-socket ((socket file-handle-stream))
   (with-slots (read-buffer descriptor) socket
@@ -157,7 +159,24 @@
   (basic-binary-ipc.overlapped-io:free-request (connect-request socket)))
 
 (defclass local-stream (file-handle-stream)
-  ())
+  ((determinedp-request
+    :initarg :determinedp-request
+    :reader determinedp-request))
+  (:default-initargs
+   :determinedp-request (let ((rv (make-instance 'basic-binary-ipc.overlapped-io:request)))
+			  (basic-binary-ipc.overlapped-io:set-event rv)
+			  rv)))
+
+(defmethod determinedp ((socket local-stream))
+  t)
+
+(defmethod connection-succeeded-p ((socket local-stream))
+  (let ((request (read-request socket)))
+    (not (and (basic-binary-ipc.overlapped-io:completedp request)
+	      (basic-binary-ipc.overlapped-io:failedp request)))))
+
+(defmethod connection-failed-p ((socket local-stream))
+  (not (connection-succeeded-p socket)))
 
 (defun make-local-server (pathname &key &allow-other-keys)
   (let ((handle (wrap-system-function-error-progn
@@ -208,6 +227,15 @@
 
 (defmethod poll-socket-request ((socket file-handle-stream) (socket-event (eql 'ready-to-write-p)))
   (write-request socket))
+
+(defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'determinedp)))
+  (determinedp-request socket))
+
+(defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'connection-succeeded-p)))
+  (determinedp-request socket))
+
+(defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'connection-failed-p)))
+  (read-request socket))
 
 (defun poll-socket (socket socket-events timeout)
   (first (poll-sockets (list socket) (list socket-events) timeout)))
