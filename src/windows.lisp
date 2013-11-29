@@ -300,7 +300,17 @@
   (first (poll-sockets (list socket) (list socket-events) timeout)))
 
 (defun poll-sockets (all-sockets all-socket-events timeout)
-  (let* ((all-socket-requests (mapcar #'(lambda (socket socket-events)
+  (check-type all-sockets sequence)
+  (check-type all-socket-events sequence)
+  (check-type timeout (or (real 0) (member :indefinite :immediate)))
+  (let* ((timeout (cond
+		    ((eql timeout :indefinite)
+		     basic-binary-ipc.overlapped-io::+infinite+)
+		    ((eql timeout :immediate)
+		     0)
+		    (t
+		     (coerce (round (/ timeout 1000)) 'integer))))
+	 (all-socket-requests (mapcar #'(lambda (socket socket-events)
 					  (mapcar #'(lambda (socket-event)
 						      (poll-socket-request socket socket-event))
 						  (if (listp socket-events)

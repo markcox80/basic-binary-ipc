@@ -22,7 +22,9 @@
 
   ;; Synchronising
   (:export #:wait-for-request
-	   #:wait-for-requests)
+	   #:wait-for-requests
+
+	   #:+indefinite+)
 
   ;; Monitor Synchronising
   (:export #:monitor
