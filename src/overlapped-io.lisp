@@ -772,7 +772,7 @@ CreateNamedPipe or CreateFile."
       ((:error-connection-refused :error-sem-timeout)
        (setf (succeededp request) nil)))))
 
-(defun connect-ipv4 (address port &optional (request (make-instance 'connect-ipv4-request)))
+(defun connect-ipv4 (address port &optional (request (make-instance 'connect-ipv4-request)) (local-address +inaddr-any+) (local-port 0))
   (check-type request connect-ipv4-request)
   (setf (local-address request) nil
 	(local-port request) nil
@@ -782,7 +782,7 @@ CreateNamedPipe or CreateFile."
   (reset-event request)
   (initialising-socket-progn (socket (%ff-socket :af-inet :sock-stream :ipproto-tcp))
     (let* ((fn (make-connectex-function socket)))
-      (with-sockaddr-in (name +inaddr-any+ 0)
+      (with-sockaddr-in (name local-address local-port)
 	(%ff-bind socket name (cffi:foreign-type-size '(:struct sockaddr-in))))
 
       (with-sockaddr-in (name address port)
