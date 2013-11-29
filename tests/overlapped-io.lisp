@@ -328,7 +328,10 @@
       (wait-for-request connection-request 60)
       (assert-true (completedp connection-request))
       (assert-false (succeededp connection-request))
-      (assert-equal nil (remote-address connection-request)))))
+      (assert-equal address (remote-address connection-request))
+      (assert-equal port (remote-port connection-request))
+      (assert-false (null (local-address connection-request)))
+      (assert-false (null (local-port connection-request))))))
 
 (define-test ipv4-connection/no-server/local
   (let ((address "127.0.0.1")
@@ -338,7 +341,10 @@
       (wait-for-request connection-request 60)
       (assert-true (completedp connection-request))
       (assert-false (succeededp connection-request))
-      (assert-equal nil (remote-address connection-request)))))
+      (assert-equal address (remote-address connection-request))
+      (assert-equal port (remote-port connection-request))
+      (assert-false (null (local-address connection-request)))
+      (assert-false (null (local-port connection-request))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)  
   (defun do-with-ipv4 (function address port)

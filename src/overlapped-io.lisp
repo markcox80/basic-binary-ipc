@@ -744,45 +744,40 @@ CreateNamedPipe or CreateFile."
     :accessor remote-port)))
 
 (defmethod obtain-results ((request connect-ipv4-request))
-  (labels ((sockaddr-in/address (ptr)
-	     (let ((ptr (cffi:foreign-slot-pointer ptr '(:struct sockaddr-in) 'in-addr)))
-	       (%ff-inet-ntoa (cffi:foreign-slot-value ptr '(:struct in-addr) 'S-addr))))
-	   (sockaddr-in/port (ptr)
-	     (%ff-ntohs (cffi:foreign-slot-value ptr '(:struct sockaddr-in) 'sin-port)))
-	   (fill-request ()
-	     (%ff-setsockopt (descriptor request)
-			     :sol-socket
-			     :so-update-connect-context
-			     (cffi:null-pointer) 0)
-	     (cffi:with-foreign-objects ((ptr-name '(:struct sockaddr-in))
-					 (ptr-name-length :int))
-	       (setf (cffi:mem-ref ptr-name-length :int) (cffi:foreign-type-size '(:struct sockaddr-in)))
-	       
-	       (%ff-getpeername (descriptor request) ptr-name ptr-name-length)
-	       (setf (remote-address request) (sockaddr-in/address ptr-name)
-		     (remote-port request) (sockaddr-in/port ptr-name))
-	       
-	       (%ff-getsockname (descriptor request) ptr-name ptr-name-length)
-	       (setf (local-address request) (sockaddr-in/address ptr-name)
-		     (local-port request) (sockaddr-in/port ptr-name)))))
-    (ecase (get-overlapped-result request)
-      (:no-error
-       (setf (succeededp request) t)
-       (fill-request))
-      ((:error-connection-refused :error-sem-timeout)
-       (setf (succeededp request) nil)))))
+  (ecase (get-overlapped-result request)
+    (:no-error
+     (%ff-setsockopt (descriptor request)
+		     :sol-socket
+		     :so-update-connect-context
+		     (cffi:null-pointer) 0)
+     (setf (succeededp request) t))
+    ((:error-connection-refused :error-sem-timeout)
+     (setf (succeededp request) nil))))
 
 (defun connect-ipv4 (socket address port &optional (request (make-instance 'connect-ipv4-request)) (local-address +inaddr-any+) (local-port 0))
   (check-type request connect-ipv4-request)
   (setf (local-address request) nil
 	(local-port request) nil
-	(remote-address request) nil
-	(remote-port request) nil
+	(remote-address request) address
+	(remote-port request) port
 	(succeededp request) nil)
   (reset-event request)
   (let* ((fn (make-connectex-function socket)))
     (with-sockaddr-in (name local-address local-port)
       (%ff-bind socket name (cffi:foreign-type-size '(:struct sockaddr-in))))
+    
+    (labels ((sockaddr-in/address (ptr)
+	       (let ((ptr (cffi:foreign-slot-pointer ptr '(:struct sockaddr-in) 'in-addr)))
+		 (%ff-inet-ntoa (cffi:foreign-slot-value ptr '(:struct in-addr) 'S-addr))))
+	     (sockaddr-in/port (ptr)
+	       (%ff-ntohs (cffi:foreign-slot-value ptr '(:struct sockaddr-in) 'sin-port))))
+      (cffi:with-foreign-objects ((ptr-name '(:struct sockaddr-in))
+				  (ptr-name-length :int))
+	(setf (cffi:mem-ref ptr-name-length :int) (cffi:foreign-type-size '(:struct sockaddr-in)))
+	
+	(%ff-getsockname socket ptr-name ptr-name-length)
+	(setf (local-address request) (sockaddr-in/address ptr-name)
+	      (local-port request) (sockaddr-in/port ptr-name))))
 
     (with-sockaddr-in (name address port)
       (multiple-value-bind (rv error) (funcall fn socket name (cffi:foreign-type-size '(:struct sockaddr-in))
