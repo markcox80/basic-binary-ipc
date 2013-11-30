@@ -273,17 +273,182 @@
 	  (error 'no-local-server-error :local-pathname pathname)
 	  (error c)))))
 
+;;;; IPv4 Namespace
+(defparameter +ipv4-loopback+ basic-binary-ipc.overlapped-io:+inaddr-loopback+)
+(defparameter +ipv4-any+ basic-binary-ipc.overlapped-io:+inaddr-any+)
+
+(defclass ipv4-tcp-server (stream-server)
+  ((descriptor
+    :initarg :descriptor
+    :reader descriptor)
+   (client-descriptor
+    :initarg :client-descriptor
+    :accessor client-descriptor
+    :documentation "The handle for the next client that is about to connect.")
+   (accept-request
+    :initarg :accept-request
+    :reader accept-request)
+   (local-address
+    :initarg :local-address
+    :reader local-address)
+   (local-port
+    :initarg :local-port
+    :reader local-port)
+   (accept-buffer
+    :initarg :accept-buffer
+    :reader accept-buffer)
+   (accept-buffer-size
+    :initarg :accept-buffer-size
+    :reader accept-buffer-size))
+  (:default-initargs
+   :accept-request (make-instance 'basic-binary-ipc.overlapped-io:accept-ipv4-request)
+   :accept-buffer (cffi:foreign-alloc :uint8 :count (basic-binary-ipc.overlapped-io:minimum-accept-ipv4-buffer-size))
+   :accept-buffer-size (basic-binary-ipc.overlapped-io:minimum-accept-ipv4-buffer-size)))
+
+(defmethod close-socket ((socket ipv4-tcp-server))
+  (basic-binary-ipc.overlapped-io:close-socket (descriptor socket))
+  (basic-binary-ipc.overlapped-io:close-socket (client-descriptor socket))
+  (basic-binary-ipc.overlapped-io:free-request (accept-request socket))
+  (cffi:foreign-free (accept-buffer socket)))
+
+(defmethod connection-available-p ((server ipv4-tcp-server))
+  (basic-binary-ipc.overlapped-io:completedp (accept-request server)))
+
+(defun make-ipv4-tcp-server (host-address port &key (backlog 5) &allow-other-keys)
+  (let* ((descriptor (handler-case (basic-binary-ipc.overlapped-io:make-ipv4-server host-address port :backlog backlog)
+		       (system-function-error (c)
+			 (error 'posix-error/system-function-error :system-function-error c))))
+	 (client-descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
+	 (server (make-instance 'ipv4-tcp-server
+				:descriptor descriptor
+				:client-descriptor client-descriptor
+				:local-address host-address
+				:local-port port)))
+    (alexandria:unwind-protect-case ()
+	(basic-binary-ipc.overlapped-io:accept-ipv4 descriptor
+						    client-descriptor
+						    (accept-buffer server)
+						    (accept-buffer-size server)
+						    (accept-request server))
+      (:abort
+       (close-socket server)))
+    server))
+
+(defclass ipv4-tcp-stream (file-handle-stream)
+  ((local-address
+    :initarg :local-address
+    :reader local-address)
+   (local-port
+    :initarg :local-port
+    :reader local-port)
+   (remote-address
+    :initarg :remote-address
+    :reader remote-address)
+   (remote-port
+    :initarg :remote-port
+    :reader remote-port)))
+
+(defmethod connection-succeeded-p ((socket ipv4-tcp-stream))
+  (with-accessors ((read-request read-request)) socket
+    (or (and (basic-binary-ipc.overlapped-io:completedp read-request)
+	     (basic-binary-ipc.overlapped-io:succeededp read-request))
+	t)))
+
+(defmethod connection-failed-p ((socket ipv4-tcp-stream))
+  (with-accessors ((read-request read-request)) socket
+    (and (basic-binary-ipc.overlapped-io:completedp read-request)
+	 (basic-binary-ipc.overlapped-io:failedp read-request))))
+
+
+(defclass ipv4-tcp-stream/server (ipv4-tcp-stream)
+  ())
+
+(defmethod determinedp ((socket ipv4-tcp-stream/server))
+  t)
+
+(defmethod accept-connection ((server ipv4-tcp-server))
+  (cond
+    ((connection-available-p server)
+     (with-accessors ((descriptor descriptor)
+		      (client-descriptor client-descriptor)
+		      (accept-request accept-request)
+		      (accept-buffer accept-buffer)
+		      (accept-buffer-size accept-buffer-size))
+	 server
+       (let ((accepted-client-descriptor (client-descriptor client-descriptor)))
+	 (prog1 (make-instance 'ipv4-tcp-stream/server
+			       :descriptor accepted-client-descriptor
+			       :local-address (basic-binary-ipc.overlapped-io:local-address accept-request)
+			       :local-port (basic-binary-ipc.overlapped-io:local-port accept-request)
+			       :remote-address (basic-binary-ipc.overlapped-io:remote-address accept-request)
+			       :remote-port (basic-binary-ipc.overlapped-io:remote-port accept-request))
+	   (let ((new-descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp)))
+	     (setf (client-descriptor server) new-descriptor)
+	     (alexandria:unwind-protect-case ()
+		 (progn
+		   (basic-binary-ipc.overlapped-io:accept-ipv4 descriptor new-descriptor
+							       accept-buffer accept-buffer-size
+							       accept-request))
+	       (:abort
+		;; At this point the ACCEPT-REQUEST object is in a bad
+		;; state. This means SERVER will no longer be able to
+		;; accept new connections. I am not sure what it is
+		;; that I should now, so I'll just close everything.
+		(basic-binary-ipc.overlapped-io:close-socket accepted-client-descriptor)
+		(close-socket server))))))))
+    (t
+     (error 'no-connection-available-error :socket server))))
+
+(defclass ipv4-tcp-stream/client (ipv4-tcp-stream)
+  ((connect-request
+    :initarg :connect-request
+    :reader connect-request)))
+
+(defmethod close-socket ((socket ipv4-tcp-stream/client))
+  (call-next-method)
+  (basic-binary-ipc.overlapped-io:free-request (connect-request socket)))
+
+(defmethod determinedp ((socket ipv4-tcp-stream/client))
+  (basic-binary-ipc.overlapped-io:completedp (connect-request socket)))
+
+(defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port)
+  (labels ((perform (descriptor request)
+	     (basic-binary-ipc.overlapped-io:connect-ipv4 descriptor
+							  host-address port
+							  request
+							  local-host-address local-port)
+	     (make-instance 'ipv4-tcp-stream/client
+			    :descriptor descriptor
+			    :connect-request request
+			    :local-address (basic-binary-ipc.overlapped-io:local-address request)
+			    :local-port (basic-binary-ipc.overlapped-io:local-port request)
+			    :remote-address (basic-binary-ipc.overlapped-io:remote-address request)
+			    :remote-port (basic-binary-ipc.overlapped-io:remote-port request))))
+    (let ((descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
+	  (request (make-instance 'connect-request)))
+      (alexandria:unwind-protect-case ()
+	  (perform request descriptor)
+	(:abort
+	 (basic-binary-ipc.overlapped-io:close-socket descriptor)
+	 (basic-binary-ipc.overlapped-io:free-request request))))))
+
 ;;;; Polling
 (defgeneric poll-socket-request (socket socket-event))
-(defmethod poll-socket-request ((socket stream-server) (socket-event (eql 'connection-available-p)))
-  (connect-request socket))
-
+;; File handle streams
 (defmethod poll-socket-request ((socket file-handle-stream) (socket-event (eql 'data-available-p)))
   (read-request socket))
 
 (defmethod poll-socket-request ((socket file-handle-stream) (socket-event (eql 'ready-to-write-p)))
   (write-request socket))
 
+(defmethod poll-socket-request ((socket file-handle-stream) (socket-event (eql 'remote-disconnected-p)))
+  (read-request socket))
+
+;; Local server
+(defmethod poll-socket-request ((socket local-server) (socket-event (eql 'connection-available-p)))
+  (connect-request socket))
+
+;; Local streams
 (defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'determinedp)))
   (determinedp-request socket))
 
@@ -293,7 +458,28 @@
 (defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'connection-failed-p)))
   (read-request socket))
 
-(defmethod poll-socket-request ((socket local-stream) (socket-event (eql 'remote-disconnected-p)))
+;; IPv4 TCP Server
+(defmethod poll-socket-request ((socket ipv4-tcp-server) (socket-event (eql 'connection-available-p)))
+  (accept-request socket))
+
+;; IPv4 TCP Stream (created using CONNECT-TO-IPV4-TCP-SERVER)
+(defmethod poll-socket-request ((socket ipv4-tcp-stream/client) (socket-event (eql 'determinedp)))
+  (connect-request socket))
+
+(defmethod poll-socket-request ((socket ipv4-tcp-stream/client) (socket-event (eql 'connection-succeeded-p)))
+  (connect-request socket))
+
+(defmethod poll-socket-request ((socket ipv4-tcp-stream/client) (socket-event (eql 'connection-failed-p)))
+  (connect-request socket))
+
+;; IPv4 TCP Stream (created using ACCEPT-CONNECTION)
+(defmethod poll-socket-request ((socket ipv4-tcp-stream/server) (socket-event (eql 'determinedp)))
+  (read-request socket))
+
+(defmethod poll-socket-request ((socket ipv4-tcp-stream/server) (socket-event (eql 'connection-succeeded-p)))
+  (read-request socket))
+
+(defmethod poll-socket-request ((socket ipv4-tcp-stream/server) (socket-event (eql 'connection-failed-p)))
   (read-request socket))
 
 (defun poll-socket (socket socket-events timeout)
