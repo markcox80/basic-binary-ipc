@@ -510,8 +510,9 @@ CreateNamedPipe or CreateFile."
 			,@body)))
 
 ;;;; Sockets
-(defparameter +inaddr-none+ (%ff-inet-ntoa %+inaddr-none+))
-(defparameter +inaddr-any+ (%ff-inet-ntoa %+inaddr-any+))
+(defparameter +inaddr-none+ (%ff-inet-ntoa (%ff-ntohl %+inaddr-none+)))
+(defparameter +inaddr-any+ (%ff-inet-ntoa (%ff-ntohl %+inaddr-any+)))
+(defparameter +inaddr-loopback+ (%ff-inet-ntoa (%ff-ntohl %+inaddr-loopback+)))
 
 (defun make-socket (address-family type protocol)
   (%ff-socket address-family type protocol))

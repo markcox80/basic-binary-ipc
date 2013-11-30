@@ -70,6 +70,7 @@
   ;; IPv4 Sockets
   (:export #:+inaddr-none+
 	   #:+inaddr-any+
+	   #:+inaddr-loopback+
 	   
 	   #:with-sockaddr-in
 	   #:do-with-sockaddr-in

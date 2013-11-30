@@ -79,6 +79,7 @@
 
 (constant (%+inaddr-none+ "INADDR_NONE"))
 (constant (%+inaddr-any+ "INADDR_ANY"))
+(constant (%+inaddr-loopback+ "INADDR_LOOPBACK"))
 
 (constantenum (socket-address-family :base-type :int)
   ((:af-inet "AF_INET")))
