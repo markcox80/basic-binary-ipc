@@ -20,72 +20,106 @@
   (defmacro wrap-system-function-error-progn (&body body)
     `(do-wrap-system-function-error-progn #'(lambda () ,@body))))
 
-;;;; File handle stream
+;;;; Descriptor stream mixin
+(defgeneric descriptor (socket))
+(defgeneric descriptor-stream-ready-p (descriptor-stream))
+(defgeneric (setf descriptor-stream-ready) (value descriptor-stream))
+
 (defvar *default-read-buffer-size* 4098
   "The number of unsigned bytes to use to store data read from a socket.")
 
-(defclass file-handle-stream (stream-socket)
-  ((descriptor
-    :initarg :descriptor
-    :accessor descriptor)
+(defvar *default-write-buffer-size* 4098
+  "The number of unsigned bytes to use to store data that is written to a socket.")
+
+(defclass descriptor-stream-mixin ()
+  ((descriptor-stream-ready
+    :initarg :descriptor-stream-ready
+    :reader descriptor-stream-ready-p
+    :writer (setf descriptor-stream-ready))
    (read-request
     :initarg :read-request
     :reader read-request)
-   (write-request
-    :initarg :write-request
-    :reader write-request)
    (read-buffer-size
     :initarg :read-buffer-size
     :reader read-buffer-size)
    (read-buffer
     :initarg :read-buffer
     :reader read-buffer)
+   (write-request
+    :initarg :write-request
+    :reader write-request)
+   (write-buffer
+    :initarg :write-buffer
+    :reader write-buffer)
+   (write-buffer-size
+    :initarg :write-buffer-size
+    :reader write-buffer-size)
    (interface-buffer
     :initarg :interface-buffer
     :reader interface-buffer))
   (:default-initargs
+   :read-request (make-instance 'basic-binary-ipc.overlapped-io:read-file-request)
    :read-buffer-size *default-read-buffer-size*
    :read-buffer (cffi:foreign-alloc :uint8 :count *default-read-buffer-size*)
    :interface-buffer (make-array *default-read-buffer-size* :element-type '(unsigned-byte 8) :adjustable t :fill-pointer 0)
-   :read-request (make-instance 'basic-binary-ipc.overlapped-io:read-file-request)
-   :write-request (make-instance 'basic-binary-ipc.overlapped-io:write-file-request)))
+   :write-request (make-instance 'basic-binary-ipc.overlapped-io:write-file-request)
+   :write-buffer (cffi:foreign-alloc :uint8 :count *default-write-buffer-size*)
+   :write-buffer-size *default-write-buffer-size*
+   :descriptor-stream-ready nil))
 
-(defmethod initialize-instance :after ((object file-handle-stream) &key)
-  (with-accessors ((descriptor descriptor)
-		   (read-buffer read-buffer)
-		   (read-buffer-size read-buffer-size)
+(defmethod initialize-instance :after ((object descriptor-stream-mixin) &key)
+  (when (and (slot-boundp object 'descriptor-stream-ready)
+	     (descriptor-stream-ready-p object))
+    (setf (descriptor-stream-ready object) nil)
+    (mark-descriptor-stream-as-ready object)))
+
+(defun mark-descriptor-stream-as-ready (descriptor-stream)
+  (check-type descriptor-stream descriptor-stream-mixin)
+  (unless (descriptor-stream-ready-p descriptor-stream)
+    (with-accessors ((descriptor descriptor)
+		     (read-request read-request)
+		     (write-request write-request)
+		     (read-buffer read-buffer)
+		     (read-buffer-size read-buffer-size)
+		     (interface-buffer interface-buffer))
+	descriptor-stream
+      (setf (fill-pointer interface-buffer) 0
+	    (basic-binary-ipc.overlapped-io:descriptor write-request) descriptor
+	    (basic-binary-ipc.overlapped-io:descriptor read-request) descriptor
+	    (descriptor-stream-ready descriptor-stream) t)
+      (basic-binary-ipc.overlapped-io:read-file descriptor read-buffer read-buffer-size read-request)))
+  (values))
+
+(defmethod close-socket ((socket descriptor-stream-mixin))
+  (with-accessors ((read-buffer read-buffer)
 		   (read-request read-request)
+		   (write-buffer write-buffer)
 		   (write-request write-request))
-      object
-    (setf (basic-binary-ipc.overlapped-io:descriptor read-request) descriptor
-	  (basic-binary-ipc.overlapped-io:descriptor write-request) descriptor)
-
-    (basic-binary-ipc.overlapped-io:read-file descriptor
-					      read-buffer 
-					      read-buffer-size
-					      read-request)))
-
-(defmethod close-socket ((socket file-handle-stream))
-  (with-slots (read-buffer descriptor) socket
+      socket
     (unless (cffi:null-pointer-p read-buffer)
-      (basic-binary-ipc.overlapped-io:close-handle (descriptor socket))
-      (setf descriptor 0)
-
       (cffi:foreign-free read-buffer)
-      (setf read-buffer (cffi:null-pointer)))))
+      (setf (slot-value socket 'read-buffer) (cffi:null-pointer))
 
-(defmethod ready-to-write-p ((socket file-handle-stream))
-  (and (connection-succeeded-p socket)
+      (cffi:foreign-free write-buffer)
+      (setf (slot-value socket 'write-buffer) (cffi:null-pointer))
+
+      (basic-binary-ipc.overlapped-io:free-request read-request)
+      (basic-binary-ipc.overlapped-io:free-request write-request))))
+
+(defmethod ready-to-write-p ((socket descriptor-stream-mixin))
+  (and (descriptor-stream-ready-p socket)
+       (not (remote-disconnected-p socket))       
        (basic-binary-ipc.overlapped-io:completedp (write-request socket))
        (basic-binary-ipc.overlapped-io:succeededp (write-request socket))))
 
-(defmethod data-available-p ((socket file-handle-stream))
-  (or (plusp (length (interface-buffer socket)))
-      (and (basic-binary-ipc.overlapped-io:completedp (read-request socket))
-	   (basic-binary-ipc.overlapped-io:succeededp (read-request socket)))))
+(defmethod data-available-p ((socket descriptor-stream-mixin))
+  (and (descriptor-stream-ready-p socket)
+       (or (plusp (length (interface-buffer socket)))
+	   (and (basic-binary-ipc.overlapped-io:completedp (read-request socket))
+		(basic-binary-ipc.overlapped-io:succeededp (read-request socket))))))
 
-(defmethod write-to-stream ((socket file-handle-stream) buffer &key start end)
-  (check-type buffer (simple-array (unsigned-byte 8) (*)))
+(defmethod write-to-stream ((socket descriptor-stream-mixin) buffer &key start end)
+  (check-type buffer (array (unsigned-byte 8) (*)))
   (check-type start (or null (integer 0)))
   (check-type end (or null (integer 0)))
   (cond
@@ -101,19 +135,27 @@
        (when (> end (length buffer))
 	 (error "END argument is invalid. ~d" end))
 
+       ;; Write the data.
        (with-accessors ((descriptor descriptor)
-			(write-request write-request))
+			(write-request write-request)
+			(write-buffer write-buffer)
+			(write-buffer-size write-buffer-size))
 	   socket
-	 (cffi:with-pointer-to-vector-data (buffer-ptr buffer)
-	   (let ((start-ptr (cffi:inc-pointer buffer-ptr start)))
-	     (basic-binary-ipc.overlapped-io:write-file descriptor start-ptr length write-request)
-	     length)))))
+	 (let ((length (min length write-buffer-size)))
+	   (loop
+	      :for write-buffer-index :from 0 :below length
+	      :for buffer-index :from start
+	      :do
+	      (setf (cffi:mem-aref write-buffer :uint8 write-buffer-index) (aref buffer buffer-index)))
+	   
+	   (basic-binary-ipc.overlapped-io:write-file descriptor write-buffer length write-request)
+	   length))))
     (t
      0)))
 
 (defun transfer-read-buffer-data (socket)
   "Copy the data from READ-BUFFER to the INTERFACE-BUFFER."
-  (check-type socket file-handle-stream)  
+  (check-type socket descriptor-stream-mixin)  
   (with-accessors ((read-buffer read-buffer)
 		   (read-buffer-size read-buffer-size)
 		   (read-request read-request)
@@ -126,8 +168,8 @@
 	(vector-push (cffi:mem-aref read-buffer :uint8 index) interface-buffer))
       bytes-read)))
 
-(defmethod read-from-stream ((socket file-handle-stream) buffer &key start end peek)  
-  (check-type buffer (simple-array (unsigned-byte 8) (*)))
+(defmethod read-from-stream ((socket descriptor-stream-mixin) buffer &key start end peek)  
+  (check-type buffer (array (unsigned-byte 8) (*)))
   (check-type start (or null (integer 0)))
   (check-type end (or null (integer 0)))
   (with-accessors ((interface-buffer interface-buffer)
@@ -194,8 +236,11 @@
   (basic-binary-ipc.overlapped-io:close-handle (descriptor socket))
   (basic-binary-ipc.overlapped-io:free-request (connect-request socket)))
 
-(defclass local-stream (file-handle-stream)
-  ((determinedp-request
+(defclass local-stream (stream-socket descriptor-stream-mixin)
+  ((descriptor
+    :initarg :descriptor
+    :reader descriptor)
+   (determinedp-request
     :initarg :determinedp-request
     :reader determinedp-request)
    (local-pathname
@@ -207,16 +252,20 @@
 			  rv)))
 
 (defmethod close-socket ((socket local-stream))
-  (call-next-method)
-  (basic-binary-ipc.overlapped-io:free-request (determinedp-request socket)))
+  (basic-binary-ipc.overlapped-io:close-handle (descriptor socket))
+  (basic-binary-ipc.overlapped-io:free-request (determinedp-request socket))
+  (call-next-method))
 
 (defmethod determinedp ((socket local-stream))
   t)
 
 (defmethod connection-succeeded-p ((socket local-stream))
   (let ((request (read-request socket)))
-    (not (and (basic-binary-ipc.overlapped-io:completedp request)
-	      (basic-binary-ipc.overlapped-io:failedp request)))))
+    (cond
+      ((basic-binary-ipc.overlapped-io:completedp request)
+       (basic-binary-ipc.overlapped-io:succeededp request))
+      (t
+       t))))
 
 (defmethod connection-failed-p ((socket local-stream))
   (not (connection-succeeded-p socket)))
@@ -245,7 +294,8 @@
      (assert (basic-binary-ipc.overlapped-io:succeededp (connect-request server)))
      (prog1 (make-instance 'local-stream
 			   :descriptor (descriptor server)
-			   :local-pathname (local-pathname server))
+			   :local-pathname (local-pathname server)
+			   :descriptor-stream-ready t)
        (let ((handle (basic-binary-ipc.overlapped-io:make-named-pipe-server (local-pathname server))))
 	 (alexandria:unwind-protect-case ()	    
 	     (progn
@@ -267,7 +317,8 @@
   (handler-case (let ((handle (basic-binary-ipc.overlapped-io:connect-to-named-pipe pathname)))
 		  (make-instance 'local-stream
 				 :descriptor handle
-				 :local-pathname pathname))
+				 :local-pathname pathname
+				 :descriptor-stream-ready t))
     (system-function-error (c)
       (if (eql :error-file-not-found (system-function-error-value c))
 	  (error 'no-local-server-error :local-pathname pathname)
@@ -334,7 +385,7 @@
        (close-socket server)))
     server))
 
-(defclass ipv4-tcp-stream (file-handle-stream)
+(defclass ipv4-tcp-stream (descriptor-stream-mixin)
   ((local-address
     :initarg :local-address
     :reader local-address)
@@ -447,13 +498,13 @@
 ;;;; Polling
 (defgeneric poll-socket-request (socket socket-event))
 ;; File handle streams
-(defmethod poll-socket-request ((socket file-handle-stream) (socket-event (eql 'data-available-p)))
+(defmethod poll-socket-request ((socket descriptor-stream-mixin) (socket-event (eql 'data-available-p)))
   (read-request socket))
 
-(defmethod poll-socket-request ((socket file-handle-stream) (socket-event (eql 'ready-to-write-p)))
+(defmethod poll-socket-request ((socket descriptor-stream-mixin) (socket-event (eql 'ready-to-write-p)))
   (write-request socket))
 
-(defmethod poll-socket-request ((socket file-handle-stream) (socket-event (eql 'remote-disconnected-p)))
+(defmethod poll-socket-request ((socket descriptor-stream-mixin) (socket-event (eql 'remote-disconnected-p)))
   (read-request socket))
 
 ;; Local server
