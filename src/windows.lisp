@@ -385,31 +385,31 @@
        (close-socket server)))
     server))
 
-(defclass ipv4-tcp-stream (descriptor-stream-mixin)
-  ((local-address
-    :initarg :local-address
-    :reader local-address)
+(defclass ipv4-tcp-stream (stream-socket descriptor-stream-mixin)
+  ((descriptor
+    :initarg :descriptor
+    :reader descriptor)
+   (local-host-address
+    :initarg :local-host-address
+    :reader local-host-address)
    (local-port
     :initarg :local-port
     :reader local-port)
-   (remote-address
-    :initarg :remote-address
-    :reader remote-address)
+   (remote-host-address
+    :initarg :remote-host-address
+    :reader remote-host-address)
    (remote-port
     :initarg :remote-port
     :reader remote-port)))
 
-(defmethod connection-succeeded-p ((socket ipv4-tcp-stream))
-  (with-accessors ((read-request read-request)) socket
-    (or (and (basic-binary-ipc.overlapped-io:completedp read-request)
-	     (basic-binary-ipc.overlapped-io:succeededp read-request))
-	t)))
+(defmethod close-socket ((socket ipv4-tcp-stream))
+  (basic-binary-ipc.overlapped-io:close-socket (descriptor socket))
+  (call-next-method))
 
-(defmethod connection-failed-p ((socket ipv4-tcp-stream))
+(defmethod remote-disconnected-p ((socket ipv4-tcp-stream))
   (with-accessors ((read-request read-request)) socket
     (and (basic-binary-ipc.overlapped-io:completedp read-request)
 	 (basic-binary-ipc.overlapped-io:failedp read-request))))
-
 
 (defclass ipv4-tcp-stream/server (ipv4-tcp-stream)
   ((determinedp-request
@@ -427,6 +427,12 @@
 (defmethod determinedp ((socket ipv4-tcp-stream/server))
   t)
 
+(defmethod connection-failed-p ((socket ipv4-tcp-stream/server))
+  (remote-disconnected-p socket))
+
+(defmethod connection-succeeded-p ((socket ipv4-tcp-stream/server))
+  (not (remote-disconnected-p socket)))
+
 (defmethod accept-connection ((server ipv4-tcp-server))
   (cond
     ((connection-available-p server)
@@ -439,10 +445,11 @@
        (let ((accepted-client-descriptor client-descriptor))
 	 (prog1 (make-instance 'ipv4-tcp-stream/server
 			       :descriptor accepted-client-descriptor
-			       :local-address (basic-binary-ipc.overlapped-io:local-address accept-request)
+			       :local-host-address (basic-binary-ipc.overlapped-io:local-address accept-request)
 			       :local-port (basic-binary-ipc.overlapped-io:local-port accept-request)
-			       :remote-address (basic-binary-ipc.overlapped-io:remote-address accept-request)
-			       :remote-port (basic-binary-ipc.overlapped-io:remote-port accept-request))
+			       :remote-host-address (basic-binary-ipc.overlapped-io:remote-address accept-request)
+			       :remote-port (basic-binary-ipc.overlapped-io:remote-port accept-request)
+			       :descriptor-stream-ready t)
 	   (let ((new-descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp)))
 	     (setf (client-descriptor server) new-descriptor)
 	     (alexandria:unwind-protect-case ()
@@ -470,7 +477,22 @@
   (basic-binary-ipc.overlapped-io:free-request (connect-request socket)))
 
 (defmethod determinedp ((socket ipv4-tcp-stream/client))
-  (basic-binary-ipc.overlapped-io:completedp (connect-request socket)))
+  (with-accessors ((connect-request connect-request))
+      socket
+    (let ((v (basic-binary-ipc.overlapped-io:completedp connect-request)))
+      (when (and v (basic-binary-ipc.overlapped-io:succeededp connect-request))
+	(mark-descriptor-stream-as-ready socket))
+      v)))
+
+(defmethod connection-succeeded-p ((socket ipv4-tcp-stream/client))
+  (and (determinedp socket)
+       (basic-binary-ipc.overlapped-io:succeededp (connect-request socket))
+       (not (remote-disconnected-p socket))))
+
+(defmethod connection-failed-p ((socket ipv4-tcp-stream/client))
+  (and (determinedp socket)
+       (or (basic-binary-ipc.overlapped-io:failedp (connect-request socket))
+	   (remote-disconnected-p socket))))
 
 (defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port)
   (let ((local-host-address (or local-host-address +ipv4-loopback+))
@@ -483,9 +505,9 @@
 	       (make-instance 'ipv4-tcp-stream/client
 			      :descriptor descriptor
 			      :connect-request request
-			      :local-address (basic-binary-ipc.overlapped-io:local-address request)
+			      :local-host-address (basic-binary-ipc.overlapped-io:local-address request)
 			      :local-port (basic-binary-ipc.overlapped-io:local-port request)
-			      :remote-address (basic-binary-ipc.overlapped-io:remote-address request)
+			      :remote-host-address (basic-binary-ipc.overlapped-io:remote-address request)
 			      :remote-port (basic-binary-ipc.overlapped-io:remote-port request))))
       (let ((descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
 	    (request (make-instance 'basic-binary-ipc.overlapped-io:connect-ipv4-request)))
@@ -558,7 +580,7 @@
 		    ((eql timeout :immediate)
 		     0)
 		    (t
-		     (coerce (round (/ timeout 1000)) 'integer))))
+		     (coerce (round (* timeout 1000)) 'integer))))
 	 (all-socket-requests (mapcar #'(lambda (socket socket-events)
 					  (mapcar #'(lambda (socket-event)
 						      (poll-socket-request socket socket-event))
