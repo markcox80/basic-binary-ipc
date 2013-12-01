@@ -786,7 +786,8 @@ CreateNamedPipe or CreateFile."
 					       (overlapped-structure request))
 	(cond
 	  ((= rv +true+)
-	   (set-event request))
+	   (set-event request)
+	   (setf (succeededp request) t))
 	  ((eql error :wsa-io-pending))
 	  (t
 	   (error "Unsupported error encountered in CONNECT-IPV4: ~A" error)))))
