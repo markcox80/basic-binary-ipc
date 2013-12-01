@@ -757,8 +757,8 @@ CreateNamedPipe or CreateFile."
 
 (defun connect-ipv4 (socket address port &optional (request (make-instance 'connect-ipv4-request)) (local-address +inaddr-any+) (local-port 0))
   (check-type request connect-ipv4-request)
-  (setf (local-address request) nil
-	(local-port request) nil
+  (setf (local-address request) local-address
+	(local-port request) local-port
 	(remote-address request) address
 	(remote-port request) port
 	(succeededp request) nil)
