@@ -333,6 +333,24 @@
       (assert-false (null (local-address connection-request)))
       (assert-false (null (local-port connection-request))))))
 
+(define-test ipv4-connection/no-server/read
+  (let ((address "169.254.1.1")
+	(port (random-port)))    
+    (with-request (request (make-instance 'read-file-request))      
+      (with-ipv4-connection (client connection-request address port)
+	(declare (ignore connection-request))
+	(cffi:with-foreign-objects ((buffer :uint8 10))
+	  (assert-error 'system-function-error (read-file client buffer 10 request)))))))
+
+(define-test ipv4-connection/no-server/write
+  (let ((address "169.254.1.1")
+	(port (random-port)))    
+    (with-request (request (make-instance 'write-file-request))      
+      (with-ipv4-connection (client connection-request address port)
+	(declare (ignore connection-request))
+	(cffi:with-foreign-objects ((buffer :uint8 10))
+	  (assert-error 'system-function-error (write-file client buffer 10 request)))))))
+
 (define-test ipv4-connection/no-server/local
   (let ((address "127.0.0.1")
 	(port (random-port)))
