@@ -7,6 +7,7 @@
   "//./pipe/test.socket")
 
 (define-test make-local-server
+  (:tag :local-socket)
   (let ((server (make-local-server (local-socket-pathname))))
     #-windows
     (assert-true (probe-file (local-socket-pathname)))
@@ -20,6 +21,7 @@
       (assert-false (probe-file (local-socket-pathname))))))
 
 (define-test local-test/sockets
+  (:tag :local-socket)
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client '(determinedp connection-succeeded-p) 10))
 	     (assert-true (poll-socket remote-client 'determinedp 10))
@@ -47,6 +49,7 @@
 	(close-socket server)))))
 
 (define-test local-test/stream
+  (:tag :local-socket)
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client 'ready-to-write-p 0))
 	     (assert-false (poll-socket remote-client 'data-available-p 0))
@@ -54,6 +57,7 @@
 	     (let ((buffer (make-array 10 :element-type '(unsigned-byte 8))))
 	       (dotimes (i (length buffer))
 		 (setf (elt buffer i) i))
+
 	       (assert-error 'error (write-to-stream client buffer :start -1))
 	       (assert-error 'error (write-to-stream client buffer :end -1))
 	       (assert-error 'error (write-to-stream client buffer :start 3 :end 1))
@@ -94,6 +98,7 @@
 	(close-socket server)))))
 
 (define-test local-test/remote-disconnected
+  (:tag :local-socket)
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client 'ready-to-write-p 0))
 	     (assert-false (poll-socket remote-client 'data-available-p 0))
@@ -120,10 +125,12 @@
 	       (close-socket client)))
 	(close-socket server)))))
 
-(define-test connect-to-local-server/does-not-exist  
+(define-test connect-to-local-server/does-not-exist
+  (:tag :local-socket)
   (assert-error 'no-local-server-error (connect-to-local-server (local-socket-pathname))))
 
 (define-test local-test/pathname
+  (:tag :local-socket)
   (labels ((perform-test (server client remote-client)
 	     (assert-true (poll-socket client 'connection-succeeded-p 10))	     
 	     (assert-true (pathname-match-p (local-pathname server)
@@ -147,6 +154,7 @@
 	(close-socket server)))))
 
 (define-test local-test/no-data
+  (:tag :local-socket)
   (labels ((channel-test (client remote-client)
 	     (let ((buffer (make-array 10 :element-type '(unsigned-byte 8))))
 	       (assert-equal 0 (read-from-stream client buffer))
@@ -170,6 +178,7 @@
 
 #-windows
 (define-test local-test/full-write-buffer
+  (:tag :local-socket)
   (labels ((channel-test (client remote-client)
 	     (declare (ignore remote-client))
 	     (let ((buffer (make-array 100000 :element-type '(unsigned-byte 8)))
