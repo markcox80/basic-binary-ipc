@@ -288,12 +288,12 @@
    (accept-request
     :initarg :accept-request
     :reader accept-request)
-   (local-address
-    :initarg :local-address
-    :reader local-address)
-   (local-port
-    :initarg :local-port
-    :reader local-port)
+   (host-address
+    :initarg :host-address
+    :reader host-address)
+   (port
+    :initarg :port
+    :reader port)
    (accept-buffer
     :initarg :accept-buffer
     :reader accept-buffer)
@@ -322,8 +322,8 @@
 	 (server (make-instance 'ipv4-tcp-server
 				:descriptor descriptor
 				:client-descriptor client-descriptor
-				:local-address host-address
-				:local-port port)))
+				:host-address host-address
+				:port port)))
     (alexandria:unwind-protect-case ()
 	(basic-binary-ipc.overlapped-io:accept-ipv4 descriptor
 						    client-descriptor
@@ -361,7 +361,17 @@
 
 
 (defclass ipv4-tcp-stream/server (ipv4-tcp-stream)
-  ())
+  ((determinedp-request
+    :initarg :determinedp-request
+    :reader determinedp-request))
+  (:default-initargs
+   :determinedp-request (let ((rv (make-instance 'basic-binary-ipc.overlapped-io:request)))
+			  (basic-binary-ipc.overlapped-io:set-event rv)
+			  rv)))
+
+(defmethod close-socket ((socket ipv4-tcp-stream/server))
+  (call-next-method)
+  (basic-binary-ipc.overlapped-io:free-request (determinedp-request socket)))
 
 (defmethod determinedp ((socket ipv4-tcp-stream/server))
   t)
@@ -375,7 +385,7 @@
 		      (accept-buffer accept-buffer)
 		      (accept-buffer-size accept-buffer-size))
 	 server
-       (let ((accepted-client-descriptor (client-descriptor client-descriptor)))
+       (let ((accepted-client-descriptor client-descriptor))
 	 (prog1 (make-instance 'ipv4-tcp-stream/server
 			       :descriptor accepted-client-descriptor
 			       :local-address (basic-binary-ipc.overlapped-io:local-address accept-request)
@@ -412,25 +422,27 @@
   (basic-binary-ipc.overlapped-io:completedp (connect-request socket)))
 
 (defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port)
-  (labels ((perform (descriptor request)
-	     (basic-binary-ipc.overlapped-io:connect-ipv4 descriptor
-							  host-address port
-							  request
-							  local-host-address local-port)
-	     (make-instance 'ipv4-tcp-stream/client
-			    :descriptor descriptor
-			    :connect-request request
-			    :local-address (basic-binary-ipc.overlapped-io:local-address request)
-			    :local-port (basic-binary-ipc.overlapped-io:local-port request)
-			    :remote-address (basic-binary-ipc.overlapped-io:remote-address request)
-			    :remote-port (basic-binary-ipc.overlapped-io:remote-port request))))
-    (let ((descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
-	  (request (make-instance 'connect-request)))
-      (alexandria:unwind-protect-case ()
-	  (perform request descriptor)
-	(:abort
-	 (basic-binary-ipc.overlapped-io:close-socket descriptor)
-	 (basic-binary-ipc.overlapped-io:free-request request))))))
+  (let ((local-host-address (or local-host-address +ipv4-loopback+))
+	(local-port (or local-port 0)))
+    (labels ((perform (descriptor request)
+	       (basic-binary-ipc.overlapped-io:connect-ipv4 descriptor
+							    host-address port
+							    request
+							    local-host-address local-port)
+	       (make-instance 'ipv4-tcp-stream/client
+			      :descriptor descriptor
+			      :connect-request request
+			      :local-address (basic-binary-ipc.overlapped-io:local-address request)
+			      :local-port (basic-binary-ipc.overlapped-io:local-port request)
+			      :remote-address (basic-binary-ipc.overlapped-io:remote-address request)
+			      :remote-port (basic-binary-ipc.overlapped-io:remote-port request))))
+      (let ((descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
+	    (request (make-instance 'basic-binary-ipc.overlapped-io:connect-ipv4-request)))
+	(alexandria:unwind-protect-case ()
+	    (perform descriptor request)
+	  (:abort
+	   (basic-binary-ipc.overlapped-io:close-socket descriptor)
+	   (basic-binary-ipc.overlapped-io:free-request request)))))))
 
 ;;;; Polling
 (defgeneric poll-socket-request (socket socket-event))
@@ -474,10 +486,10 @@
 
 ;; IPv4 TCP Stream (created using ACCEPT-CONNECTION)
 (defmethod poll-socket-request ((socket ipv4-tcp-stream/server) (socket-event (eql 'determinedp)))
-  (read-request socket))
+  (determinedp-request socket))
 
 (defmethod poll-socket-request ((socket ipv4-tcp-stream/server) (socket-event (eql 'connection-succeeded-p)))
-  (read-request socket))
+  (determinedp-request socket))
 
 (defmethod poll-socket-request ((socket ipv4-tcp-stream/server) (socket-event (eql 'connection-failed-p)))
   (read-request socket))
