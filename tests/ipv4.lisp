@@ -14,6 +14,7 @@
     port))
 
 (define-test make-ipv4-tcp-server
+  (:tag :ipv4-tcp-socket)
   (let* ((port   (random-server-port))
 	 (server (make-ipv4-tcp-server +ipv4-loopback+ port)))
     (unwind-protect
@@ -24,6 +25,7 @@
       (close-socket server))))
 
 (define-test ipv4-tcp-test/sockets
+  (:tag :ipv4-tcp-socket)
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client '(determinedp connection-succeeded-p) 10))
 	     (assert-true (poll-socket remote-client 'determinedp 10))
@@ -50,6 +52,7 @@
 	(close-socket server)))))
 
 (define-test ipv4-tcp-test/stream
+  (:tag :ipv4-tcp-socket)
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client 'ready-to-write-p 0))
 	     (assert-false (poll-socket remote-client 'data-available-p 0))
@@ -97,6 +100,7 @@
 	(close-socket server)))))
 
 (define-test ipv4-tcp-test/remote-disconnected
+  (:tag :ipv4-tcp-socket)
   (labels ((channel-test (client remote-client)
 	     (assert-true (poll-socket client 'ready-to-write-p 0))
 	     (assert-false (poll-socket remote-client 'data-available-p 0))
@@ -125,6 +129,7 @@
 	(close-socket server)))))
 
 (define-test connect-to-ipv4-server/does-not-exist
+  (:tag :ipv4-tcp-socket)
   (labels ((perform-test (client)
 	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
 	     (let ((results (poll-socket client '(determinedp connection-failed-p connection-succeeded-p) 120)))
@@ -139,6 +144,7 @@
 	(close-socket client)))))
 
 (define-test connect-to-ipv4-server/does-not-exist/loopback
+  (:tag :ipv4-tcp-socket)
   (labels ((perform-test (client)
 	     (assert-true (typep client 'stream-socket))
 	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
@@ -154,6 +160,7 @@
 	(close-socket client)))))
 
 (define-test ipv4-tcp-test/host-address-and-ports
+  (:tag :ipv4-tcp-socket)
   (let ((client-port (random-server-port))
 	(server-port (random-server-port)))
     (labels ((establish-channel (server client)
