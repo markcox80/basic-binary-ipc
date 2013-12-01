@@ -214,6 +214,7 @@
   ((:error-pipe-not-connected "ERROR_PIPE_NOT_CONNECTED"))
   ((:error-connection-refused "ERROR_CONNECTION_REFUSED"))
   ((:error-sem-timeout "ERROR_SEM_TIMEOUT"))
+  ((:error-unexp-net-err "ERROR_UNEXP_NET_ERR"))
   ((:wait-timeout "WAIT_TIMEOUT")))
 
 ;;;; Bloody FormatMessage crap. What a joke.
