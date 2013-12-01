@@ -215,6 +215,7 @@
   ((:error-connection-refused "ERROR_CONNECTION_REFUSED"))
   ((:error-sem-timeout "ERROR_SEM_TIMEOUT"))
   ((:error-unexp-net-err "ERROR_UNEXP_NET_ERR"))
+  ((:error-netname-deleted "ERROR_NETNAME_DELETED"))
   ((:wait-timeout "WAIT_TIMEOUT")))
 
 ;;;; Bloody FormatMessage crap. What a joke.

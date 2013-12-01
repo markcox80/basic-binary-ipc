@@ -339,7 +339,7 @@ CreateNamedPipe or CreateFile."
       (:no-error
        (setf (bytes-read request) bytes-read
 	     (succeededp request) t))
-      (:error-broken-pipe
+      ((:error-broken-pipe :error-netname-deleted)
        (setf (bytes-read request) 0
 	     (succeededp request) nil)))))
 
