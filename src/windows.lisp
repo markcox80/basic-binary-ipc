@@ -594,30 +594,31 @@
 				      all-sockets all-socket-events))
 	 (all-requests (reduce #'append all-socket-requests))
 	 (request (basic-binary-ipc.overlapped-io:wait-for-requests all-requests timeout)))
-    (mapcar #'(lambda (socket socket-events socket-requests)
-		(let ((matches (loop
-				  :for socket-event :in (if (listp socket-events)
-							    socket-events
-							    (list socket-events))
-				  :for socket-request :in socket-requests
-				  :when (and (eql request socket-request)
-					     (ecase socket-event
-					       (connection-available-p
-						(connection-available-p socket))
-					       (remote-disconnected-p
-						(remote-disconnected-p socket))
-					       (ready-to-write-p
-						(ready-to-write-p socket))
-					       (data-available-p
-						(data-available-p socket))
-					       (determinedp
-						(determinedp socket))
-					       (connection-failed-p
-						(connection-failed-p socket))
-					       (connection-succeeded-p
-						(connection-succeeded-p socket))))
-				  :collect socket-event)))
-		  (if (listp socket-events)
-		      matches
-		      (first matches))))
-	    all-sockets all-socket-events all-socket-requests)))
+    (if request
+	(mapcar #'(lambda (socket socket-events socket-requests)
+		    (let ((matches (loop
+				      :for socket-event :in (if (listp socket-events)
+								socket-events
+								(list socket-events))
+				      :for socket-request :in socket-requests
+				      :when (and (ecase socket-event
+						   (connection-available-p
+						    (connection-available-p socket))
+						   (remote-disconnected-p
+						    (remote-disconnected-p socket))
+						   (ready-to-write-p
+						    (ready-to-write-p socket))
+						   (data-available-p
+						    (data-available-p socket))
+						   (determinedp
+						    (determinedp socket))
+						   (connection-failed-p
+						    (connection-failed-p socket))
+						   (connection-succeeded-p
+						    (connection-succeeded-p socket))))
+				      :collect socket-event)))
+		      (if (listp socket-events)
+			  matches
+			  (first matches))))
+		all-sockets all-socket-events all-socket-requests)
+	(mapcar (constantly nil) all-sockets))))
