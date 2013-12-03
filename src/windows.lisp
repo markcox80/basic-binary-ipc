@@ -363,7 +363,11 @@
   (cffi:foreign-free (accept-buffer socket)))
 
 (defmethod connection-available-p ((server ipv4-tcp-server))
-  (basic-binary-ipc.overlapped-io:completedp (accept-request server)))
+  (let* ((request (accept-request server))
+	 (r (basic-binary-ipc.overlapped-io:completedp request)))
+    (when r
+      (assert (basic-binary-ipc.overlapped-io:succeededp request)))
+    r))
 
 (defun make-ipv4-tcp-server (host-address port &key (backlog 5) &allow-other-keys)
   (let* ((descriptor (handler-case (basic-binary-ipc.overlapped-io:make-ipv4-server host-address port :backlog backlog)
