@@ -1,6 +1,7 @@
 (in-package "BASIC-BINARY-IPC.TESTS")
 
 (define-test poll-sockets
+  (:tag :poll-sockets)
   (let ((port (random-server-port)))
     (labels ((wait-for-clients (tcp-server local-server)
 	       (let ((sockets (list tcp-server local-server))
