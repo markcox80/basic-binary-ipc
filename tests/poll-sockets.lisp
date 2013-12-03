@@ -21,9 +21,10 @@
 				   (assert-equal '(nil nil) (poll-sockets sockets events 0)))
 			      (close-socket local-client))))
 		     (close-socket tcp-client))))))
-      (let ((tcp-server (make-ipv4-tcp-server +ipv4-loopback+ port))
-	    (local-server (make-local-server (local-socket-pathname))))
+      (let ((tcp-server (make-ipv4-tcp-server +ipv4-loopback+ port)))
 	(unwind-protect
-	     (wait-for-clients tcp-server local-server)
-	  (close-socket tcp-server)
-	  (close-socket local-server))))))
+	     (let ((local-server (make-local-server (local-socket-pathname))))
+	       (unwind-protect
+		    (wait-for-clients tcp-server local-server)
+		 (close-socket local-server)))
+	  (close-socket tcp-server))))))
