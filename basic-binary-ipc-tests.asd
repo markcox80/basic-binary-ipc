@@ -9,6 +9,7 @@
 			:serial t
 			:components ((:file "packages")
 				     (:file "asdf")
+				     #-windows
 				     (:file "posix")
 				     (:file "ipv4")
 				     (:file "local")
