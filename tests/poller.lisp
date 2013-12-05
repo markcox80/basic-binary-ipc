@@ -1,6 +1,7 @@
 (in-package "BASIC-BINARY-IPC.TESTS")
 
 (define-test poller/ipv4
+  (:tag :poller)
   (let ((port (random-server-port)))
     (labels ((transmit-data (poller client remote-client)
 	       (monitor-socket poller client '(connection-succeeded-p data-available-p ready-to-write-p))
@@ -31,7 +32,8 @@
 		 (let ((remote-client (accept-connection tcp-server)))
 		   (unwind-protect
 			(transmit-data poller client remote-client)
-		     (close-socket remote-client))))
+		     (close-socket remote-client)
+		     (unmonitor-socket poller remote-client))))
 
 	       (setf (monitored-events poller client) '(connection-failed-p connection-succeeded-p remote-disconnected-p))
 	       (let* ((events (wait-for-events poller 2))
@@ -60,6 +62,7 @@
 	  (close-socket tcp-server))))))
 
 (define-test poller/local
+  (:tag :poller)
   (let ((path (local-socket-pathname)))
     (labels ((transmit-data (poller client remote-client)
 	       (monitor-socket poller client '(connection-succeeded-p data-available-p ready-to-write-p))
@@ -90,7 +93,8 @@
 		 (let ((remote-client (accept-connection local-server)))
 		   (unwind-protect
 			(transmit-data poller client remote-client)
-		     (close-socket remote-client))))
+		     (close-socket remote-client)
+		     (unmonitor-socket poller remote-client))))
 
 	       (setf (monitored-events poller client) '(connection-failed-p connection-succeeded-p remote-disconnected-p))
 	       (let* ((events (wait-for-events poller 2))
@@ -119,6 +123,7 @@
 	  (close-socket local-server))))))
 
 (define-test poller/no-server
+  (:tag :poller)
   (labels ((run-test (poller client)
 	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
 	     (let ((events (wait-for-events poller 120)))
@@ -141,6 +146,7 @@
 
 #-freebsd
 (define-test poller/no-server/loopback
+  (:tag :poller)
   (labels ((run-test (poller client)
 	     (format *standard-output* "~&; This test pauses for a maximum of 2 minutes, do not panic.~%")
 	     (let ((events (wait-for-events poller 120)))
@@ -164,6 +170,7 @@
 
 #+freebsd
 (define-test poller/no-server/loopback
+  (:tag :poller)
   (warn "POLLER/NO-SERVER-LOOPBACK on FreeBSD is different to other
   hosts. For some reasonEINVAL is signalled during MONITOR-SOCKET when
   it shouldn't be. I need to investigate this further, but for now, I
