@@ -67,5 +67,5 @@
 (defgeneric unmonitor-socket (poller socket))
 (defgeneric monitored-events (poller socket))
 (defgeneric (setf monitored-events) (value poller socket))
-(defgeneric monitored-sockets (poller socket))
+(defgeneric monitored-sockets (poller))
 (defgeneric close-poller (poller))
