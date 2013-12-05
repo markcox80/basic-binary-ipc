@@ -68,6 +68,13 @@
    :descriptor-stream-ready nil))
 
 (defmethod initialize-instance :after ((object descriptor-stream-mixin) &key)
+  (with-accessors ((read-request read-request)
+		   (write-request write-request)
+		   (descriptor descriptor))
+      object
+    (setf (basic-binary-ipc.overlapped-io:descriptor read-request) descriptor
+	  (basic-binary-ipc.overlapped-io:descriptor write-request) descriptor))
+
   (when (and (slot-boundp object 'descriptor-stream-ready)
 	     (descriptor-stream-ready-p object))
     (setf (descriptor-stream-ready object) nil)
@@ -251,6 +258,9 @@
 			  (basic-binary-ipc.overlapped-io:set-event rv)
 			  rv)))
 
+(defmethod initialize-instance :after ((object local-stream) &key)
+  (setf (basic-binary-ipc.overlapped-io:descriptor (determinedp-request object)) (descriptor object)))
+
 (defmethod close-socket ((socket local-stream))
   (basic-binary-ipc.overlapped-io:close-handle (descriptor socket))
   (basic-binary-ipc.overlapped-io:free-request (determinedp-request socket))
@@ -424,6 +434,9 @@
 			  (basic-binary-ipc.overlapped-io:set-event rv)
 			  rv)))
 
+(defmethod initialize-instance :after ((object ipv4-tcp-stream/server) &key)
+  (setf (basic-binary-ipc.overlapped-io:descriptor (determinedp-request object)) (descriptor object)))
+
 (defmethod close-socket ((socket ipv4-tcp-stream/server))
   (call-next-method)
   (basic-binary-ipc.overlapped-io:free-request (determinedp-request socket)))
@@ -580,7 +593,7 @@
   (check-type timeout (or (real 0) (member :indefinite :immediate)))
   (let* ((timeout (cond
 		    ((eql timeout :indefinite)
-		     basic-binary-ipc.overlapped-io::+infinite+)
+		     basic-binary-ipc.overlapped-io:+infinite+)
 		    ((eql timeout :immediate)
 		     0)
 		    (t
