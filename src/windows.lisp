@@ -635,3 +635,87 @@
 			  (first matches))))
 		all-sockets all-socket-events all-socket-requests)
 	(mapcar (constantly nil) all-sockets))))
+
+;;;; POLLER
+
+;; Unfortunately the poller protocol does not fit nicely with the the
+;; IO completion port facilities provided by Windows. The fundamental
+;; problem is that once the IO completion has notified the application
+;; of an event, it is the application's responsibility to process that
+;; event immediately. The IO completion port will not continue to
+;; transmit that event. On Unix based systems it keeps informing you
+;; of the state of the socket.
+;;
+;; It is not clear to me how I get around this problem without
+;; introducing some sort of intermediate thread which does the state
+;; management of all created sockets and communicates with other
+;; threads via some sort of interface. 
+;;
+;; I am so sick of this Windows port that I am just going to implement
+;; the POLLER protocol using POLL-SOCKETS and call it a day on
+;; Windows. If someone wants something better then they can do it
+;; themselves.
+
+(defclass poll-sockets-poller (poller)
+  ((table
+    :initarg :table
+    :reader table)
+   (all-sockets
+    :initarg :all-sockets
+    :accessor all-sockets)
+   (all-socket-events
+    :initarg :all-socket-events
+    :accessor all-socket-events))
+  (:default-initargs
+   :table (make-hash-table)))
+
+(defun make-poller ()
+  (make-instance 'poll-sockets-poller))
+
+(defmethod monitor-socket ((poller poll-sockets-poller) socket socket-events)
+  (setf (monitored-events poller socket) socket-events))
+
+(defmethod unmonitor-socket ((poller poll-sockets-poller) socket)
+  (remhash socket (table poller))
+  (setf (all-sockets poller) nil
+	(all-socket-events poller) nil))
+
+(defmethod monitored-events ((poller poll-sockets-poller) socket)
+  (gethash socket (table poller)))
+
+(defmethod (setf monitored-events) (value (poller poll-sockets-poller) socket)
+  (setf (gethash socket (table poller)) value
+	(all-sockets poller) nil
+	(all-socket-events poller) nil))
+
+(defmethod monitored-sockets ((poller poll-sockets-poller))
+  (let ((rv nil))
+    (maphash #'(lambda (key value)
+		 (declare (ignore value))
+		 (push key rv))
+	     (table poller))
+    (nreverse rv)))
+
+(defmethod wait-for-events ((poller poll-sockets-poller) timeout)
+  (with-accessors ((all-sockets all-sockets)
+		   (all-socket-events all-socket-events))
+      poller
+    (when (or (null all-sockets) (null all-socket-events))
+      (maphash #'(lambda (socket socket-events)
+		   (push socket all-sockets)
+		   (push socket-events all-socket-events))
+	       (table poller))
+      (setf all-sockets (nreverse all-sockets)
+	    all-socket-events (nreverse all-socket-events)))
+
+    (let ((rv (poll-sockets all-sockets all-socket-events timeout)))
+      (loop
+	 :for socket :in all-sockets
+	 :for socket-events :in all-socket-events
+	 :for item :in rv
+	 :when item
+	 :collect
+	 (list socket item)))))
+
+(defmethod close-poller ((poller poll-sockets-poller))
+  nil)
