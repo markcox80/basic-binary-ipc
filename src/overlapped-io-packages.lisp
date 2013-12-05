@@ -24,7 +24,7 @@
   (:export #:wait-for-request
 	   #:wait-for-requests
 
-	   #:+indefinite+)
+	   #:+infinite+)
 
   ;; Monitor Synchronising
   (:export #:monitor
