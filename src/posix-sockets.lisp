@@ -50,12 +50,6 @@
       (%ff-close (file-descriptor socket))
       (setf closedp t))))
 
-(defmethod close-socket ((object t))
-  (close-socket (socket object)))
-
-(defmethod file-descriptor ((object t))
-  (file-descriptor (socket object)))
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defmacro posix-socket-initialisation-progn ((socket) &body body)
     `(alexandria:unwind-protect-case ()
@@ -91,6 +85,12 @@
   ((socket
     :initarg :socket
     :reader socket)))
+
+(defmethod close-socket ((object posix-stream))
+  (close-socket (socket object)))
+
+(defmethod file-descriptor ((object posix-stream))
+  (file-descriptor (socket object)))
 
 (defmethod socket-closed-p ((socket posix-stream))
   (socket-closed-p (socket socket)))
@@ -196,6 +196,21 @@
 (defmethod connection-succeeded-p ((socket-stream failed-posix-stream))
   nil)
 
+;;;; Posix stream server
+(defclass posix-stream-server (stream-server)
+  ((socket
+    :initarg :socket
+    :reader socket)))
+
+(defmethod close-socket ((object posix-stream-server))
+  (close-socket (socket object)))
+
+(defmethod file-descriptor ((object posix-stream-server))
+  (file-descriptor (socket object)))
+
+(defmethod socket-closed-p ((socket posix-stream-server))
+  (socket-closed-p (socket socket)))
+
 ;;  IPv4 stream
 (defclass ipv4-tcp-stream (posix-stream)
   ((remote-host-address
@@ -261,16 +276,13 @@
 			      ,@body)
        ,family ,host-address ,port)))
 
-(defclass ipv4-tcp-server (stream-server)
+(defclass ipv4-tcp-server (posix-stream-server)
   ((host-address
     :initarg :host-address
     :reader host-address)
    (port
     :initarg :port
-    :reader port)
-   (socket
-    :initarg :socket
-    :reader socket)))
+    :reader port)))
 
 (defun make-ipv4-tcp-server (host-address port &key reuse-address (backlog 5))
   (let ((socket (make-posix-socket :pf-inet :sock-stream 0)))
@@ -399,11 +411,8 @@
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~S" (local-pathname object))))
 
-(defclass local-server (stream-server)
-  ((socket
-    :initarg :socket
-    :reader socket)
-   (local-pathname
+(defclass local-server (posix-stream-server)
+  ((local-pathname
     :initarg :local-pathname
     :reader local-pathname)
    (delete-on-close-p
@@ -411,7 +420,6 @@
     :reader delete-on-close-p)))
 
 (defmethod close-socket ((socket local-server))
-  (close-socket (socket socket))
   (when (delete-on-close-p socket)
     (delete-file (local-pathname socket))))
 
