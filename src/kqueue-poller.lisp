@@ -72,12 +72,13 @@
   (with-accessors ((monitor-table monitor-table)
 		   (kqueue-descriptor kqueue-descriptor))
       poller
-    (multiple-value-bind (events present-p) (gethash monitor-table socket)
+    (multiple-value-bind (events present-p) (gethash socket monitor-table)
       (declare (ignore events))
       (when present-p
-	(setf (monitored-events poller socket) nil)
+	(unless (socket-closed-p socket)
+	  (setf (monitored-events poller socket) nil))
 	(remhash socket monitor-table)
-	(remhash (file-descriptor socket) (descriptor-socket-table socket))))))
+	(remhash (file-descriptor socket) (descriptor-socket-table poller))))))
 
 (defmethod monitored-events ((poller kqueue-poller) socket)
   (with-accessors ((monitor-table monitor-table)) poller
