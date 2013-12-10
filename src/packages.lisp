@@ -6,7 +6,8 @@
 
   ;; Sockets
   (:export #:socket
-	   #:close-socket)
+	   #:close-socket
+	   #:socket-closed-p)
 
   ;; Stream servers
   (:export #:stream-server

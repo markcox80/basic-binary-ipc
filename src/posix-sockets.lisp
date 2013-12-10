@@ -33,7 +33,8 @@
     :initform (error "File descriptors must be specified."))
    (closedp
     :initarg :closedp
-    :initform nil)))
+    :initform nil
+    :reader socket-closed-p)))
 
 (defun make-posix-socket (namespace communication-style protocol)
   (let ((fd (%ff-socket namespace communication-style protocol)))
@@ -90,6 +91,9 @@
   ((socket
     :initarg :socket
     :reader socket)))
+
+(defmethod socket-closed-p ((socket posix-stream))
+  (socket-closed-p (socket socket)))
 
 ;; Posix stream - future protocol
 (defmethod determinedp ((future-connection posix-stream))

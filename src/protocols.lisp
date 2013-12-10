@@ -5,6 +5,7 @@
   ())
 
 (defgeneric close-socket (socket))
+(defgeneric socket-closed-p (socket))
 
 ;; Stream server protocol
 (defclass stream-server (socket)
