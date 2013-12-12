@@ -1,11 +1,18 @@
 (in-package "BASIC-BINARY-IPC")
 
+(defgeneric socket (object))
+
 ;; Socket protocol
 (defclass socket ()
   ())
 
 (defgeneric close-socket (socket))
 (defgeneric socket-closed-p (socket))
+
+(define-condition socket-error (error)
+  ((socket
+    :initarg :socket
+    :reader socket)))
 
 ;; Stream server protocol
 (defclass stream-server (socket)
@@ -14,7 +21,6 @@
 (defgeneric accept-connection (server))
 (defgeneric connection-available-p (server))
 
-(defgeneric socket (object))
 (define-condition no-connection-available-error (error)
   ((socket
     :initarg :socket

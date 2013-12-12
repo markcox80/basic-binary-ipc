@@ -15,7 +15,7 @@
 	 (progn
 	   (assert-true server)
 	   (assert-error 'no-connection-available-error (accept-connection server))
-	   (assert-error 'posix-error (make-local-server (local-socket-pathname))))
+	   (assert-error 'socket-error (make-local-server (local-socket-pathname))))
       (close-socket server)
       #-windows
       (assert-false (probe-file (local-socket-pathname))))))

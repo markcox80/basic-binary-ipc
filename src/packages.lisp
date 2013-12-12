@@ -1,13 +1,11 @@
 (defpackage "BASIC-BINARY-IPC"
   (:use "COMMON-LISP")
    
-  ;; Errors
-  (:export #:posix-error)
-
   ;; Sockets
   (:export #:socket
 	   #:close-socket
-	   #:socket-closed-p)
+	   #:socket-closed-p
+	   #:socket-error)
 
   ;; Stream servers
   (:export #:stream-server

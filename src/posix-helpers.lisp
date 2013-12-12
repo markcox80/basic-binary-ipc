@@ -35,7 +35,7 @@ ERRNO-ENUM type."
   (:documentation "The name of the foreign function that signalled the
     posix error."))
 
-(define-condition posix-error (system-function-error)
+(define-condition posix-error (socket-error system-function-error)
   ()
   (:documentation
    "This error class provides a lisp representation of POSIX errors."))
