@@ -2,14 +2,13 @@
 #+AUTHOR: Mark Cox
 
 This system provides an interface for performing inter process
-communication with binary data.
+communication using streams. The interface follows a non-blocking
+pattern which allows the system to be used both synchronously and
+asynchronously.
 
 [TABLE-OF-CONTENTS]
 
 * Installation
-This system provides a simple interface for performing inter-process
-communication (IPC) with ~(UNSIGNED-BYTE 8)~ communication channels.
-
 The prerequisite systems for this extension are
 - [[http://common-lisp.net/project/cffi/][~CFFI~]]
 - [[https://github.com/OdonataResearchLLC/lisp-unit][Lisp Unit]] (tests only)
@@ -21,7 +20,7 @@ that are supported are:
 - [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7.5)
 - [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1)
 - Linux (Tested with [[http://www.debian.org][Debian]] squeeze)
-- NEED-TO-IMPLEMENT [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with Windows 8)
+- [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with Windows 8)
 
 The system can be loaded in to the current Lisp environment via ASDF.
 #+begin_src lisp
@@ -32,18 +31,28 @@ The tests for the system can be executed via ASDF as well.
 #+begin_src lisp
 (asdf:test-system "basic-binary-ipc")
 #+end_src
+All tests should succeed.
 
 * Introduction
-The main focus of the system is to provide an easy method of
-establishing a communication channel known as a stream. A stream is a
+The goal of this system is to provide an easy method for establishing
+a communication channel known as a stream. A stream is a
 bidirectional, full duplex communication channel with the guarantee
 that the order in which data is read is the same as the order it was
 written and that the data written is the same as the data read.
 
-An application must consider the namespace in which the stream is
-created. A namespace represents the lower level protocol that the
-stream is constructed on top of. This library can construct streams in
-the following namespaces
+The term stream used in this system is not to be confused with the
+Common Lisp stream. The two terms are distinct. The main reason for
+this distinction is that every operation in this system is
+non-blocking and changes in state are obtained via a polling
+interface. The benefit of the polling strategy is that it does not
+require callbacks which allows the library to be used in either
+synchronous or asynchronous settings.
+
+* Namespaces
+An application must consider the namespace in which two processes are
+to communicate. A namespace represents the lower level protocol that
+the stream is constructed on top of. This library can construct
+streams in the following namespaces
 - [[*IPv4][IPv4 namespace]] :: The Internet protocol version 4 namespace using the
           transmission control protocol.
 - [[*Local][Local namespace]] :: Local or Unix domain sockets for communicating between
@@ -51,25 +60,30 @@ the following namespaces
 
 Once a namespace is chosen, the functions for that namespace determine
 how to initiate a connection to a server or start a new server that is
-capable of accepting incoming connections. Once an object is created,
-a number of protocols can be used to query and manage their state.
-
-The next section outlines the concept of a socket and the protocols
-used for the different types of socket objects.
+capable of accepting incoming connections. Both of these tasks involve
+creating a specialised socket.
 
 * Sockets
-A socket represents a resource that is necessary to perform
-communication. Once a socket is no longer required, its resources must
-be released using the ~CLOSE-SOCKET~ function.
+A socket represents an operating system resource that is needed to
+perform communication. Once a socket is no longer required, its
+resources must be released using the ~CLOSE-SOCKET~ function.
 #+begin_src lisp
   (defgeneric close-socket (object))
 #+end_src
+A socket has been closed if the predicate ~SOCKET-CLOSED-P~ is
+non ~NIL~.
 
 Objects implementing the socket protocol inherit from the ~SOCKET~
 class.
 
 This library provides protocols for two different types of sockets,
-the stream server socket and the stream socket. 
+the stream server socket and the stream socket.
+
+Lastly, this library adheres to the philosophy that errors should only
+be signaled in exceptional circumstances. If an exceptional
+circumstance occurs during any operation then an error of type
+~SOCKET-ERROR~ is signaled. Some operations are capable of signaling
+other error types.
 
 ** Stream Servers
 The stream server protocol represents sockets that listen for
@@ -152,12 +166,12 @@ Writing data to the stream is performed using the function
 #+begin_src lisp
   (defgeneric write-to-stream (stream buffer &key start end))
 #+end_src
-This function will queue the data in ~BUFFER~ and schedule it for
-writing once all other data in the queue has been written. This
-function will not block the application. If no data can be written
-immediately, ~WRITE-TO-STREAM~ will signal a ~WOULD-BLOCK-ERROR~
-condition.  The predicate ~READY-TO-WRITE-P~ can be used to determine
-if data can be written immediately.
+The return value of ~WRITE-TO-STREAM~ is the number of bytes
+written. If no bytes can be written then this function returns
+~0~.
+
+The predicate ~READY-TO-WRITE-P~ can be used to determine if data can
+be written immediately.
 #+begin_src lisp
 (defgeneric ready-to-write-p (stream))
 #+end_src
@@ -340,8 +354,7 @@ or a list where each item is a list containing two entries, ~SOCKET~
 and ~SOCKET-EVENTS~. The ~TIMEOUT~ argument can be a positive value
 representing seconds, or it can be one of ~:IMMEDIATE~ or
 ~:INDEFINITE~. Like ~POLL-SOCKET~ and ~POLL-SOCKETS~, a return value
-of ~NIL~ does not mean that the ~TIMEOUT~ seconds has
-expired.
+of ~NIL~ does not mean that the function timed out.
 
 Adding a socket to be monitored by a ~POLLER~ is performed using the
 ~MONITOR-SOCKET~ function.

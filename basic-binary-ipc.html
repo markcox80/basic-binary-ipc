@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="Basic Binary Inter Process Communication"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-07-04T19:57+1000"/>
+<meta name="generated" content="2013-12-12T20:58+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -118,7 +118,9 @@ for the JavaScript code in this tag.
 <h1 class="title">Basic Binary Inter Process Communication</h1>
 
 <p>This system provides an interface for performing inter process
-communication with binary data.
+communication using streams. The interface follows a non-blocking
+pattern which allows the system to be used both synchronously and
+asynchronously.
 </p>
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
@@ -126,17 +128,18 @@ communication with binary data.
 <ul>
 <li><a href="#sec-1">1 Installation</a></li>
 <li><a href="#sec-2">2 Introduction</a></li>
-<li><a href="#sec-3">3 Sockets</a>
+<li><a href="#sec-3">3 Namespaces</a></li>
+<li><a href="#sec-4">4 Sockets</a>
 <ul>
-<li><a href="#sec-3-1">3.1 Stream Servers</a></li>
-<li><a href="#sec-3-2">3.2 Stream Sockets</a></li>
+<li><a href="#sec-4-1">4.1 Stream Servers</a></li>
+<li><a href="#sec-4-2">4.2 Stream Sockets</a></li>
 </ul>
 </li>
-<li><a href="#sec-4">4 IPv4</a></li>
-<li><a href="#sec-5">5 Local</a></li>
-<li><a href="#sec-6">6 Polling</a>
+<li><a href="#sec-5">5 IPv4</a></li>
+<li><a href="#sec-6">6 Local</a></li>
+<li><a href="#sec-7">7 Polling</a>
 <ul>
-<li><a href="#sec-6-1">6.1 Polling many sockets</a></li>
+<li><a href="#sec-7-1">7.1 Polling many sockets</a></li>
 </ul>
 </li>
 </ul>
@@ -148,11 +151,7 @@ communication with binary data.
 <h2 id="sec-1"><span class="section-number-2">1</span> Installation</h2>
 <div class="outline-text-2" id="text-1">
 
-<p>This system provides a simple interface for performing inter-process
-communication (IPC) with <code>(UNSIGNED-BYTE 8)</code> communication channels.
-</p>
-<p>
-The prerequisite systems for this extension are
+<p>The prerequisite systems for this extension are
 </p><ul>
 <li><a href="http://common-lisp.net/project/cffi/"><code>CFFI</code></a>
 </li>
@@ -173,7 +172,7 @@ that are supported are:
 </li>
 <li>Linux (Tested with <a href="http://www.debian.org">Debian</a> squeeze)
 </li>
-<li>NEED-TO-IMPLEMENT <a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with Windows 8)
+<li><a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with Windows 8)
 </li>
 </ul>
 
@@ -195,7 +194,9 @@ The tests for the system can be executed via ASDF as well.
 <pre class="src src-lisp">(asdf:test-system <span style="color: #259185;">"basic-binary-ipc"</span>)
 </pre>
 
-
+<p>
+All tests should succeed.
+</p>
 </div>
 
 </div>
@@ -204,22 +205,38 @@ The tests for the system can be executed via ASDF as well.
 <h2 id="sec-2"><span class="section-number-2">2</span> Introduction</h2>
 <div class="outline-text-2" id="text-2">
 
-<p>The main focus of the system is to provide an easy method of
-establishing a communication channel known as a stream. A stream is a
+<p>The goal of this system is to provide an easy method for establishing
+a communication channel known as a stream. A stream is a
 bidirectional, full duplex communication channel with the guarantee
 that the order in which data is read is the same as the order it was
 written and that the data written is the same as the data read.
 </p>
 <p>
-An application must consider the namespace in which the stream is
-created. A namespace represents the lower level protocol that the
-stream is constructed on top of. This library can construct streams in
-the following namespaces
+The term stream used in this system is not to be confused with the
+Common Lisp stream. The two terms are distinct. The main reason for
+this distinction is that every operation in this system is
+non-blocking and changes in state are obtained via a polling
+interface. The benefit of the polling strategy is that it does not
+require callbacks which allows the library to be used in either
+synchronous or asynchronous settings.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Namespaces</h2>
+<div class="outline-text-2" id="text-3">
+
+<p>An application must consider the namespace in which two processes are
+to communicate. A namespace represents the lower level protocol that
+the stream is constructed on top of. This library can construct
+streams in the following namespaces
 </p><dl>
-<dt><a href="#sec-4">IPv4 namespace</a></dt><dd>The Internet protocol version 4 namespace using the
+<dt><a href="#sec-5">IPv4 namespace</a></dt><dd>The Internet protocol version 4 namespace using the
           transmission control protocol.
 </dd>
-<dt><a href="#sec-5">Local namespace</a></dt><dd>Local or Unix domain sockets for communicating between
+<dt><a href="#sec-6">Local namespace</a></dt><dd>Local or Unix domain sockets for communicating between
            processes located on the same physical device. 
 </dd>
 </dl>
@@ -228,45 +245,51 @@ the following namespaces
 <p>
 Once a namespace is chosen, the functions for that namespace determine
 how to initiate a connection to a server or start a new server that is
-capable of accepting incoming connections. Once an object is created,
-a number of protocols can be used to query and manage their state.
-</p>
-<p>
-The next section outlines the concept of a socket and the protocols
-used for the different types of socket objects.
+capable of accepting incoming connections. Both of these tasks involve
+creating a specialised socket.
 </p>
 </div>
 
 </div>
 
-<div id="outline-container-3" class="outline-2">
-<h2 id="sec-3"><span class="section-number-2">3</span> Sockets</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Sockets</h2>
+<div class="outline-text-2" id="text-4">
 
-<p>A socket represents a resource that is necessary to perform
-communication. Once a socket is no longer required, its resources must
-be released using the <code>CLOSE-SOCKET</code> function.
+<p>A socket represents an operating system resource that is needed to
+perform communication. Once a socket is no longer required, its
+resources must be released using the <code>CLOSE-SOCKET</code> function.
 </p>
 
 
 <pre class="src src-lisp">(<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">close-socket</span> (object))
 </pre>
 
-
+<p>
+A socket has been closed if the predicate <code>SOCKET-CLOSED-P</code> is
+non <code>NIL</code>.
+</p>
 <p>
 Objects implementing the socket protocol inherit from the <code>SOCKET</code>
 class.
 </p>
 <p>
 This library provides protocols for two different types of sockets,
-the stream server socket and the stream socket. 
+the stream server socket and the stream socket.
+</p>
+<p>
+Lastly, this library adheres to the philosophy that errors should only
+be signaled in exceptional circumstances. If an exceptional
+circumstance occurs during any operation then an error of type
+<code>SOCKET-ERROR</code> is signaled. Some operations are capable of signaling
+other error types.
 </p>
 
 </div>
 
-<div id="outline-container-3-1" class="outline-3">
-<h3 id="sec-3-1"><span class="section-number-3">3.1</span> Stream Servers</h3>
-<div class="outline-text-3" id="text-3-1">
+<div id="outline-container-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> Stream Servers</h3>
+<div class="outline-text-3" id="text-4-1">
 
 <p>The stream server protocol represents sockets that listen for
 connections from clients. Accepting a new connection is performed
@@ -306,9 +329,9 @@ All objects implementing the stream server protocol inherit from the
 
 </div>
 
-<div id="outline-container-3-2" class="outline-3">
-<h3 id="sec-3-2"><span class="section-number-3">3.2</span> Stream Sockets</h3>
-<div class="outline-text-3" id="text-3-2">
+<div id="outline-container-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> Stream Sockets</h3>
+<div class="outline-text-3" id="text-4-2">
 
 <p>A stream socket represents a stream that is either established or in
 the process of being established.
@@ -387,12 +410,13 @@ Writing data to the stream is performed using the function
 </pre>
 
 <p>
-This function will queue the data in <code>BUFFER</code> and schedule it for
-writing once all other data in the queue has been written. This
-function will not block the application. If no data can be written
-immediately, <code>WRITE-TO-STREAM</code> will signal a <code>WOULD-BLOCK-ERROR</code>
-condition.  The predicate <code>READY-TO-WRITE-P</code> can be used to determine
-if data can be written immediately.
+The return value of <code>WRITE-TO-STREAM</code> is the number of bytes
+written. If no bytes can be written then this function returns
+<code>0</code>.
+</p>
+<p>
+The predicate <code>READY-TO-WRITE-P</code> can be used to determine if data can
+be written immediately.
 </p>
 
 
@@ -419,9 +443,9 @@ severed.
 
 </div>
 
-<div id="outline-container-4" class="outline-2">
-<h2 id="sec-4"><span class="section-number-2">4</span> IPv4</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> IPv4</h2>
+<div class="outline-text-2" id="text-5">
 
 <p>The IPv4 namespace is the namespace that is the foundation of the
 Internet. The Transmission Control Protocol (TCP) is the underlying
@@ -498,9 +522,9 @@ extends the stream socket protocol with the following functions
 
 </div>
 
-<div id="outline-container-5" class="outline-2">
-<h2 id="sec-5"><span class="section-number-2">5</span> Local</h2>
-<div class="outline-text-2" id="text-5">
+<div id="outline-container-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> Local</h2>
+<div class="outline-text-2" id="text-6">
 
 <p>This section outlines how to create a communication channel between
 two processes running on the same physical machine. Local stream
@@ -559,9 +583,9 @@ above. If no server exists at <code>PATHNAME</code>, then a
 
 </div>
 
-<div id="outline-container-6" class="outline-2">
-<h2 id="sec-6"><span class="section-number-2">6</span> Polling</h2>
-<div class="outline-text-2" id="text-6">
+<div id="outline-container-7" class="outline-2">
+<h2 id="sec-7"><span class="section-number-2">7</span> Polling</h2>
+<div class="outline-text-2" id="text-7">
 
 <p>All functions outlined above work directly on the current state of the
 socket. The function <code>POLL-SOCKET</code> allows an application to block
@@ -638,9 +662,9 @@ results of performing <code>POLL-SOCKET</code> on that socket alone. For example
 
 </div>
 
-<div id="outline-container-6-1" class="outline-3">
-<h3 id="sec-6-1"><span class="section-number-3">6.1</span> Polling many sockets</h3>
-<div class="outline-text-3" id="text-6-1">
+<div id="outline-container-7-1" class="outline-3">
+<h3 id="sec-7-1"><span class="section-number-3">7.1</span> Polling many sockets</h3>
+<div class="outline-text-3" id="text-7-1">
 
 <p>One draw back of <code>POLL-SOCKETS</code> is that every call to <code>POLL-SOCKETS</code>
 requires traversing <code>N</code> sockets and their corresponding events. For
@@ -675,8 +699,7 @@ or a list where each item is a list containing two entries, <code>SOCKET</code>
 and <code>SOCKET-EVENTS</code>. The <code>TIMEOUT</code> argument can be a positive value
 representing seconds, or it can be one of <code>:IMMEDIATE</code> or
 <code>:INDEFINITE</code>. Like <code>POLL-SOCKET</code> and <code>POLL-SOCKETS</code>, a return value
-of <code>NIL</code> does not mean that the <code>TIMEOUT</code> seconds has
-expired.
+of <code>NIL</code> does not mean that the function timed out.
 </p>
 <p>
 Adding a socket to be monitored by a <code>POLLER</code> is performed using the
@@ -750,7 +773,7 @@ from the <code>POLLER</code> class.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-07-04T19:57+1000</p>
+<p class="date">Date: 2013-12-12T20:58+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.4 with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
