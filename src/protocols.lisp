@@ -37,15 +37,6 @@
 (defgeneric read-from-stream (stream-socket buffer &key start end))
 (defgeneric write-to-stream (stream-socket buffer &key start end))
 
-(define-condition would-block-error (error)
-  ((socket
-    :initarg :socket
-    :reader socket))
-  (:report (lambda (condition stream)
-	     (format stream 
-		     "Unable to write data to stream socket ~A as it would block the application."
-		     (socket condition)))))
-
 ;; Polling protocol
 (defgeneric poll-socket (socket socket-events timeout))
 (defgeneric poll-sockets (all-sockets all-socket-events timeout))

@@ -182,16 +182,14 @@
   (labels ((channel-test (client remote-client)
 	     (declare (ignore remote-client))
 	     (let ((buffer (make-array 100000 :element-type '(unsigned-byte 8)))
-		   (error-signalled nil))
+		   (write-buffer-full nil))
 	       (loop
 		  :for attempt :from 0 :below 1000
-		  :until error-signalled
+		  :until write-buffer-full
 		  :do
-		  (handler-case (write-to-stream client buffer)
-		    (would-block-error (c)
-		      (assert-equal client (socket c))
-		      (setf error-signalled t))))
-	       (assert-true error-signalled)))
+		  (when (zerop (write-to-stream client buffer))
+		    (setf write-buffer-full t)))
+	       (assert-true write-buffer-full)))
 	   (establish-channel (server client)
 	     (assert-equal 'connection-available-p (poll-socket server 'connection-available-p 10))
 	     (let ((remote-client (accept-connection server)))

@@ -168,7 +168,7 @@
 			      0))
     (posix-error (c)
       (if (posix-error-would-block-p c)
-	  (error 'would-block-error :socket stream)
+	  0
 	  (error c)))))
 
 ;; Failed stream
