@@ -188,3 +188,8 @@
 		    (establish-channel server client)
 		 (close-socket client)))
 	  (close-socket server))))))
+
+(define-test resolve-ipv4-address
+  (:tag :resolve-ipv4-address)
+  (assert-equal "93.184.216.119" (resolve-ipv4-address "example.com"))
+  (assert-false (resolve-ipv4-address "example.com1")))

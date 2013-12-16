@@ -60,7 +60,9 @@
 	   #:local-host-address
 	   #:local-port
 	   #:remote-host-address
-	   #:remote-port)
+	   #:remote-port
+
+	   #:resolve-ipv4-address)
 
   ;; Local Sockets
   (:export #:local-server

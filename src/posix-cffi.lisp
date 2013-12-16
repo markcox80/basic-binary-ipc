@@ -110,3 +110,16 @@
   (flags message-flags)
   (dest-addr :pointer)
   (dest-len socklen-t))
+
+;;;; Resolving addresses
+(cffi:defcfun (%ff-getaddrinfo "getaddrinfo") :int
+  (hostname :string)
+  (service-name :string)
+  (hints (:pointer (:struct addrinfo)))
+  (result :pointer))
+
+(cffi:defcfun (%ff-freeaddrinfo "freeaddrinfo") :void
+  (address-info (:pointer (:struct addrinfo))))
+
+(cffi:defcfun (%ff-gai-strerror "gai_strerror") :string
+  (code :int))

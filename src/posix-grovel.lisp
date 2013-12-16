@@ -80,6 +80,10 @@
   ((:af-inet "AF_INET"))
   ((:af-local "AF_LOCAL")))
 
+(constantenum (posix-socket-protocols :base-type :int)
+  ((:default "NULL"))
+  ((:ipproto-tcp "IPPROTO_TCP")))
+
 (cstruct in-addr "struct in_addr"
   (s-addr "s_addr" :type :uint32))
 
@@ -130,3 +134,27 @@
   ((msg-peek "MSG_PEEK"))
   ((msg-waitall "MSG_WAITALL"))
   ((msg-dontroute "MSG_DONTROUTE")))
+
+; getaddrinfo
+(include "netdb.h")
+(bitfield (addrinfo-flags :base-type :int)
+  ((ai-addrconfig "AI_ADDRCONFIG"))
+  ((ai-all "AI_ALL"))
+  ((ai-canonname "AI_CANONNAME"))
+  ((ai-numerichost "AI_NUMERICHOST"))
+  ((ai-numericserv "AI_NUMERICSERV"))
+  ((ai-passive "AI_PASSIVE"))
+  ((ai-v4mapped "AI_V4MAPPED")))
+
+(cstruct addrinfo "struct addrinfo"
+  (ai-flags "ai_flags" :type addrinfo-flags)
+  (ai-family "ai_family" :type posix-socket-namespace)
+  (ai-socktype "ai_socktype" :type posix-socket-type)
+  (ai-protocol "ai_protocol" :type posix-socket-protocols)
+  (ai-addrlen "ai_addrlen" :type socklen-t)
+  (ai-addr "ai_addr" :type :pointer)
+  (ai-canonname "ai_canonname" :type :string)
+  (ai-next "ai_next" :type :pointer))
+
+(constantenum (addrinfo-error-codes :base-type :int)
+  ((:eai-noname "EAI_NONAME")))

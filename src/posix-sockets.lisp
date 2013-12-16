@@ -394,6 +394,34 @@
 		       :remote-port port
 		       :remote-host-address host-address)))))
 
+;;;; Resolving IPv4 addresses.
+(defun resolve-ipv4-address (hostname)
+  (labels ((process (address-info)
+	     (assert (not (cffi:null-pointer-p address-info)))
+	     (assert (= (cffi:foreign-type-size '(:struct sockaddr-in))
+			(cffi:foreign-slot-value address-info '(:struct addrinfo) 'ai-addrlen)))
+	     (%ff-inet-ntoa (cffi:foreign-slot-value (cffi:foreign-slot-pointer (cffi:foreign-slot-value address-info '(:struct addrinfo) 'ai-addr)
+										'(:struct sockaddr-in)
+										'sin-addr)
+						     '(:struct in-addr)
+						     's-addr))))
+    (cffi:with-foreign-objects ((ptr-address-info :pointer)
+				(hints '(:struct addrinfo)))
+      (dotimes (i (cffi:foreign-type-size '(:struct addrinfo)))
+	(setf (cffi:mem-aref hints :uint8 i) 0))
+      (cffi:with-foreign-slots ((ai-family ai-socktype ai-protocol) hints (:struct addrinfo))
+	(setf ai-family :pf-inet))
+      (let ((error-code (%ff-getaddrinfo hostname "" hints ptr-address-info)))
+	(cond
+	  ((zerop error-code)
+	   (unwind-protect
+		(process (cffi:mem-ref ptr-address-info :pointer))
+	     (%ff-freeaddrinfo (cffi:mem-ref ptr-address-info :pointer))))
+	  ((= error-code (cffi:foreign-enum-value 'addrinfo-error-codes :eai-noname))
+	   nil)
+	  (t
+	   (error "Error resolving address ~A: ~A" hostname (%ff-gai-strerror error-code))))))))
+
 ;; Local Sockets
 (defgeneric local-pathname (socket)
   (:documentation "The pathname to the local socket."))
