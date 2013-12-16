@@ -234,6 +234,23 @@ extends the stream socket protocol with the following functions
   (defgeneric remote-host-address (stream))
   (defgeneric remote-port (stream))
 #+end_src
+
+The function ~CONNECT-TO-IPV4-TCP-SERVER~ only accepts host addresses
+in dotted quad format (i.e. ~127.0.0.1~). The function
+~RESOLVE-IPV4-ADDRESS~ can be used to obtain a host address for a
+given domain name.
+#+begin_src lisp
+(defun resolve-ipv4-address (hostname))
+#+end_src
+If successful, a string containing the host address is returned. If no
+host address exists for the given ~HOSTNAME~ than ~NIL~ is
+returned. An ~ERROR~ is signalled if ~RESOLVE-IPV4-ADDRESS~ fails for
+any other reason.
+
+The reader should be aware that ~RESOLVE-IPV4-ADDRESS~ is a blocking
+operation i.e. the current thread will block until the address has
+been retrieved.
+
 * Local
 This section outlines how to create a communication channel between
 two processes running on the same physical machine. Local stream

@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="Basic Binary Inter Process Communication"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-12-12T20:58+1000"/>
+<meta name="generated" content="2013-12-16T20:32+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -518,6 +518,29 @@ extends the stream socket protocol with the following functions
 (<span style="color: #728a05;">defgeneric</span> <span style="color: #2075c7;">remote-port</span> (stream))
 </pre>
 
+
+<p>
+The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> only accepts host addresses
+in dotted quad format (i.e. <code>127.0.0.1</code>). The function
+<code>RESOLVE-IPV4-ADDRESS</code> can be used to obtain a host address for a
+given domain name.
+</p>
+
+
+<pre class="src src-lisp">(<span style="color: #728a05;">defun</span> <span style="color: #2075c7;">resolve-ipv4-address</span> (hostname))
+</pre>
+
+<p>
+If successful, a string containing the host address is returned. If no
+host address exists for the given <code>HOSTNAME</code> than <code>NIL</code> is
+returned. An <code>ERROR</code> is signalled if <code>RESOLVE-IPV4-ADDRESS</code> fails for
+any other reason.
+</p>
+<p>
+The reader should be aware that <code>RESOLVE-IPV4-ADDRESS</code> is a blocking
+operation i.e. the current thread will block until the address has
+been retrieved.
+</p>
 </div>
 
 </div>
@@ -773,7 +796,7 @@ from the <code>POLLER</code> class.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-12-12T20:58+1000</p>
+<p class="date">Date: 2013-12-16T20:32+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.4 with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
