@@ -94,7 +94,8 @@
     (multiple-value-bind (value present?) (gethash socket monitor-table)
       (declare (ignore value))
       (when present?
-	(setf (monitored-events poller socket) nil)
+	(unless (socket-closed-p socket)
+	  (setf (monitored-events poller socket) nil))
 	(remhash (file-descriptor socket) descriptor-socket-table)
 	(remhash socket monitor-table)))))
 
