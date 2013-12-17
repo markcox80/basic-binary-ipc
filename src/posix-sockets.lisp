@@ -411,7 +411,7 @@
 	(setf (cffi:mem-aref hints :uint8 i) 0))
       (cffi:with-foreign-slots ((ai-family ai-socktype ai-protocol) hints (:struct addrinfo))
 	(setf ai-family :pf-inet))
-      (let ((error-code (%ff-getaddrinfo hostname "" hints ptr-address-info)))
+      (let ((error-code (%ff-getaddrinfo hostname (cffi:null-pointer) hints ptr-address-info)))
 	(cond
 	  ((zerop error-code)
 	   (unwind-protect
