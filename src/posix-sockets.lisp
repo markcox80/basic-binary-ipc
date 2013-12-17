@@ -183,6 +183,9 @@
       (unless (posix-error-code-p c :ebadf)
 	(error c)))))
 
+(defmethod file-descriptor ((object failed-posix-stream))
+  (file-descriptor (socket object)))
+
 ;; - stream protocol
 (defmethod data-available-p ((socket-stream failed-posix-stream))
   nil)
