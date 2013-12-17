@@ -158,4 +158,5 @@
 
 (constantenum (addrinfo-error-codes :base-type :int)
   ((:eai-noname "EAI_NONAME"))
+  #+linux
   ((:eai-nodata "EAI_NODATA")))

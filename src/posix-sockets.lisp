@@ -421,6 +421,7 @@
 		(process (cffi:mem-ref ptr-address-info :pointer))
 	     (%ff-freeaddrinfo (cffi:mem-ref ptr-address-info :pointer))))
 	  ((or (= error-code (cffi:foreign-enum-value 'addrinfo-error-codes :eai-noname))
+	       #+linux
 	       (= error-code (cffi:foreign-enum-value 'addrinfo-error-codes :eai-nodata)))
 	   nil)
 	  (t
