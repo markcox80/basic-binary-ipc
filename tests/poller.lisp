@@ -172,9 +172,9 @@
 (define-test poller/no-server/loopback
   (:tag :poller)
   (warn "POLLER/NO-SERVER-LOOPBACK on FreeBSD is different to other
-  hosts. For some reasonEINVAL is signalled during MONITOR-SOCKET when
-  it shouldn't be. I need to investigate this further, but for now, I
-  just test for the presence of the bug.")
+  hosts. For some reason EINVAL is signalled during MONITOR-SOCKET
+  when it shouldn't be. I need to investigate this further, but for
+  now, I just test for the presence of the bug.")
   (let ((client (connect-to-ipv4-tcp-server +ipv4-loopback+ (random-server-port)))
 	(poller (make-poller)))    
     (unwind-protect
