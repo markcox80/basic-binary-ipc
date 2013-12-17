@@ -67,3 +67,13 @@
 (defgeneric (setf monitored-events) (value poller socket))
 (defgeneric monitored-sockets (poller))
 (defgeneric close-poller (poller))
+
+;; Helper functions
+(defun do-with-socket (socket function)
+  (unwind-protect
+       (funcall function socket)
+    (close-socket socket)))
+
+(defmacro with-socket ((var form) &body body)
+  `(do-with-socket ,form #'(lambda (,var)
+			     ,@body)))

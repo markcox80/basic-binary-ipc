@@ -72,4 +72,8 @@
 	   #:connect-to-local-server
 	   #:no-local-server-error
 	   
-	   #:local-pathname))
+	   #:local-pathname)
+
+  ;; Helpers
+  (:export #:with-socket
+	   #:do-with-socket))
