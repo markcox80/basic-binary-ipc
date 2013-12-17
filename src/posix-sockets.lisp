@@ -420,7 +420,9 @@
 	   (unwind-protect
 		(process (cffi:mem-ref ptr-address-info :pointer))
 	     (%ff-freeaddrinfo (cffi:mem-ref ptr-address-info :pointer))))
-	  ((= error-code (cffi:foreign-enum-value 'addrinfo-error-codes :eai-noname))
+	  ((= error-code (cffi:foreign-enum-value 'addrinfo-error-codes
+						  #-linux :eai-noname
+						  #+linux :eai-nodata))
 	   nil)
 	  (t
 	   (error "Error resolving address ~A: ~A" hostname (%ff-gai-strerror error-code))))))))

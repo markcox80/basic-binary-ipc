@@ -1,7 +1,8 @@
 (in-package "BASIC-BINARY-IPC")
 
-#+freebsd
-(include "sys/types.h")
+#+linux (define "_GNU_SOURCE" 1)
+#+freebsd (include "sys/types.h")
+
 (include "errno.h")
 
 (constantenum (errno-enum :base-type :int)
@@ -105,8 +106,7 @@
   (sun-path   "sun_path" :type :char))
 
 ; poll
-#+linux
-(define "__USE_XOPEN" 1)
+#+linux (define "__USE_XOPEN" 1)
 (include "poll.h")
 
 (ctype nfds-t "nfds_t")
@@ -157,4 +157,5 @@
   (ai-next "ai_next" :type :pointer))
 
 (constantenum (addrinfo-error-codes :base-type :int)
-  ((:eai-noname "EAI_NONAME")))
+  ((:eai-noname "EAI_NONAME"))
+  ((:eai-nodata "EAI_NODATA")))
