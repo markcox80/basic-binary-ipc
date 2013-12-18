@@ -44,7 +44,8 @@
   ((:enotdir "ENOTDIR"))
   ((:epipe "EPIPE"))
   ((:enoprotoopt "ENOPROTOOPT"))
-  ((:eperm "EPERM")))
+  ((:eperm "EPERM"))
+  ((:enotconn "ENOTCONN")))
 
 (include "fcntl.h")
 
