@@ -534,6 +534,9 @@
 	   (basic-binary-ipc.overlapped-io:close-socket descriptor)
 	   (basic-binary-ipc.overlapped-io:free-request request)))))))
 
+(defun resolve-ipv4-address (hostname)
+  (basic-binary-ipc.overlapped-io:resolve-ipv4-address hostname))
+
 ;;;; Polling
 (defgeneric poll-socket-request (socket socket-event))
 ;; File handle streams

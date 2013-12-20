@@ -229,3 +229,29 @@
   ((:format-message-from-string "FORMAT_MESSAGE_FROM_STRING"))
   ((:format-message-from-system "FORMAT_MESSAGE_FROM_SYSTEM"))
   ((:format-message-ignore-inserts "FORMAT_MESSAGE_IGNORE_INSERTS")))
+
+;;;; GetAddrInfoW Stuff
+(include "Ws2tcpip.h")
+(ctype size-t "size_t")
+(constantenum (addrinfoW-flags :base-type :int)
+  ((:ai-passive "AI_PASSIVE")))
+
+(constantenum (addrinfoW-error-codes :base-type :int)
+  ((:eai-again "EAI_AGAIN"))
+  ((:eai-badflags "EAI_BADFLAGS"))
+  ((:eai-fail "EAI_FAIL"))
+  ((:eai-family "EAI_FAMILY"))
+  ((:eai-memory "EAI_MEMORY"))
+  ((:eai-noname "EAI_NONAME"))
+  ((:eai-service "EAI_SERVICE"))
+  ((:eai-socktype "EAI_SOCKTYPE")))
+
+(cstruct addrinfoW "struct addrinfoW"
+  (ai-flags "ai_flags" :type addrinfoW-flags)
+  (ai-family "ai_family" :type socket-address-family)
+  (ai-socktype "ai_socktype" :type socket-type)
+  (ai-protocol "ai_protocol" :type socket-protocol)
+  (ai-addrlen "ai_addrlen" :type size-t)
+  (ai-canonname "ai_canonname" :type (:string :encoding :utf-16))
+  (ai-addr "ai_addr" :type :pointer)
+  (ai-next "ai_next" :type :pointer))

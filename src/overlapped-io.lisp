@@ -794,6 +794,36 @@ CreateNamedPipe or CreateFile."
     (setf (descriptor request) socket)
     request))
 
+;;;; RESOLVE-IPV4-ADDRESS
+(defun resolve-ipv4-address (hostname)
+  (labels ((process (address-info)
+	     (assert (not (cffi:null-pointer-p address-info)))
+	     (assert (= (cffi:foreign-type-size '(:struct sockaddr-in))
+			(cffi:foreign-slot-value address-info '(:struct addrinfoW) 'ai-addrlen)))
+	     (%ff-inet-ntoa (cffi:foreign-slot-value (cffi:foreign-slot-pointer (cffi:foreign-slot-value address-info '(:struct addrinfoW) 'ai-addr)
+										'(:struct sockaddr-in)
+										'in-addr)
+						     '(:struct in-addr)
+						     's-addr))))
+    (cffi:with-foreign-objects ((ptr-address-info :pointer)
+				(hints '(:struct addrinfoW)))
+      (dotimes (i (cffi:foreign-type-size '(:struct addrinfoW)))
+	(setf (cffi:mem-aref hints :uint8 i) 0))
+      (cffi:with-foreign-slots ((ai-family ai-socktype ai-protocol) hints (:struct addrinfoW))
+	(setf ai-family :af-inet))
+      (let ((error-code (%ff-getaddrinfoW hostname (cffi:null-pointer) hints ptr-address-info)))
+	(cond
+	  ((zerop error-code)
+	   (unwind-protect
+		(process (cffi:mem-ref ptr-address-info :pointer))
+	     (%ff-freeaddrinfoW (cffi:mem-ref ptr-address-info :pointer))))
+	  ;; Not sure why EAI_AGAIN is being returned.
+	  ((or (= error-code (cffi:foreign-enum-value 'addrinfoW-error-codes :eai-again)))
+	   nil)
+	  (t
+	   (error "Error resolving address ~A: ~A" hostname
+		  (cffi:foreign-enum-keyword 'winsock-error-codes error-code))))))))
+
 ;;;; Helper functions
 (defun make-empty-overlapped-structure ()
   (let ((ptr (cffi:foreign-alloc '(:struct overlapped))))

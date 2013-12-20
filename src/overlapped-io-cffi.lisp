@@ -227,3 +227,12 @@
 (cffi:defcfun (%ff-inet-ntoa "inet_ntoa") :string
   (in-addr :unsigned-long))
 
+;;;; GETADDRINFO
+(cffi:defcfun (%ff-getaddrinfoW "GetAddrInfoW") :int
+  (host-name (:string :encoding :utf-16))
+  (service-name (:string :encoding :utf-16))
+  (hints :pointer)
+  (result :pointer))
+
+(cffi:defcfun (%ff-freeaddrinfoW "FreeAddrInfoW") :void
+  (addr-info (:pointer (:struct addrinfoW))))

@@ -91,4 +91,6 @@
 	   #:accept-ipv4
 	   
 	   #:connect-ipv4-request
-	   #:connect-ipv4))
+	   #:connect-ipv4
+
+	   #:resolve-ipv4-address))
