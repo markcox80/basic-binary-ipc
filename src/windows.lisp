@@ -1,10 +1,6 @@
 (in-package "BASIC-BINARY-IPC")
 
-;;;; POSIX-ERROR condition (TEMPORARY)
-(define-condition posix-error (error)
-  ())
-
-(define-condition posix-error/system-function-error (posix-error)
+(define-condition socket-error/system-function-error (socket-error)
   ((system-function-error
     :initarg :system-function-error
     :reader system-function-error))
@@ -15,7 +11,7 @@
   (defun do-wrap-system-function-error-progn (function)
     (handler-case (funcall function)
       (system-function-error (c)
-	(error 'posix-error/system-function-error :system-function-error c))))
+	(error 'socket-error/system-function-error :system-function-error c))))
 
   (defmacro wrap-system-function-error-progn (&body body)
     `(do-wrap-system-function-error-progn #'(lambda () ,@body))))
@@ -382,7 +378,7 @@
 (defun make-ipv4-tcp-server (host-address port &key (backlog 5) &allow-other-keys)
   (let* ((descriptor (handler-case (basic-binary-ipc.overlapped-io:make-ipv4-server host-address port :backlog backlog)
 		       (system-function-error (c)
-			 (error 'posix-error/system-function-error :system-function-error c))))
+			 (error 'socket-error/system-function-error :system-function-error c))))
 	 (client-descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
 	 (server (make-instance 'ipv4-tcp-server
 				:descriptor descriptor
