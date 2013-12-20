@@ -4,7 +4,7 @@
   (let ((fd (basic-binary-ipc::%ff-socket :pf-inet :sock-stream 0)))
     (assert-true (plusp fd))
     (assert-true (zerop (basic-binary-ipc::%ff-close fd)))
-    (assert-error 'posix-error (basic-binary-ipc::%ff-close fd))))
+    (assert-error 'socket-error (basic-binary-ipc::%ff-close fd))))
 
 (define-test poll-fd-event-test/sexp
   (labels ((true (expression revents)
