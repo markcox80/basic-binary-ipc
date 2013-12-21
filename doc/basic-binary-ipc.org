@@ -3,8 +3,8 @@
 
 This system provides an interface for performing inter process
 communication using streams. The interface follows a non-blocking
-pattern which allows the system to be used both synchronously and
-asynchronously.
+pattern which allows applications to communicate either synchronously
+or asynchronously.
 
 [TABLE-OF-CONTENTS]
 
@@ -17,10 +17,10 @@ These libraries can be obtained using [[http://www.quicklisp.org][Quicklisp]].
 Access to the operating system's networking API is performed using the
 foreign function interface provided by ~CFFI~. The operating systems
 that are supported are:
-- [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7.5)
-- [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1)
-- Linux (Tested with [[http://www.debian.org][Debian]] squeeze)
-- [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with Windows 8)
+- [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7.5, 32 bit and 64 bit)
+- [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1, 32 bit and 64 bit)
+- Linux (Tested with [[http://www.debian.org][Debian]] squeeze, 32 bit and 64 bit)
+- [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with Windows 8, 64 bit MinGW)
 
 The system can be loaded in to the current Lisp environment via ASDF.
 #+begin_src lisp

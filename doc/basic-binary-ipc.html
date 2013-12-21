@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="Basic Binary Inter Process Communication"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-12-16T20:32+1000"/>
+<meta name="generated" content="2013-12-21T20:15+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -119,8 +119,8 @@ for the JavaScript code in this tag.
 
 <p>This system provides an interface for performing inter process
 communication using streams. The interface follows a non-blocking
-pattern which allows the system to be used both synchronously and
-asynchronously.
+pattern which allows applications to communicate either synchronously
+or asynchronously.
 </p>
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
@@ -166,13 +166,13 @@ Access to the operating system's networking API is performed using the
 foreign function interface provided by <code>CFFI</code>. The operating systems
 that are supported are:
 </p><ul>
-<li><a href="http://www.apple.com/osx/">Apple OSX</a> (Tested with version 10.7.5)
+<li><a href="http://www.apple.com/osx/">Apple OSX</a> (Tested with version 10.7.5, 32 bit and 64 bit)
 </li>
-<li><a href="http://www.freebsd.org">FreeBSD</a> (Tested with version 9.1)
+<li><a href="http://www.freebsd.org">FreeBSD</a> (Tested with version 9.1, 32 bit and 64 bit)
 </li>
-<li>Linux (Tested with <a href="http://www.debian.org">Debian</a> squeeze)
+<li>Linux (Tested with <a href="http://www.debian.org">Debian</a> squeeze, 32 bit and 64 bit)
 </li>
-<li><a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with Windows 8)
+<li><a href="http://windows.microsoft.com/en-US/windows/home">Microsoft Windows</a> (Tested with Windows 8, 64 bit MinGW)
 </li>
 </ul>
 
@@ -796,7 +796,7 @@ from the <code>POLLER</code> class.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-12-16T20:32+1000</p>
+<p class="date">Date: 2013-12-21T20:15+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.4 with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
