@@ -2,11 +2,11 @@ Basic Binary IPC
 ================
 
 The basic binary IPC system provides an interface for performing inter
-process communication using streams. The interface follows a
-non-blocking pattern which allows the system to be used both
-synchronously and asynchronously.
+process communication using IPv4 or local streams. The interface
+follows a non-blocking pattern which allows applications to
+communicate either synchronously or asynchronously.
 
-The system has been tested on the following platforms:
+The interface has been implemented for the following platforms:
 - Linux (poll and epoll)
 - OSX (poll and kqueue)
 - FreeBSD (poll and kqueue)
@@ -14,6 +14,8 @@ The system has been tested on the following platforms:
 
 The complete documentation to this system can be found in
 `doc/basic-binary-ipc.html`.
+
+The only requirement for this system is `CFFI`.
 
 Example
 -------
@@ -29,7 +31,7 @@ The echo server can be started using
 The ech client can be executed using
 ```common-lisp
 (load "examples/echo-example.lisp")
-(echo-example:send-to-server "Hello World" +ipv4-loopback+ 12345)
+(echo-example:send-to-server "Hello World" basic-binary-ipc:+ipv4-loopback+ 12345)
 ```
 
 ### Server
