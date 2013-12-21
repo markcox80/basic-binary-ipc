@@ -50,12 +50,12 @@ The echo client can be executed using
        :do
        (with-socket (client (accept-connection server))
          (loop
-	    :for attempts :from 0 :below 3
-	    :for data-available := (poll-socket client 'data-available-p 10)
-	    :when data-available
-	    :do
-	    (let ((bytes-read (read-from-stream client buffer)))
-	      (write-to-stream client buffer :end bytes-read)))))))
+            :for attempts :from 0 :below 3
+            :for data-available := (poll-socket client 'data-available-p 10)
+            :when data-available
+            :do
+            (let ((bytes-read (read-from-stream client buffer)))
+              (write-to-stream client buffer :end bytes-read)))))))
 ```
 
 ### Client
