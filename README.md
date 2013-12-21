@@ -77,7 +77,7 @@ The echo client can be executed using
        :for data-available := (poll-socket client 'data-available-p 10)
        :until data-available
        :finally (unless data-available
-		  (error "Echo server not working.")))
+                  (error "Echo server not working.")))
     
     (let* ((buffer (make-array 100000 :element-type '(unsigned-byte 8)))
            (bytes-read (read-from-stream client buffer)))
