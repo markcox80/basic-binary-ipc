@@ -80,6 +80,6 @@ The echo client can be executed using
 		  (error "Echo server not working.")))
     
     (let* ((buffer (make-array 100000 :element-type '(unsigned-byte 8)))
-	   (bytes-read (read-from-stream client buffer)))
+           (bytes-read (read-from-stream client buffer)))
       (babel:octets-to-string buffer :end bytes-read))))
 ```
