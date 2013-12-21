@@ -28,7 +28,7 @@ The echo server can be started using
 (echo-example:run-server 12345)
 ```
 
-The ech client can be executed using
+The echo client can be executed using
 ```common-lisp
 (load "examples/echo-example.lisp")
 (echo-example:send-to-server "Hello World" basic-binary-ipc:+ipv4-loopback+ 12345)
@@ -49,7 +49,7 @@ The ech client can be executed using
        :when result
        :do
        (with-socket (client (accept-connection server))
-	 (loop
+         (loop
 	    :for attempts :from 0 :below 3
 	    :for data-available := (poll-socket client 'data-available-p 10)
 	    :when data-available
