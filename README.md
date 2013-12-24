@@ -13,7 +13,8 @@ The interface has been implemented for the following platforms:
 - Windows 8 (Overlapped I/O)
 
 The complete documentation to this system can be found in
-`doc/basic-binary-ipc.html`.
+`doc/basic-binary-ipc.html` or
+[online](http://markcox80.github.io/basic-binary-ipc/).
 
 The only requirement for this system is `CFFI`.
 
