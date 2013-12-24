@@ -1,0 +1,415 @@
+#+TITLE: Basic Binary Inter Process Communication
+#+AUTHOR: Mark Cox
+
+This system provides an interface for performing inter process
+communication using streams. The interface follows a non-blocking
+pattern which allows applications to communicate either synchronously
+or asynchronously.
+
+[TABLE-OF-CONTENTS]
+
+* Installation
+The prerequisite systems for this extension are
+- [[http://common-lisp.net/project/cffi/][~CFFI~]]
+- [[https://github.com/OdonataResearchLLC/lisp-unit][Lisp Unit]] (tests only)
+These libraries can be obtained using [[http://www.quicklisp.org][Quicklisp]].
+
+Access to the operating system's networking API is performed using the
+foreign function interface provided by ~CFFI~. The operating systems
+that are supported are:
+- [[http://www.apple.com/osx/][Apple OSX]] (Tested with version 10.7.5, 32 bit and 64 bit)
+- [[http://www.freebsd.org][FreeBSD]] (Tested with version 9.1, 32 bit and 64 bit)
+- Linux (Tested with [[http://www.debian.org][Debian]] squeeze, 32 bit and 64 bit)
+- [[http://windows.microsoft.com/en-US/windows/home][Microsoft Windows]] (Tested with Windows 8, 64 bit MinGW)
+
+The system can be loaded in to the current Lisp environment via ASDF.
+#+begin_src lisp
+(asdf:load-system "basic-binary-ipc")
+#+end_src
+
+The tests for the system can be executed via ASDF as well.
+#+begin_src lisp
+(asdf:test-system "basic-binary-ipc")
+#+end_src
+All tests should succeed.
+
+* Introduction
+The goal of this system is to provide an easy method for establishing
+a communication channel known as a stream. A stream is a
+bidirectional, full duplex communication channel with the guarantee
+that the order in which data is read is the same as the order it was
+written and that the data written is the same as the data read.
+
+The term stream used in this system is not to be confused with the
+Common Lisp stream. The two terms are distinct. The main reason for
+this distinction is that every operation in this system is
+non-blocking and changes in state are obtained via a polling
+interface. The benefit of the polling strategy is that it does not
+require callbacks which allows the library to be used in either
+synchronous or asynchronous settings.
+
+* Namespaces
+An application must consider the namespace in which two processes are
+to communicate. A namespace represents the lower level protocol that
+the stream is constructed on top of. This library can construct
+streams in the following namespaces
+- [[*IPv4][IPv4 namespace]] :: The Internet protocol version 4 namespace using the
+          transmission control protocol.
+- [[*Local][Local namespace]] :: Local or Unix domain sockets for communicating between
+           processes located on the same physical device. 
+
+Once a namespace is chosen, the functions for that namespace determine
+how to initiate a connection to a server or start a new server that is
+capable of accepting incoming connections. Both of these tasks involve
+creating a specialised socket.
+
+* Sockets
+A socket represents an operating system resource that is needed to
+perform communication. Once a socket is no longer required, its
+resources must be released using the ~CLOSE-SOCKET~ function.
+#+begin_src lisp
+  (defgeneric close-socket (object))
+#+end_src
+A socket has been closed if the predicate ~SOCKET-CLOSED-P~ is
+non ~NIL~.
+
+Objects implementing the socket protocol inherit from the ~SOCKET~
+class.
+
+This library provides protocols for two different types of sockets,
+the stream server socket and the stream socket.
+
+Lastly, this library adheres to the philosophy that errors should only
+be signaled in exceptional circumstances. If an exceptional
+circumstance occurs during any operation then an error of type
+~SOCKET-ERROR~ is signaled. Some operations are capable of signaling
+other error types.
+
+** Stream Servers
+The stream server protocol represents sockets that listen for
+connections from clients. Accepting a new connection is performed
+using the ~ACCEPT-CONNECTION~ function.
+#+begin_src lisp
+  (defgeneric accept-connection (server))
+#+end_src
+This function returns a new object that implements the [[*Stream Clients][stream socket]]
+protocol.  The ~ACCEPT-CONNECTION~ function will signal a
+~NO-CONNECTION-AVAILABLE-ERROR~ condition if there is no client
+waiting for acknowledgment from the server.
+
+It should be noted that the returned stream socket is dissociated from
+the server that created the connection i.e. calling ~CLOSE-SOCKET~ on
+a server will /not/ terminate any of its accepted connections.
+
+The predicate ~CONNECTION-AVAILABLE-P~ returns non ~NIL~ if the server
+has connections available.
+#+begin_src lisp
+  (defgeneric connection-available-p (server))
+#+end_src
+
+All objects implementing the stream server protocol inherit from the
+~STREAM-SERVER~ class.
+
+** Stream Sockets
+A stream socket represents a stream that is either established or in
+the process of being established.
+
+There are two ways to create a stream socket. The first is to use a
+namespace specific function to initiate a connection to a server. The
+second is using the ~ACCEPT-CONNECTION~ function on a server object.
+
+Once a stream socket has been created, it immediately starts to
+establish the stream by negotiating with the remote socket. This
+negotiation may take a significant amount of time, and in some cases
+may fail to complete e.g. a network failure, an overloaded server or
+an unreachable host. This period of uncertainty is modelled by the
+future connection protocol and is implemented by all instances of the
+~STREAM-SOCKET~ class.
+
+The predicate 
+#+begin_src lisp
+(defgeneric determinedp (future-connection))
+#+end_src
+can be used to determine if the the operating system has finished
+trying to negotiate a new stream connection. The result of the
+negotiation can be obtained using the predicates ~CONNECTION-FAILED-P~
+or ~CONNECTION-SUCCEEDED-P~.
+#+begin_src lisp
+  (defgeneric connection-failed-p (future-connection))
+  (defgeneric connection-succeeded-p (future-connection))
+#+end_src
+
+If the connection is successful, the stream protocol outlined next can
+ be used to send and receive data over the newly created stream.
+
+The function ~DATA-AVAILABLE-P~ can be used to determine if there is
+data that can be read immediately from the stream using the function
+~READ-FROM-STREAM~.
+#+begin_src lisp
+  (defgeneric data-available-p (stream))
+  (defgeneric read-from-stream (stream buffer &key start end peek))
+#+end_src
+The return value of ~READ-FROM-STREAM~ is the number of bytes written
+to ~BUFFER~. This can be either the number of bytes that are
+immediately available for reading or the value ~(- END START)~. If
+~PEEK~ is ~T~ then ~READ-FROM-STREAM~ obtains data from the stream
+without removing it from the stream. i.e. the next call to
+~READ-FROM-STREAM~ will contain exactly the same data.
+
+Note that it is possible for ~READ-FROM-STREAM~ to signal an error
+despite ~DATA-AVAILABLE-P~ having returned true! This is the nature of
+communication channels where the path connecting the two stream
+sockets is governed by a large number of interacting agents.
+
+Writing data to the stream is performed using the function
+~WRITE-TO-STREAM~.
+#+begin_src lisp
+  (defgeneric write-to-stream (stream buffer &key start end))
+#+end_src
+The return value of ~WRITE-TO-STREAM~ is the number of bytes
+written. If no bytes can be written then this function returns
+~0~.
+
+The predicate ~READY-TO-WRITE-P~ can be used to determine if data can
+be written immediately.
+#+begin_src lisp
+(defgeneric ready-to-write-p (stream))
+#+end_src
+Please be aware that the function ~WRITE-TO-STREAM~ can still fail
+even if ~READY-TO-WRITE-P~ returned non ~NIL~.
+
+Last but not least, the predicate ~REMOTE-DISCONNECTED-P~ can be used
+to determine if the connection between the two stream sockets has been
+severed.
+#+begin_src lisp
+(defgeneric remote-disconnected-p (stream))
+#+end_src
+
+* IPv4
+The IPv4 namespace is the namespace that is the foundation of the
+Internet. The Transmission Control Protocol (TCP) is the underlying
+protocol used to establish a stream in the IPv4 namespace. A stream
+socket in the IPv4 namespace is uniquely defined by a local host
+address, a local port number, a remote host address and a remote port
+number.
+
+The function ~MAKE-IPV4-TCP-SERVER~ can be used to create a IPv4
+stream server that listens for incoming connections to ~PORT~ on the
+host ~ADDRESS~.
+#+begin_src lisp
+(defun make-ipv4-tcp-server (host-address port &key reuse-socket-address backlog))
+#+end_src
+The number ~PORT~ must be of type ~(UNSIGNED-BYTE 16)~ and the value
+of ~HOST-ADDRESS~ must be a string in dotted-quad format. e.g
+~127.0.0.1~ or one of the constants:
+- ~+IPV4-LOOPBACK+~ :: The address of the localhost IPv4 network
+     interface.
+- ~+IPV4-ANY+~ :: All IPv4 network interfaces for the host.
+
+The value returned from ~MAKE-IPV4-TCP-SERVER~ is an instance of type
+~IPV4-TCP-SERVER~ and adheres to the [[*Stream Server][stream server]] protocol. The
+object returned also implements the following functions
+#+begin_src lisp
+  (defgeneric host-address (ipv4-tcp-server))
+  (defgeneric port (ipv4-tcp-server))
+#+end_src
+
+The function ~CONNECT-TO-IPV4-TCP-SERVER~ creates a stream socket that
+connects to the TCP/IPv4 server listening on the socket address
+defined by ~HOST-ADDRESS~ and ~PORT~.
+#+begin_src lisp
+  (defun connect-to-ipv4-tcp-server (host-address port &key local-host-address local-port))
+#+end_src
+The arguments ~LOCAL-HOST-ADDRESS~ and ~LOCAL-PORT~ can be used to
+specify which local host address and port number should be used to
+connect to the server. If these are not specified, then a random port
+number and an appropriate host address are chosen.
+
+Stream sockets obtained by using ~ACCEPT-CONNECTION~ or
+~CONNECT-TO-IPV4-TCP-SERVER~ are of type ~IPV4-TCP-STREAM~. This class
+extends the stream socket protocol with the following functions
+#+begin_src lisp
+  (defgeneric local-host-address (stream))
+  (defgeneric local-port (stream))
+  (defgeneric remote-host-address (stream))
+  (defgeneric remote-port (stream))
+#+end_src
+
+The function ~CONNECT-TO-IPV4-TCP-SERVER~ only accepts host addresses
+in dotted quad format (i.e. ~127.0.0.1~). The function
+~RESOLVE-IPV4-ADDRESS~ can be used to obtain a host address for a
+given domain name.
+#+begin_src lisp
+(defun resolve-ipv4-address (hostname))
+#+end_src
+If successful, a string containing the host address is returned. If no
+host address exists for the given ~HOSTNAME~ than ~NIL~ is
+returned. An ~ERROR~ is signalled if ~RESOLVE-IPV4-ADDRESS~ fails for
+any other reason.
+
+The reader should be aware that ~RESOLVE-IPV4-ADDRESS~ is a blocking
+operation i.e. the current thread will block until the address has
+been retrieved.
+
+* Local
+This section outlines how to create a communication channel between
+two processes running on the same physical machine. Local stream
+sockets are defined by a filesystem pathname to a server. Unlike IPv4,
+the Local namespace does not have the ability to determine if two
+stream sockets refer to the same stream.
+
+The function ~MAKE-LOCAL-SERVER~ creates a server that is capable of
+accepting incoming connections on the local namespace.
+#+begin_src lisp
+  (defun make-local-server (pathname &key (backlog 5) (delete-on-close t)))
+#+end_src
+The ~PATHNAME~ argument specifies the filesystem pathname where the
+server listens for connections. This pathname must not exist prior to
+calling ~MAKE-LOCAL-SERVER~. A non ~-NIL~ argument for
+~DELETE-ON-CLOSE~ specifies that ~CLOSE-SOCKET~ should delete
+~PATHNAME~ when the server is closed.
+
+The object returned by ~MAKE-LOCAL-SERVER~ is an instance of the class
+~LOCAL-SERVER~ and implements the stream server protocol. It also
+implements the function ~LOCAL-PATHNAME~ which returns the ~PATHNAME~
+argument to ~MAKE-LOCAL-SERVER~.
+#+begin_src lisp
+(defgeneric local-pathname (local-socket))
+#+end_src
+
+All stream objects returned by ~ACCEPT-CONNECTION~ are instances of
+the class ~LOCAL-STREAM~.
+
+Connections to local servers can be initiated using the function
+~CONNECT-TO-LOCAL-SERVER~.
+#+begin_src lisp
+(defun connect-to-local-server (pathname &key))
+#+end_src
+where ~PATHNAME~ is the filesystem pathname of the server. The object
+returned is an instance of type ~LOCAL-STREAM~ which implements the [[*Stream
+ Socket][stream socket]] protocol and the ~LOCAL-PATHNAME~ function mentioned
+above. If no server exists at ~PATHNAME~, then a
+~NO-LOCAL-SERVER-ERRROR~ is signalled.
+
+* Polling
+All functions outlined above work directly on the current state of the
+socket. The function ~POLL-SOCKET~ allows an application to block
+until an object changes state. e.g. data is now available or the
+remote host has disconnected.
+#+begin_src lisp
+(defgeneric poll-socket (socket socket-events timeout))
+#+end_src
+The ~TIMEOUT~ argument specifies how long to wait (in seconds) until a
+state change occurs on the socket. A value of ~:IMMEDIATE~ indicates
+that ~POLL-SOCKET~ should not wait and return the current state. A
+value of ~:INDEFINITE~ means to wait until an event occurs.
+
+The ~SOCKET-EVENTS~ argument tells the ~POLL-SOCKET~ function what
+event(s) to wait for. This argument is socket specific and can be
+either a symbol or a list of symbols. The symbols accepted correspond
+to the predicate functions for each socket object. For example, for
+stream server objects, only the symbol ~CONNECTION-AVAILABLE-P~ is
+accepted. For stream socket objects, the symbols ~DETERMINEDP~,
+~CONNECTION-SUCCEEDED-P~, ~CONNECTION-FAILED-P~, ~DATA-AVAILABLE-P~,
+~READY-TO-WRITE-P~ and/or ~REMOTE-DISCONNECTED-P~ are all permitted.
+
+The return value of ~POLL-SOCKET~ is either a ~SYMBOL~, a list of
+~SYMBOLS~ or ~NIL~. A symbol is returned only if ~SOCKET-EVENTS~ is a
+symbol. A value of ~NIL~ indicates that no events that match the
+criteria of ~SOCKET-EVENTS~ has occurred. One should not conclude that
+~TIMEOUT~ seconds has transpired when ~POLL-SOCKET~ returns ~NIL~. It
+is possible for ~POLL-SOCKETS~ to return with a value of ~NIL~ without
+timing out.
+
+An extremely useful variant of ~POLL-SOCKET~ is the ~POLL-SOCKETS~
+function.
+#+begin_src lisp
+(defun poll-sockets (all-sockets all-sockets-events timeout))
+#+end_src
+This function acts like the following
+#+begin_src lisp
+(multiplexing-collect
+  (poll-socket socket-1 socket-1-events 10)
+  (poll-socket socket-2 socket-2-events 10)
+  ..)
+#+end_src
+where the hypothetical function ~MULTIPLEXING-COLLECT~ executes all
+~POLL-SOCKET~ calls simultaneously and stops them all as soon as an
+event occurs on any socket. The return value is a list containing the
+results of performing ~POLL-SOCKET~ on that socket alone. For example
+#+begin_src lisp
+  (destructuring-bind (s1-result s2-result s3-result)
+      (poll-sockets (list s1 s2 s3)
+                    (list s1-events s2-events s3-events)
+                    10)
+    ;; do stuff with results
+    )
+#+end_src
+
+** Polling many sockets
+One draw back of ~POLL-SOCKETS~ is that every call to ~POLL-SOCKETS~
+requires traversing ~N~ sockets and their corresponding events. For
+server applications this can be problematic as ~N~ is typically large,
+~N~ changes frequently and ~POLL-SOCKETS~ is called repeatedly until
+the server stops. In order to handle this situation, the ~POLLER~
+protocol is provided.
+
+~POLLER~s represent an operating system resource that monitors many
+sockets. Creating a poller object is performed using the function
+~MAKE-POLLER~.
+#+begin_src lisp
+(defun make-poller ())
+#+end_src
+
+Waiting for events to occur with a poller is performed with the
+function ~WAIT-FOR-EVENTS~.
+#+begin_src lisp
+  (defgeneric wait-for-events (poller timeout))
+#+end_src
+The return value of ~WAIT-FOR-EVENTS~ is ~NIL~ if no events occurred
+or a list where each item is a list containing two entries, ~SOCKET~
+and ~SOCKET-EVENTS~. The ~TIMEOUT~ argument can be a positive value
+representing seconds, or it can be one of ~:IMMEDIATE~ or
+~:INDEFINITE~. Like ~POLL-SOCKET~ and ~POLL-SOCKETS~, a return value
+of ~NIL~ does not mean that the function timed out.
+
+Adding a socket to be monitored by a ~POLLER~ is performed using the
+~MONITOR-SOCKET~ function.
+#+begin_src lisp
+  (defgeneric monitor-socket (poller socket socket-events))
+#+end_src
+where ~SOCKET~ is the socket to add and ~SOCKET-EVENTS~ contain the
+events to wait for.
+
+Changing the set of events to be monitored by the poller is performed
+using the ~(SETF MONITORED-EVENTS)~ function.
+#+begin_src lisp
+  (defgeneric (setf monitored-events) (socket-events poller socket))
+#+end_src
+The current set of events being monitored can be accessed using the
+~MONITORED-EVENTS~ function.
+#+begin_src lisp
+  (defgeneric monitored-events (poller socket))
+#+end_src
+
+Removing a socket from a ~POLLER~ is achieved with the function
+~UNMONITOR-SOCKET~.
+#+begin_src lisp
+  (defgeneric unmonitor-socket (poller socket))
+#+end_src
+
+The current set of sockets being monitored can be retrieved using the
+function ~MONITORED-SOCKETS~.
+#+begin_src lisp
+  (defgeneric monitored-sockets (poller))
+#+end_src
+
+When a poller is no longer required, the function ~CLOSE-POLLER~ must
+be called in order to release the operating system resource.
+#+begin_src lisp
+  (defgeneric close-poller (poller))
+#+end_src
+
+Finally, all objects implementing the above ~POLLER~ protocol inherit
+from the ~POLLER~ class.
+
