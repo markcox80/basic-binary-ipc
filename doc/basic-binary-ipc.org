@@ -214,6 +214,11 @@ object returned also implements the following functions
   (defgeneric port (ipv4-tcp-server))
 #+end_src
 
+If the ~PORT~ argument to ~MAKE-IPV4-TCP-SERVER~ is zero, than the
+operating system will automatically assign a non-zero port to the
+server. The assigned port can be retrieved using the ~PORT~ generic
+function defined above.
+
 The function ~CONNECT-TO-IPV4-TCP-SERVER~ creates a stream socket that
 connects to the TCP/IPv4 server listening on the socket address
 defined by ~HOST-ADDRESS~ and ~PORT~.

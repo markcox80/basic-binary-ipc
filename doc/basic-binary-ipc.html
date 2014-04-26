@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="title" content="Basic Binary Inter Process Communication"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-12-21T20:15+1000"/>
+<meta name="generated" content="2014-04-26T21:39+1000"/>
 <meta name="author" content="Mark Cox"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -490,6 +490,12 @@ object returned also implements the following functions
 
 
 <p>
+If the <code>PORT</code> argument to <code>MAKE-IPV4-TCP-SERVER</code> is zero, than the
+operating system will automatically assign a non-zero port to the
+server. The assigned port can be retrieved using the <code>PORT</code> generic
+function defined above.
+</p>
+<p>
 The function <code>CONNECT-TO-IPV4-TCP-SERVER</code> creates a stream socket that
 connects to the TCP/IPv4 server listening on the socket address
 defined by <code>HOST-ADDRESS</code> and <code>PORT</code>.
@@ -796,7 +802,7 @@ from the <code>POLLER</code> class.
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2013-12-21T20:15+1000</p>
+<p class="date">Date: 2014-04-26T21:39+1000</p>
 <p class="author">Author: Mark Cox</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.4 with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
