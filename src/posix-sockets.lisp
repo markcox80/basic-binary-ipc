@@ -298,6 +298,7 @@
 	  (%ff-listen file-descriptor backlog)
 	  
 	  (cffi:with-foreign-object (length-ptr 'socklen-t)
+	    (setf (cffi:mem-ref length-ptr 'socklen-t) (cffi:foreign-type-size '(:struct sockaddr-in)))
 	    (%ff-getsockname file-descriptor sockaddr-in length-ptr)
 	    (make-instance 'ipv4-tcp-server
 			   :host-address (host-address-from-sockaddr-in sockaddr-in)
