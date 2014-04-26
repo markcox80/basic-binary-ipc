@@ -193,6 +193,8 @@
   (:tag :ipv4-tcp-socket)
   (with-socket (server (make-ipv4-tcp-server +ipv4-loopback+ 0))
     (assert-false (poll-socket server 'connection-available-p 0))
+    (assert-false (zerop (port server)))
+    (assert-equal +ipv4-loopback+ (host-address server))
     (with-socket (client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server)))
       (assert-true (poll-socket server 'connection-available-p 10))
       (with-socket (remote-client (accept-connection server))

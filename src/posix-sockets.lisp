@@ -294,13 +294,15 @@
     (with-accessors ((file-descriptor file-descriptor)) socket
       (posix-socket-initialisation-progn (socket)
 	(with-sockaddr-in (sockaddr-in :af-inet host-address port)
-	  (%ff-bind file-descriptor sockaddr-in (cffi:foreign-type-size '(:struct sockaddr-in))))
-	
-	(%ff-listen file-descriptor backlog)
-	(make-instance 'ipv4-tcp-server
-		       :host-address host-address
-		       :port port
-		       :socket socket)))))
+	  (%ff-bind file-descriptor sockaddr-in (cffi:foreign-type-size '(:struct sockaddr-in)))	  
+	  (%ff-listen file-descriptor backlog)
+	  
+	  (cffi:with-foreign-object (length-ptr 'socklen-t)
+	    (%ff-getsockname file-descriptor sockaddr-in length-ptr)
+	    (make-instance 'ipv4-tcp-server
+			   :host-address (host-address-from-sockaddr-in sockaddr-in)
+			   :port (port-from-sockaddr-in sockaddr-in)
+			   :socket socket)))))))
 
 (defmethod connection-available-p ((server ipv4-tcp-server))
   (let ((results (poll-socket server 'connection-available-p :immediate)))
