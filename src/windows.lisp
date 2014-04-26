@@ -376,24 +376,25 @@
     r))
 
 (defun make-ipv4-tcp-server (host-address port &key (backlog 5) &allow-other-keys)
-  (let* ((descriptor (handler-case (basic-binary-ipc.overlapped-io:make-ipv4-server host-address port :backlog backlog)
-		       (system-function-error (c)
-			 (error 'socket-error/system-function-error :system-function-error c))))
-	 (client-descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
-	 (server (make-instance 'ipv4-tcp-server
-				:descriptor descriptor
-				:client-descriptor client-descriptor
-				:host-address host-address
-				:port port)))
-    (alexandria:unwind-protect-case ()
-	(basic-binary-ipc.overlapped-io:accept-ipv4 descriptor
-						    client-descriptor
-						    (accept-buffer server)
-						    (accept-buffer-size server)
-						    (accept-request server))
-      (:abort
-       (close-socket server)))
-    server))
+  (multiple-value-bind (descriptor descriptor-address descriptor-port)
+      (handler-case (basic-binary-ipc.overlapped-io:make-ipv4-server host-address port :backlog backlog)
+	(system-function-error (c)
+	  (error 'socket-error/system-function-error :system-function-error c)))
+    (let* ((client-descriptor (basic-binary-ipc.overlapped-io:make-socket :af-inet :sock-stream :ipproto-tcp))
+	   (server (make-instance 'ipv4-tcp-server
+				  :descriptor descriptor
+				  :client-descriptor client-descriptor
+				  :host-address host-address
+				  :port descriptor-port)))
+      (alexandria:unwind-protect-case ()
+	  (basic-binary-ipc.overlapped-io:accept-ipv4 descriptor
+						      client-descriptor
+						      (accept-buffer server)
+						      (accept-buffer-size server)
+						      (accept-request server))
+	(:abort
+	 (close-socket server)))
+      server)))
 
 (defclass ipv4-tcp-stream (stream-socket descriptor-stream-mixin)
   ((descriptor

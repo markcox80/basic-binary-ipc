@@ -189,6 +189,16 @@
 		 (close-socket client)))
 	  (close-socket server))))))
 
+(define-test ipv4-tcp-test/server-port-zero
+  (:tag :ipv4-tcp-socket)
+  (with-socket (server (make-ipv4-tcp-server +ipv4-loopback+ 0))
+    (assert-false (poll-socket server 'connection-available-p 0))
+    (with-socket (client (connect-to-ipv4-tcp-server +ipv4-loopback+ (port server)))
+      (assert-true (poll-socket server 'connection-available-p 10))
+      (with-socket (remote-client (accept-connection server))
+	(assert-true (poll-socket client 'connection-succeeded-p 0))
+	(assert-true (poll-socket remote-client 'connection-succeeded-p 0))))))
+
 (define-test resolve-ipv4-address
   (:tag :resolve-ipv4-address)
   (assert-equal "93.184.216.119" (resolve-ipv4-address "example.com"))
