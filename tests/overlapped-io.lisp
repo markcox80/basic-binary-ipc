@@ -364,6 +364,23 @@
       (assert-false (null (local-address connection-request)))
       (assert-false (null (local-port connection-request))))))
 
+(define-test ipv4-connection/zero-port
+  (let ((address "127.0.0.1")
+	(buffer-length (minimum-accept-ipv4-buffer-size)))
+    (multiple-value-bind (socket-descriptor socket-address socket-port)
+	(make-ipv4-server address 0)
+      (with-socket (socket socket-descriptor)
+	(assert-equal address socket-address)
+	(assert-false (zerop socket-port))
+	(with-socket (remote-socket (make-socket :af-inet :sock-stream :ipproto-tcp))
+	  (cffi:with-foreign-objects ((buffer :uint8 buffer-length))
+	    (with-request (accept-request (accept-ipv4 socket remote-socket buffer buffer-length))
+	      (with-socket (client-socket (make-socket :af-inet :sock-stream :ipproto-tcp))
+		(with-request (connect-request (connect-ipv4 client-socket address socket-port))
+		  (wait-for-request connect-request 2)
+		  (wait-for-request accept-request 2)
+		  (assert-true t))))))))))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)  
   (defun do-with-ipv4 (function address port)
     (let ((buffer-length (minimum-accept-ipv4-buffer-size)))

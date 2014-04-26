@@ -557,9 +557,15 @@ CreateNamedPipe or CreateFile."
 (defun make-ipv4-server (address port &key (backlog 5))
   (initialising-socket-progn (socket (%ff-socket :af-inet :sock-stream :ipproto-tcp))
     (with-sockaddr-in (socket-address address port)
-      (%ff-bind socket socket-address (cffi:foreign-type-size '(:struct sockaddr-in))))
-    (%ff-listen socket backlog)
-    socket))
+      (%ff-bind socket socket-address (cffi:foreign-type-size '(:struct sockaddr-in)))
+      (%ff-listen socket backlog)
+
+      (cffi:with-foreign-object (length-ptr :int)
+	(%ff-getsockname socket socket-address length-ptr)	
+	(let ((in-addr-ptr (cffi:foreign-slot-pointer socket-address '(:struct sockaddr-in) 'in-addr)))
+	  (values socket
+		  (%ff-inet-ntoa (cffi:foreign-slot-value in-addr-ptr '(:struct in-addr) 's-addr))
+		  (%ff-ntohs (cffi:foreign-slot-value socket-address '(:struct sockaddr-in) 'sin-port))))))))
 
 (defclass accept-ipv4-request (request)
   ((client-descriptor
