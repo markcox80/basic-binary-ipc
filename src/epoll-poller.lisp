@@ -107,6 +107,9 @@
   (:documentation "Inspect EVENTS and SOCKET to see if the OBJECT
   event has occurred."))
 
+(defmethod monitored-events ((poller epoll-poller) socket)
+  (gethash socket (monitor-table poller)))
+
 (defmethod (setf monitored-events) (value (poller epoll-poller) socket)
   (setf value (if (listp value)
 		  value
