@@ -2,14 +2,24 @@
 
 (defun poller-test-helper (server-fn client-fn)
   (labels ((transmit-data (poller client remote-client)
+	     (assert-equal nil (monitored-events poller client))
+	     (assert-equal nil (monitored-events poller remote-client))
+	     
 	     (monitor-socket poller client '(connection-succeeded-p data-available-p ready-to-write-p))
 	     (monitor-socket poller remote-client '(connection-succeeded-p data-available-p ready-to-write-p))
+
+	     (assert-equal '(connection-succeeded-p data-available-p ready-to-write-p) (monitored-events poller client))
+	     (assert-equal '(connection-succeeded-p data-available-p ready-to-write-p) (monitored-events poller remote-client))
+
 	     (let ((events (wait-for-events poller 10)))
 	       (assert-equal '(connection-succeeded-p ready-to-write-p) (second (find client events :key #'first)))
 	       (assert-equal '(connection-succeeded-p ready-to-write-p) (second (find remote-client events :key #'first))))
 	     
 	     (setf (monitored-events poller client) '(data-available-p)
 		   (monitored-events poller remote-client) '(data-available-p))
+
+	     (assert-equal '(data-available-p) (monitored-events poller client))
+	     (assert-equal '(data-available-p) (monitored-events poller remote-client))
 	     
 	     (let ((buffer (make-array 5 :element-type '(unsigned-byte 8) :initial-contents '(0 1 2 3 4))))
 	       (write-to-stream client buffer))
