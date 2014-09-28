@@ -77,3 +77,13 @@
 (defmacro with-socket ((var form) &body body)
   `(do-with-socket ,form #'(lambda (,var)
 			     ,@body)))
+
+(defun do-with-poller (function poller)
+  (unwind-protect
+       (funcall function poller)
+    (close-poller poller)))
+
+(defmacro with-poller ((var form) &body body)
+  `(do-with-poller #'(lambda (,var)
+		       ,@body)
+     ,form))

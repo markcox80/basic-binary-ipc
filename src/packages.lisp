@@ -76,4 +76,6 @@
 
   ;; Helpers
   (:export #:with-socket
-	   #:do-with-socket))
+	   #:do-with-socket
+	   #:with-poller
+	   #:do-with-poller))
