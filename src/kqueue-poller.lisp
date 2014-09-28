@@ -169,17 +169,21 @@
 		 tv-nsec 0))
 	  ((eql timeout :indefinite) ;; do nothing.
 	   ))
-	(let ((n (kevent-wrapper (kqueue-descriptor poller)
-				 change-list-ptr 0
-				 event-list-ptr (maximum-number-of-events poller)
-				 (if (eql timeout :indefinite)
-				     (cffi:null-pointer)
-				     timespec-ptr))))
-	  (process-kqueue-events poller
-				 (loop
-				    :for index :from 0 :below n
-				    :collect
-				    (parse-kevent-struct (cffi:mem-aptr event-list-ptr kevent-struct index)))))))))
+	(handler-case (kevent-wrapper (kqueue-descriptor poller)
+				      change-list-ptr 0
+				      event-list-ptr (maximum-number-of-events poller)
+				      (if (eql timeout :indefinite)
+					  (cffi:null-pointer)
+					  timespec-ptr))
+	  (posix-error (c)
+	    (unless (posix-error-interrupted-p c)
+	      (error c)))
+	  (:no-error (n)
+	    (process-kqueue-events poller
+				   (loop
+				      :for index :from 0 :below n
+				      :collect
+				      (parse-kevent-struct (cffi:mem-aptr event-list-ptr kevent-struct index))))))))))
 
 (defun process-kqueue-events (poller events)
   (let* ((unique-file-descriptors (remove-duplicates (mapcar #'first events) :test #'=))
