@@ -48,6 +48,9 @@ ERRNO-ENUM type."
   (eql (posix-error-code condition)
        code))
 
+(defun posix-error-interrupted-p (condition)
+  (posix-error-code-p condition :eintr))
+
 (define-check-system-call check-posix (caller foreign-name return-value)
   (if (/= -1 return-value)
       return-value

@@ -58,21 +58,28 @@
 	   (setf events (compute-poll-fd-events socket socket-events))))
 
       ;; Call poll(2)
-      (%ff-poll poll-fd-array number-of-sockets (case timeout
-						  (:immediate   0)
-						  (:indefinite -1)
-						  ;; Convert to milliseconds
-						  (t           (max 0 (coerce (round (* timeout 1000)) 'integer)))))
+      (handler-case (%ff-poll poll-fd-array number-of-sockets (case timeout
+								(:immediate   0)
+								(:indefinite -1)
+								;; Convert to milliseconds
+								(t           (max 0
+										  (coerce (round (* timeout 1000))
+											  'integer)))))
+	(posix-error (c)
+	  (unless (posix-error-interrupted-p c)	    
+	    (error c)))
+	(:no-error (garbage)
+	  (declare (ignore garbage))
 
-      ;; Parse the revents field to determine events.
-      (loop
-	 :for socket :in all-sockets
-	 :for socket-events :in all-socket-events
-	 :for index :from 0
-	 :for poll-fd := (cffi:mem-aptr poll-fd-array '(:struct pollfd) index)
-	 :collect
-	 (cffi:with-foreign-slots ((revents) poll-fd (:struct pollfd))
-	   (parse-poll-fd-result socket socket-events revents))))))
+	  ;; Parse the revents field to determine events.
+	  (loop
+	     :for socket :in all-sockets
+	     :for socket-events :in all-socket-events
+	     :for index :from 0
+	     :for poll-fd := (cffi:mem-aptr poll-fd-array '(:struct pollfd) index)
+	     :collect
+	     (cffi:with-foreign-slots ((revents) poll-fd (:struct pollfd))
+	       (parse-poll-fd-result socket socket-events revents))))))))
 
 ;; Posix Poll FD event definitions helpers
 (defun poll-fd-event-test/sexp (expression events socket)
