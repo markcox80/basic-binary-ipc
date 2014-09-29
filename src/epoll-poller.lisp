@@ -64,15 +64,19 @@
 		   (maximum-number-of-events maximum-number-of-events))
       poller
     (cffi:with-foreign-objects ((events '(:struct epoll-event) maximum-number-of-events))
-      (let* ((number-of-events (%ff-epoll-wait epfd events maximum-number-of-events
-					       (cond
-						 ((eql timeout :immediate)
-						  0)
-						 ((eql timeout :indefinite)
-						  -1)
-						 (t
-						  (* timeout 1000))))))
-	(process-events poller events number-of-events)))))
+      (handler-case (%ff-epoll-wait epfd events maximum-number-of-events
+				    (cond
+				      ((eql timeout :immediate)
+				       0)
+				      ((eql timeout :indefinite)
+				       -1)
+				      (t
+				       (* timeout 1000))))
+	(posix-error (c)
+	  (unless (posix-error-interrupted-p c)
+	    (error c)))
+	(:no-error (number-of-events)
+	  (process-events poller events number-of-events))))))
 
 (defmethod monitor-socket ((poller epoll-poller) socket socket-events)
   (with-accessors ((monitor-table monitor-table)
