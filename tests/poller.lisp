@@ -133,6 +133,7 @@
       (close-socket client)
       (close-poller poller))))
 
+#+(and thread-support (not windows))
 (define-test poller/interrupt
   (:tag :poller)
   (let ((finished-properly nil))

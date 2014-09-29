@@ -29,6 +29,7 @@
 		 (close-socket local-server)))
 	  (close-socket tcp-server))))))
 
+#+(and thread-support (not windows))
 (define-test poll-sockets/interrupt
   (let ((finished-properly nil))
     (labels ((start-thread ()	     
