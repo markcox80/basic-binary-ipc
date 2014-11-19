@@ -245,21 +245,21 @@ error. BODY is a collection (event-symbol message) forms."
 (define-poll-fd-event determinedp
   (:classes posix-stream)
   (:input pollin pollout)
-  (:test (or pollout pollhup pollerr))
+  (:test (or pollout pollhup))
   (:error pollnval))
 
 #+linux
 (define-poll-fd-event connection-failed-p
   (:classes posix-stream)
   (:input pollin)
-  (:test (or pollhup pollerr))
+  (:test (or pollhup))
   (:error pollnval))
 
 #+linux
 (define-poll-fd-event connection-succeeded-p
   (:classes posix-stream)
   (:input pollout pollin)
-  (:test (and pollout (not pollhup) (not pollerr)
+  (:test (and pollout (not pollhup)
 	      (or (not pollin)
 		  (lambda (socket)
 		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
