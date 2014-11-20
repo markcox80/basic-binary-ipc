@@ -213,21 +213,21 @@ error. BODY is a collection (event-symbol message) forms."
 	    local-server)
   (:input pollin)
   (:test pollin)
-  (:error pollerr pollnval))
+  (:error pollnval))
 
 #-linux
 (define-poll-fd-event determinedp
   (:classes posix-stream)
   (:input pollout)
   (:test (or pollout pollhup))
-  (:error pollerr pollnval))
+  (:error pollnval))
 
 #-linux
 (define-poll-fd-event connection-failed-p
   (:classes posix-stream)
   (:input pollin)
   (:test pollhup)
-  (:error pollerr pollnval))
+  (:error pollnval))
 
 #-linux
 (define-poll-fd-event connection-succeeded-p
@@ -239,7 +239,7 @@ error. BODY is a collection (event-symbol message) forms."
 		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
 		      (declare (dynamic-extent buffer))
 		      (plusp (read-from-stream socket buffer :peek t)))))))
-  (:error pollerr pollnval))
+  (:error pollnval))
 
 #+linux
 (define-poll-fd-event determinedp
@@ -275,7 +275,7 @@ error. BODY is a collection (event-symbol message) forms."
 		(let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
 		  (declare (dynamic-extent buffer))
 		  (plusp (read-from-stream socket buffer :peek t))))))
-  (:error pollerr pollnval))
+  (:error pollnval))
 
 (define-poll-fd-event ready-to-write-p
   (:classes posix-stream)
@@ -286,7 +286,7 @@ error. BODY is a collection (event-symbol message) forms."
 		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
 		      (declare (dynamic-extent buffer))
 		      (plusp (read-from-stream socket buffer :peek t)))))))
-  (:error pollerr pollnval))
+  (:error pollnval))
 
 (define-poll-fd-event remote-disconnected-p
   (:classes posix-stream)
@@ -297,7 +297,7 @@ error. BODY is a collection (event-symbol message) forms."
 		    (let ((buffer (make-array 1 :element-type '(unsigned-byte 8))))
 		      (declare (dynamic-extent buffer))
 		      (= 0 (read-from-stream socket buffer :peek t)))))))
-  (:error pollerr pollnval))
+  (:error pollnval))
 
 ;; failed posix stream
 (defmethod compute-poll-fd-events ((socket failed-posix-stream) socket-events)
