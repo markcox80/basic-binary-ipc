@@ -3,6 +3,7 @@
 (defsystem "basic-binary-ipc-tests"
   :author "Mark Cox"
   :description "A collection of tests for the BASIC-BINARY-IPC system."
+  :license "Simplified BSD License variant"
   :depends-on ("basic-binary-ipc" "bordeaux-threads" "lisp-unit")
   :serial t
   :components ((:module "tests"

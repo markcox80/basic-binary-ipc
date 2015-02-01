@@ -6,6 +6,7 @@
 (defsystem "basic-binary-ipc"
   :author "Mark Cox"
   :description "A inter-process communication library for transmitting binary data over a stream."
+  :license "Simplified BSD License variant"
   :depends-on ("cffi-grovel")
   :serial t
   :components ((:module "src"
