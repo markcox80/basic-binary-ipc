@@ -13,6 +13,11 @@
     (push port *used-server-ports*)
     port))
 
+(defun example-com-valid-address (resolved-addr)
+  (cond ((string= resolved-addr "93.184.216.119") t)
+	((string= resolved-addr "93.184.216.34") t)
+	(t nil)))
+
 (define-test make-ipv4-tcp-server
   (:tag :ipv4-tcp-socket)
   (let* ((port   (random-server-port))
@@ -203,5 +208,5 @@
 
 (define-test resolve-ipv4-address
   (:tag :resolve-ipv4-address)
-  (assert-equal "93.184.216.119" (resolve-ipv4-address "example.com"))
+  (assert-true  (example-com-valid-address (resolve-ipv4-address "example.com")))
   (assert-false (resolve-ipv4-address "example12341.com")))
