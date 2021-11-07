@@ -203,5 +203,8 @@
 
 (define-test resolve-ipv4-address
   (:tag :resolve-ipv4-address)
-  (assert-equal "93.184.216.119" (resolve-ipv4-address "example.com"))
+  (assert-true (member (resolve-ipv4-address "example.com")
+                       '("93.184.216.119"
+                         "93.184.216.34")
+                       :test #'string=))
   (assert-false (resolve-ipv4-address "example12341.com")))
